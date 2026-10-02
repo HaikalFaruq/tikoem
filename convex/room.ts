@@ -155,6 +155,26 @@ export const vote = mutation({
   },
 })
 
+/**
+ * Keluar room: nama, lokasi, dan vote orang itu dihapus (Discussions #8). `urutanGabung`-nya tidak dipakai ulang,
+ * jadi warna pin orang lain tidak berubah. Sampai dihitung ulang, `kandidat[].waktuTempuh` masih bisa memuat
+ * `pesertaId` yang sudah keluar.
+ */
+export const keluar = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string() },
+  handler: async (ctx, { pesertaId, kunci }) => {
+    const { peserta, room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    const voteSaya = await ctx.db
+      .query('vote')
+      .withIndex('by_pesertaId', (q) => q.eq('pesertaId', pesertaId))
+      .unique()
+    if (voteSaya) await ctx.db.delete('vote', voteSaya._id)
+    await ctx.db.delete('peserta', pesertaId)
+    // Orang yang ikut dihitung keluar, jadi hasil yang sudah keluar jadi usang.
+    if (peserta.lokasi) await ctx.db.patch('room', room._id, { versiLokasi: (room.versiLokasi ?? 0) + 1 })
+  },
+})
+
 /** Satu query realtime untuk satu room. Kunci peserta tidak pernah ikut dikirim. */
 export const lihat = query({
   args: { kode: v.string() },
