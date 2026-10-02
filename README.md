@@ -123,7 +123,7 @@ Overpass, OpenRouteService, dan Nominatim tidak dipanggil sungguhan saat E2E. Di
 E2E_LAYANAN_TIRUAN=1 npm run test:e2e
 ```
 
-Selama E2E berjalan, env `OVERPASS_URL`, `ORS_URL`, dan `NOMINATIM_URL` di deployment Convex-mu diarahkan ke server tiruan. Setelah selesai, env-nya dikembalikan. Kalau ketiga env itu kosong, backend memakai server asli.
+Selama E2E berjalan, env `OVERPASS_URL`, `ORS_URL`, dan `NOMINATIM_URL` di deployment Convex-mu diarahkan ke server tiruan. Setelah selesai, env-nya dikembalikan. Kalau ketiga env itu kosong, backend memakai server asli. Untuk menguji keadaan gagal, taruh peserta di `LOKASI_TANPA_TEMPAT` atau `LOKASI_LAYANAN_GAGAL` dari `e2e/backend.ts`.
 
 `convex/_generated/` ikut di-commit supaya typecheck dan CI jalan tanpa backend. Isinya dibuat ulang oleh `npx convex dev`, jadi commit perubahannya bersama perubahan di `convex/`.
 

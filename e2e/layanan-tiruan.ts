@@ -26,14 +26,21 @@ function kirim(jawaban: ServerResponse, status: number, isi: unknown) {
   jawaban.end(JSON.stringify(isi))
 }
 
-/** Enam tempat di sekitar pusat kotak yang diminta `kueriOverpass`. */
-function overpass(kueri: string) {
+/**
+ * Enam tempat di sekitar pusat kotak yang diminta `kueriOverpass`, kecuali di dua daerah khusus untuk E2E keadaan gagal
+ * (lihat `LOKASI_TANPA_TEMPAT` dan `LOKASI_LAYANAN_GAGAL` di e2e/backend.ts):
+ * - di selatan lintang -60: tidak ada tempat
+ * - di utara lintang 60: layanan menjawab 503
+ */
+function overpass(kueri: string): { status: number; isi: unknown } {
   const kotak = /\((-?[\d.]+),(-?[\d.]+),(-?[\d.]+),(-?[\d.]+)\)/.exec(kueri)
-  if (!kotak) return null
+  if (!kotak) return { status: 400, isi: { remark: 'error: kueri tidak dikenal layanan tiruan' } }
   const [selatan, barat, utara, timur] = kotak.slice(1).map(Number)
   const lat = (selatan + utara) / 2
   const lng = (barat + timur) / 2
-  return {
+  if (lat < -60) return { status: 200, isi: { elements: [] } }
+  if (lat > 60) return { status: 503, isi: { error: 'layanan tiruan sengaja gagal' } }
+  const isi = {
     elements: Array.from({ length: 6 }, (_, i) => ({
       type: 'node',
       id: i + 1,
@@ -46,6 +53,7 @@ function overpass(kueri: string) {
       },
     })),
   }
+  return { status: 200, isi }
 }
 
 /** Durasi dari jarak garis lurus dibagi kecepatan profilnya. */
@@ -71,8 +79,8 @@ createServer(async (permintaan, jawaban) => {
     if (url.pathname === '/') return kirim(jawaban, 200, { siap: true })
 
     if (permintaan.method === 'POST' && url.pathname === '/overpass') {
-      const hasil = overpass(new URLSearchParams(await bacaIsi(permintaan)).get('data') ?? '')
-      return hasil ? kirim(jawaban, 200, hasil) : kirim(jawaban, 400, { remark: 'error: kueri tidak dikenal layanan tiruan' })
+      const { status, isi } = overpass(new URLSearchParams(await bacaIsi(permintaan)).get('data') ?? '')
+      return kirim(jawaban, status, isi)
     }
 
     const profil = /^\/ors\/v2\/matrix\/([\w-]+)$/.exec(url.pathname)?.[1]
