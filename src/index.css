@@ -1,9 +1,75 @@
 @import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque/opsz.css";
+@import "@fontsource-variable/figtree";
 
-/* Token warna, huruf, dan radius dari arah identitas terpilih (Discussions #3) diisi Bintang. */
+/* Identitas Tikoem: Stiker Peta + momen gabung dari Jeli Kumpul (docs/desain/identitas.html, Discussions #3). */
+
+/* Warna yang sama di kedua tema. `static` supaya variabelnya selalu ada, karena warna pin dipilih lewat style inline. */
+@theme static {
+  --color-tinta: #1B1A33;
+  --color-bintang: #FFC93C;
+  --color-merah: #FF5A36;
+
+  /* Warna pin orang ke-n: ((n - 1) mod 8) + 1. Kuning bintang tidak pernah dipakai untuk orang. */
+  --color-pin-1: #FF5A36;
+  --color-pin-2: #3D7BFF;
+  --color-pin-3: #4CC9A0;
+  --color-pin-4: #9B7BFF;
+  --color-pin-5: #FF7EB6;
+  --color-pin-6: #FF9F2E;
+  --color-pin-7: #22C3D6;
+  --color-pin-8: #C98B5E;
+}
+
 @theme {
+  --font-display: "Bricolage Grotesque Variable", "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-stiker: 20px;
+
+  /* Pegas untuk pin jatuh, tombol dilepas, dan chip. Ditekan memakai 90 ms ease-out. */
+  --ease-pegas: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+}
+
+/* Warna yang berganti di mode gelap: kelas Tailwind-nya tetap sama, nilainya ikut tema. */
+@theme inline {
+  --color-kertas: var(--kertas);
+  --color-kartu: var(--kartu);
+  --color-teks: var(--teks);
+  --color-teks-redup: var(--teks-redup);
+  --color-garis: var(--garis);
+  --color-bayangan: var(--bayangan);
+
+  --shadow-stiker: 5px 5px 0 var(--bayangan);
+  --shadow-stiker-kecil: 2px 2px 0 var(--bayangan);
+  --shadow-stiker-tekan: 1px 1px 0 var(--bayangan);
 }
 
 :root {
-  color-scheme: light dark;
+  --kertas: #F2F4FF;
+  --kartu: #FFFFFF;
+  --teks: #1B1A33;
+  --teks-redup: #545372;
+  --garis: #1B1A33;
+  --bayangan: #1B1A33;
+  color-scheme: light;
+}
+
+/* Di latar gelap, bayangan hitam hilang. Outline jadi terang seperti tepi stiker dan bayangan jadi periwinkle (catatan Haikal di #3). */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --kertas: #16152B;
+    --kartu: #23223F;
+    --teks: #EEF0FF;
+    --teks-redup: #B4B3D6;
+    --garis: #E4E3FF;
+    --bayangan: #5652B0;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-kertas font-sans text-teks antialiased;
+  }
 }
