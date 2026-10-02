@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     include: ['src/**/*.test.ts', 'convex/**/*.test.ts'],
     environment: 'node',
-    // Fondasi belum punya logika. Unit test pertama datang bersama skema Convex dan room.
-    passWithNoTests: true,
+    // Test fungsi Convex memakai convex-test di environment edge-runtime (lihat kepala convex/*.test.ts).
+    server: { deps: { inline: ['convex-test'] } },
   },
 })
