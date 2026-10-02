@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import { MAKS_PESERTA } from '../../domain/room'
 import { warnaPin } from '../../domain/warnaPin'
 import { sisaWaktu } from '../../lib/waktu'
 import { KartuStiker, Pin, Tombol } from '../../ui'
+import { BagianPeta } from '../peta/BagianPeta'
+import type { PinPeta } from '../peta/PetaLive'
 import { FormPeserta } from '../peserta/FormPeserta'
 import { BagikanLokasi } from './BagikanLokasi'
 import { BagikanRoom } from './BagikanRoom'
@@ -48,6 +50,18 @@ export function LayarRoom({ kode, keBeranda }: Props) {
   const gabung = useMutation(api.room.gabung)
   const [identitas, setIdentitas] = useState(() => bacaIdentitas(kode))
   const sekarang = useSekarang()
+  const peserta = hasil?.ok ? hasil.peserta : null
+
+  // Hanya teman yang sudah berbagi lokasi. Identitas bentuknya stabil antar render supaya peta tidak menggambar ulang.
+  const pinPeta = useMemo<PinPeta[]>(
+    () =>
+      (peserta ?? []).flatMap((p) =>
+        p.lokasi
+          ? [{ id: p.id, nama: p.nama, lokasi: p.lokasi, saya: p.id === identitas?.pesertaId, ...warnaPin(p.urutanGabung) }]
+          : [],
+      ),
+    [peserta, identitas?.pesertaId],
+  )
 
   useEffect(() => {
     document.title = `Room ${kode} · Tikoem`
@@ -79,8 +93,9 @@ export function LayarRoom({ kode, keBeranda }: Props) {
     )
   }
 
-  const { room, peserta } = hasil
-  const saya = peserta.find((p) => p.id === identitas?.pesertaId) ?? null
+  const { room } = hasil
+  const daftar = hasil.peserta
+  const saya = daftar.find((p) => p.id === identitas?.pesertaId) ?? null
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-7 px-4 pt-6 pb-16">
@@ -116,7 +131,8 @@ export function LayarRoom({ kode, keBeranda }: Props) {
               setIdentitas(null)
             }}
           />
-          <BagikanRoom kode={room.kode} sendirian={peserta.length === 1} />
+          <BagianPeta pin={pinPeta} />
+          <BagikanRoom kode={room.kode} sendirian={daftar.length === 1} />
         </>
       ) : (
         <KartuStiker as="section" aria-labelledby="gabung-judul" className="flex min-w-0 flex-col gap-5 p-5">
@@ -125,7 +141,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
               Gabung ke room ini
             </h2>
             <p className="text-sm text-teks-redup">
-              {peserta[0]?.nama ?? 'Temanmu'} mengajakmu mencari tempat ketemuan. Cukup isi nama, tanpa akun.
+              {daftar[0]?.nama ?? 'Temanmu'} mengajakmu mencari tempat ketemuan. Cukup isi nama, tanpa akun.
             </p>
           </div>
           <FormPeserta
@@ -142,7 +158,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
         </KartuStiker>
       )}
 
-      <DaftarPeserta peserta={peserta} idSaya={saya?.id ?? null} />
+      <DaftarPeserta peserta={daftar} idSaya={saya?.id ?? null} />
     </main>
   )
 }

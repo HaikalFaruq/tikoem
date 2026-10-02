@@ -33,6 +33,13 @@
   /* Pin datang: jatuh dari atas, memipih saat mendarat, lalu memantul. Pasang `origin-bottom` di elemennya. */
   --animate-jatuh: jatuh 760ms var(--ease-pegas) both;
 
+  /* Cincin perkiraan titik tengah: berdenyut pelan, memberi tanda bahwa titiknya masih bisa bergeser. */
+  --animate-denyut: denyut 2.4s ease-in-out infinite;
+
+  @keyframes denyut {
+    50% { transform: scale(1.12); opacity: 0.6; }
+  }
+
   @keyframes jatuh {
     0% { transform: translateY(-48px) scale(0.9, 1.15); opacity: 0; }
     40% { opacity: 1; }
