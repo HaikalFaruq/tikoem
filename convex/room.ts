@@ -19,6 +19,8 @@ export type Galat =
   | 'PESERTA_TIDAK_DIKENAL'
   | 'LOKASI_BELUM_CUKUP'
   | 'SEDANG_MENGHITUNG'
+  | 'ROOM_BELUM_SIAP'
+  | 'KANDIDAT_TIDAK_ADA'
 
 const gagal = (galat: Galat) => new ConvexError({ galat })
 
@@ -128,6 +130,31 @@ export const hitung = mutation({
   },
 })
 
+/**
+ * Satu orang satu vote. `kandidatId: null` membatalkan vote. Ganti pilihan menghapus vote lama dan membuat yang baru,
+ * jadi urutan `pemilih` mengikuti waktu vote terakhir, untuk animasi pin yang menumpuk di kartu tempat.
+ */
+export const vote = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string(), kandidatId: v.union(v.id('kandidat'), v.null()) },
+  handler: async (ctx, { pesertaId, kunci, kandidatId }) => {
+    const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    // Selama hitung ulang, kandidatnya akan berganti dan vote dikosongkan, jadi vote baru ditolak.
+    if (room.status !== 'siap') throw gagal('ROOM_BELUM_SIAP')
+    if (kandidatId) {
+      const kandidat = await ctx.db.get('kandidat', kandidatId)
+      if (!kandidat || kandidat.roomId !== room._id) throw gagal('KANDIDAT_TIDAK_ADA')
+    }
+
+    const lama = await ctx.db
+      .query('vote')
+      .withIndex('by_pesertaId', (q) => q.eq('pesertaId', pesertaId))
+      .unique()
+    if (lama?.kandidatId === kandidatId) return
+    if (lama) await ctx.db.delete('vote', lama._id)
+    if (kandidatId) await ctx.db.insert('vote', { roomId: room._id, pesertaId, kandidatId })
+  },
+})
+
 /** Satu query realtime untuk satu room. Kunci peserta tidak pernah ikut dikirim. */
 export const lihat = query({
   args: { kode: v.string() },
@@ -145,6 +172,11 @@ export const lihat = query({
       .query('kandidat')
       .withIndex('by_roomId_and_peringkat', (q) => q.eq('roomId', room._id))
       .take(JUMLAH_KANDIDAT_AKHIR)
+    // Urut waktu vote, dari index. Satu orang paling banyak satu vote, jadi paling banyak 24.
+    const semuaVote = await ctx.db
+      .query('vote')
+      .withIndex('by_roomId', (q) => q.eq('roomId', room._id))
+      .take(MAKS_PESERTA)
     return {
       ok: true as const,
       room: {
@@ -175,6 +207,7 @@ export const lihat = query({
         terlamaMenit: k.terlamaMenit,
         selisihMenit: k.selisihMenit,
         peringkat: k.peringkat,
+        pemilih: semuaVote.filter((x) => x.kandidatId === k._id).map((x) => x.pesertaId),
       })),
     }
   },
