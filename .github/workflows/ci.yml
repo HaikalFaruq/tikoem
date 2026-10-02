@@ -20,6 +20,9 @@ jobs:
       - run: npm test
       - run: npx playwright install --with-deps --only-shell chromium
       - run: npm run test:e2e
+        env:
+          # Backend Convex lokal tanpa akun, dibuat baru setiap kali CI jalan.
+          CONVEX_AGENT_MODE: anonymous
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
