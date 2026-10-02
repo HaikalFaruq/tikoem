@@ -20,3 +20,11 @@ export function simpanIdentitas(kode: string, identitas: IdentitasRoom) {
     // Tetap lanjut: room sudah dibuat, hanya penanda "ini aku" yang hilang saat halaman dimuat ulang.
   }
 }
+
+export function hapusIdentitas(kode: string) {
+  try {
+    localStorage.removeItem(kunciPenyimpanan(kode))
+  } catch {
+    // Tidak apa-apa: identitas yang tidak dikenali backend tetap diabaikan layar.
+  }
+}

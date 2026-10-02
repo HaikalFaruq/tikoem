@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
-import { useQuery } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { MAKS_PESERTA } from '../../domain/room'
+import { warnaPin } from '../../domain/warnaPin'
 import { sisaWaktu } from '../../lib/waktu'
 import { KartuStiker, Pin, Tombol } from '../../ui'
+import { FormPeserta } from '../peserta/FormPeserta'
+import { BagikanLokasi } from './BagikanLokasi'
 import { BagikanRoom } from './BagikanRoom'
 import { DaftarPeserta } from './DaftarPeserta'
-import { bacaIdentitas } from './identitas'
+import { bacaIdentitas, hapusIdentitas, simpanIdentitas } from './identitas'
 
 type Props = {
   kode: string
@@ -23,6 +27,12 @@ const PESAN_GALAT = {
   },
 } as const
 
+const PESAN_GALAT_GABUNG = {
+  ROOM_PENUH: `Room ini sudah penuh. Satu room maksimal ${MAKS_PESERTA} orang.`,
+  ROOM_KEDALUWARSA: 'Room ini sudah berakhir. Minta temanmu membuat room baru.',
+  ROOM_TIDAK_ADA: 'Room ini sudah tidak ada. Minta temanmu mengirim link yang baru.',
+}
+
 /** Jam sekarang yang diperbarui tiap menit, untuk hitung mundur umur room. */
 function useSekarang() {
   const [sekarang, setSekarang] = useState(() => Date.now())
@@ -35,7 +45,8 @@ function useSekarang() {
 
 export function LayarRoom({ kode, keBeranda }: Props) {
   const hasil = useQuery(api.room.lihat, { kode })
-  const [identitas] = useState(() => bacaIdentitas(kode))
+  const gabung = useMutation(api.room.gabung)
+  const [identitas, setIdentitas] = useState(() => bacaIdentitas(kode))
   const sekarang = useSekarang()
 
   useEffect(() => {
@@ -94,16 +105,42 @@ export function LayarRoom({ kode, keBeranda }: Props) {
         </div>
       </header>
 
-      {!saya && (
-        <KartuStiker className="flex items-center gap-3 p-4">
-          <Pin warna={4} ekspresi="nunggu" ukuran={32} />
-          <p className="text-sm">
-            <span className="font-bold">Kamu belum gabung room ini.</span> Form gabung (nama, lokasi, dan kendaraan) sedang dibuat.
-          </p>
+      {saya && identitas ? (
+        <>
+          <BagikanLokasi
+            identitas={identitas}
+            sudahAda={saya.lokasi !== null}
+            pin={warnaPin(saya.urutanGabung)}
+            onIdentitasHilang={() => {
+              hapusIdentitas(room.kode)
+              setIdentitas(null)
+            }}
+          />
+          <BagikanRoom kode={room.kode} sendirian={peserta.length === 1} />
+        </>
+      ) : (
+        <KartuStiker as="section" aria-labelledby="gabung-judul" className="flex min-w-0 flex-col gap-5 p-5">
+          <div className="flex flex-col gap-1">
+            <h2 id="gabung-judul" className="font-display text-2xl font-extrabold tracking-[-0.03em]">
+              Gabung ke room ini
+            </h2>
+            <p className="text-sm text-teks-redup">
+              {peserta[0]?.nama ?? 'Temanmu'} mengajakmu mencari tempat ketemuan. Cukup isi nama, tanpa akun.
+            </p>
+          </div>
+          <FormPeserta
+            labelTombol="Gabung"
+            labelMengirim="Bergabung…"
+            pesanGalat={PESAN_GALAT_GABUNG}
+            onKirim={async (data) => {
+              const baru = await gabung({ kode: room.kode, ...data })
+              const identitasBaru = { pesertaId: baru.pesertaId, kunci: baru.kunci }
+              simpanIdentitas(room.kode, identitasBaru)
+              setIdentitas(identitasBaru)
+            }}
+          />
         </KartuStiker>
       )}
-
-      <BagikanRoom kode={room.kode} sendirian={peserta.length === 1} />
 
       <DaftarPeserta peserta={peserta} idSaya={saya?.id ?? null} />
     </main>
