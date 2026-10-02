@@ -5,6 +5,7 @@ import { MAKS_PESERTA } from '../../domain/room'
 import { warnaPin } from '../../domain/warnaPin'
 import { sisaWaktu } from '../../lib/waktu'
 import { KartuStiker, Pin, Tombol } from '../../ui'
+import { BagianHasil } from '../hasil/BagianHasil'
 import { BagianPeta } from '../peta/BagianPeta'
 import type { PinPeta } from '../peta/PetaLive'
 import { FormPeserta } from '../peserta/FormPeserta'
@@ -96,6 +97,10 @@ export function LayarRoom({ kode, keBeranda }: Props) {
   const { room } = hasil
   const daftar = hasil.peserta
   const saya = daftar.find((p) => p.id === identitas?.pesertaId) ?? null
+  const lupakanIdentitas = () => {
+    hapusIdentitas(room.kode)
+    setIdentitas(null)
+  }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-7 px-4 pt-6 pb-16">
@@ -126,10 +131,14 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             identitas={identitas}
             sudahAda={saya.lokasi !== null}
             pin={warnaPin(saya.urutanGabung)}
-            onIdentitasHilang={() => {
-              hapusIdentitas(room.kode)
-              setIdentitas(null)
-            }}
+            onIdentitasHilang={lupakanIdentitas}
+          />
+          <BagianHasil
+            room={room}
+            peserta={daftar}
+            kandidat={hasil.kandidat}
+            identitas={identitas}
+            onIdentitasHilang={lupakanIdentitas}
           />
           <BagianPeta pin={pinPeta} />
           <BagikanRoom kode={room.kode} sendirian={daftar.length === 1} />
