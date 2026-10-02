@@ -2,7 +2,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from 'convex-test'
 import { ConvexError } from 'convex/values'
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { api } from './_generated/api'
 import schema from './schema'
 import { MASA_ROOM_MS } from '../src/domain/room'
@@ -127,6 +127,32 @@ describe('room lewat link', () => {
     const hasil = await t.query(api.room.lihat, { kode })
     if (!hasil.ok) throw new Error(hasil.galat)
     expect(hasil.peserta.map((p) => p.lokasi)).toEqual([null, { lat: -6.209, lng: 106.846 }])
+  })
+
+  it('room baru belum punya hasil hitung', async () => {
+    const t = siapkan()
+    const { kode } = await roomBaru(t)
+    expect(await t.query(api.room.lihat, { kode })).toMatchObject({
+      room: { status: 'menunggu_peserta', galatHitung: null, hasilPada: null, hasilUsang: false },
+      kandidat: [],
+    })
+  })
+
+  it('tombol Cari tempat butuh minimal 2 orang yang berbagi lokasi dan kunci yang benar', async () => {
+    // Jam palsu supaya action hitung yang dijadwalkan tidak jalan sendiri di latar.
+    vi.useFakeTimers()
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+    const t = siapkan()
+    const haikal = await roomBaru(t)
+    const bintang = await t.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Bintang', kendaraan: 'mobil' })
+    await t.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.26, lng: 106.81 } })
+
+    expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci }))).toBe('LOKASI_BELUM_CUKUP')
+    await t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: -6.22, lng: 106.85 } })
+    expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: bintang.pesertaId, kunci: 'tebakan' }))).toBe('PESERTA_TIDAK_DIKENAL')
+    expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: bintang.pesertaId, kunci: bintang.kunci }))).toBeNull()
   })
 
   it('tidak pernah mengirim kunci peserta lewat query', async () => {
