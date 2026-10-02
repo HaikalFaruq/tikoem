@@ -31,9 +31,9 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
-        // Warna dan ikon menyusul dari identitas visual terpilih (Discussions #3).
-        theme_color: '#ffffff',
-        background_color: '#ffffff',
+        // Warna kertas peta dari identitas terpilih (docs/desain/identitas.html). Ikon PNG menyusul di PR ikon PWA.
+        theme_color: '#F2F4FF',
+        background_color: '#F2F4FF',
         icons: [],
       },
       workbox: {
