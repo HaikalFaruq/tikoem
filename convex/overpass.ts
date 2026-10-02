@@ -2,15 +2,18 @@ import type { Titik } from '../src/domain/lokasi'
 import { bacaTempat, kueriOverpass, pilihKandidat, radiusPencarianMeter, type Tempat } from '../src/domain/tempat'
 import { PENGENAL } from './pengenal'
 
-const UTAMA = 'https://overpass-api.de/api/interpreter'
-const CADANGAN = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+const UTAMA = 'https://overpass.openstreetmap.fr/api/interpreter'
+const CADANGAN = 'https://overpass-api.de/api/interpreter'
+const KETIGA = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
 
 /**
- * Server publik Overpass sering sibuk. Saat diuji 2026-10-03, server utama beberapa kali menjawab 504 lalu berhasil
- * beberapa detik kemudian, maps.mail.ru kadang butuh 23 detik, dan dua mirror lain tidak menjawab sama sekali.
- * Jadi urutannya: server utama, server cadangan, lalu server utama sekali lagi.
+ * Urutan server dipilih dari uji langsung di Convex Cloud (2026-10-03), karena di sanalah backend production berjalan:
+ * - overpass.openstreetmap.fr menjawab 200 dalam 1,4 detik.
+ * - overpass-api.de (termasuk lz4. dan z.) menolak sambungan dari Convex Cloud ("tunnel error"). Dari koneksi rumahan
+ *   server ini jalan, kadang 504 dulu, jadi tetap dipakai sebagai cadangan untuk development di laptop.
+ * - maps.mail.ru menjawab 504, kumi.systems dan private.coffee tidak menjawab dalam 25 detik, dan sertifikat osm.jp ditolak.
  */
-const PERCOBAAN = [UTAMA, CADANGAN, UTAMA]
+const PERCOBAAN = [UTAMA, CADANGAN, KETIGA]
 
 
 /** Kalau tempat yang ditemukan kurang dari ini, radius pencarian diperluas sekali. */

@@ -3,8 +3,9 @@ import { OverpassGagal, cariTempatSekitar } from './overpass'
 import { kueriOverpass } from '../src/domain/tempat'
 
 const TEBET = { lat: -6.226, lng: 106.858 }
-const UTAMA = 'https://overpass-api.de/api/interpreter'
-const CADANGAN = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+const UTAMA = 'https://overpass.openstreetmap.fr/api/interpreter'
+const CADANGAN = 'https://overpass-api.de/api/interpreter'
+const KETIGA = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
 
 /** `ke` adalah urutan panggilan, mulai dari 0. */
 type Jawab = (server: string, kueri: string, ke: number) => Response | 'gantung'
@@ -86,10 +87,10 @@ describe('cariTempatSekitar', () => {
     expect(panggilan.map((p) => p.server)).toEqual([UTAMA, CADANGAN])
   })
 
-  it('mencoba server utama sekali lagi kalau server cadangan juga gagal', async () => {
+  it('mencoba server ketiga kalau server cadangan juga gagal', async () => {
     const { ambil, panggilan } = tiruanFetch((_, __, ke) => (ke < 2 ? json({}, 504) : json(kafe(5))))
     expect(await cariTempatSekitar(TEBET, 2000, { ambil, jedaCadanganMs: 10_000 })).toHaveLength(5)
-    expect(panggilan.map((p) => p.server)).toEqual([UTAMA, CADANGAN, UTAMA])
+    expect(panggilan.map((p) => p.server)).toEqual([UTAMA, CADANGAN, KETIGA])
   })
 
   it('melempar OverpassGagal kalau semua percobaan gagal', async () => {
