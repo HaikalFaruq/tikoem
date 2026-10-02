@@ -140,6 +140,28 @@ npm run test:e2e    # Playwright: alur pengguna di layar HP, dengan backend Conv
 
 Perilaku baru wajib disertai test: logika di unit test, alur pengguna di E2E. Tampilan dicek di lebar 320 px dan 390 px, mode terang dan gelap.
 
+## Deploy
+
+Frontend di Vercel dan backend di Convex production, dua-duanya dibangun dari `main`. `vercel.json` sudah mengatur hal-hal ini:
+
+- **Build:** Vercel menjalankan `npx convex deploy` dulu, lalu `npm run build` dengan `VITE_CONVEX_URL` milik production.
+- **Link room:** alamat seperti `/r/ABC234` diarahkan ke app, jadi link yang dibuka langsung dari WhatsApp tidak 404.
+- **Service worker:** `sw.js` tidak di-cache browser, jadi versi baru PWA cepat sampai.
+- **Pratinjau:** build pratinjau untuk branch selain `main` dilewati, karena key Convex hanya untuk production.
+
+Penyiapan sekali saja:
+
+1. Di dashboard Convex, buka project `tikoem`, deployment Production, lalu Settings. Buat **Production Deploy Key**.
+2. Di Vercel, import repo ini dari GitHub. Framework Vite terdeteksi otomatis.
+3. Tambahkan env `CONVEX_DEPLOY_KEY` berisi key tadi, untuk environment Production saja. Lalu deploy.
+4. Isi key OpenRouteService di production, lewat terminalmu sendiri:
+
+   ```bash
+   npx convex env set ORS_API_KEY <key-mu> --prod
+   ```
+
+5. Tulis alamat Vercel-nya di About repo.
+
 ## Tim
 
 <table>
