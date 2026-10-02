@@ -7,3 +7,8 @@ dev-dist
 *.tsbuildinfo
 test-results
 playwright-report
+
+# Skill agent dari `npx convex ai-files install`: besar dan bisa dipasang ulang, jadi tidak ikut di-commit.
+.agents/
+.claude/skills/
+skills-lock.json
