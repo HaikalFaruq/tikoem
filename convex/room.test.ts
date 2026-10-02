@@ -4,6 +4,7 @@ import { convexTest } from 'convex-test'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 import schema from './schema'
 import { MASA_ROOM_MS } from '../src/domain/room'
 
@@ -21,6 +22,45 @@ const galatDari = (janji: Promise<unknown>) =>
 
 /** Room baru dengan Haikal sebagai pembuat, yaitu orang ke-1. */
 const roomBaru = (t: Tes) => t.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+
+/** Room berisi Haikal dan Bintang yang hasilnya sudah keluar dengan dua kandidat. */
+async function roomSiap(t: Tes) {
+  const haikal = await roomBaru(t)
+  const bintang = await t.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Bintang', kendaraan: 'mobil' })
+  const kandidat = await t.run(async (ctx) => {
+    const room = await ctx.db
+      .query('room')
+      .withIndex('by_kode', (q) => q.eq('kode', haikal.kode))
+      .unique()
+    await ctx.db.patch('room', room!._id, { status: 'siap', hasilPada: Date.now() })
+    const id = []
+    for (const [i, nama] of ['Kafe A', 'Resto B'].entries()) {
+      id.push(
+        await ctx.db.insert('kandidat', {
+          roomId: room!._id,
+          osmId: `node/${i}`,
+          nama,
+          kategori: 'kafe',
+          lokasi: { lat: -6.2, lng: 106.8 },
+          jarakDariTengahMeter: 100,
+          waktuTempuh: [],
+          terlamaMenit: 10 + i,
+          selisihMenit: 0,
+          peringkat: i + 1,
+        }),
+      )
+    }
+    return id
+  })
+  return { haikal, bintang, kandidat }
+}
+
+/** `pemilih` tiap kandidat, urut peringkat. */
+async function pemilih(t: Tes, kode: string) {
+  const hasil = await t.query(api.room.lihat, { kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  return hasil.kandidat.map((k) => k.pemilih)
+}
 
 describe('room lewat link', () => {
   it('membuat room dan langsung menggabungkan pembuatnya sebagai orang ke-1', async () => {
@@ -153,6 +193,49 @@ describe('room lewat link', () => {
     await t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: -6.22, lng: 106.85 } })
     expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: bintang.pesertaId, kunci: 'tebakan' }))).toBe('PESERTA_TIDAK_DIKENAL')
     expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: bintang.pesertaId, kunci: bintang.kunci }))).toBeNull()
+  })
+
+  it('vote ditolak sebelum hasil keluar', async () => {
+    const t = siapkan()
+    const haikal = await roomBaru(t)
+    expect(await galatDari(t.mutation(api.room.vote, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: null }))).toBe(
+      'ROOM_BELUM_SIAP',
+    )
+  })
+
+  it('satu orang satu vote: ganti pilihan memindahkan pin, null membatalkan, dan urutannya mengikuti waktu vote', async () => {
+    const t = siapkan()
+    const { haikal, bintang, kandidat } = await roomSiap(t)
+    const [a, b] = kandidat
+    const vote = (p: { pesertaId: Id<'peserta'>; kunci: string }, kandidatId: Id<'kandidat'> | null) =>
+      t.mutation(api.room.vote, { pesertaId: p.pesertaId, kunci: p.kunci, kandidatId })
+
+    await vote(haikal, a)
+    await vote(bintang, a)
+    expect(await pemilih(t, haikal.kode)).toEqual([[haikal.pesertaId, bintang.pesertaId], []])
+
+    await vote(haikal, b)
+    expect(await pemilih(t, haikal.kode)).toEqual([[bintang.pesertaId], [haikal.pesertaId]])
+
+    // Kembali ke A: sekarang Haikal yang paling akhir vote.
+    await vote(haikal, a)
+    expect(await pemilih(t, haikal.kode)).toEqual([[bintang.pesertaId, haikal.pesertaId], []])
+
+    await vote(haikal, null)
+    await vote(haikal, null)
+    expect(await pemilih(t, haikal.kode)).toEqual([[bintang.pesertaId], []])
+  })
+
+  it('vote ke kandidat room lain atau dengan kunci yang salah ditolak', async () => {
+    const t = siapkan()
+    const satu = await roomSiap(t)
+    const dua = await roomSiap(t)
+    expect(
+      await galatDari(t.mutation(api.room.vote, { pesertaId: satu.haikal.pesertaId, kunci: satu.haikal.kunci, kandidatId: dua.kandidat[0] })),
+    ).toBe('KANDIDAT_TIDAK_ADA')
+    expect(
+      await galatDari(t.mutation(api.room.vote, { pesertaId: satu.haikal.pesertaId, kunci: 'tebakan', kandidatId: satu.kandidat[0] })),
+    ).toBe('PESERTA_TIDAK_DIKENAL')
   })
 
   it('tidak pernah mengirim kunci peserta lewat query', async () => {
