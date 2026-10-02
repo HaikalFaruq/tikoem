@@ -8,7 +8,10 @@
  * @module
  */
 
+import type * as lokasi from "../lokasi.js";
+import type * as nominatim from "../nominatim.js";
 import type * as overpass from "../overpass.js";
+import type * as pengenal from "../pengenal.js";
 import type * as room from "../room.js";
 
 import type {
@@ -18,7 +21,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  lokasi: typeof lokasi;
+  nominatim: typeof nominatim;
   overpass: typeof overpass;
+  pengenal: typeof pengenal;
   room: typeof room;
 }>;
 
