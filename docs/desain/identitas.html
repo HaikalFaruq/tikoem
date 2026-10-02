@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Identitas Tikoem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Figtree:wght@400..800&family=JetBrains+Mono:wght@400;600&display=swap" />
+<style>
+/* Layout: lembar spesifikasi satu kolom yang memakai gaya Tikoem sendiri (Stiker Peta); tiap bagian adalah stiker. */
+:root {
+  --kertas: #F2F4FF;      /* latar halaman */
+  --kartu: #FFFFFF;       /* permukaan stiker */
+  --teks: #1B1A33;
+  --teks-redup: #545372;
+  --garis: #1B1A33;       /* outline stiker */
+  --bayangan: #1B1A33;    /* bayangan keras stiker */
+  --tinta: #1B1A33;       /* wajah pin: selalu gelap, di kedua tema */
+  --merah: #FF5A36;
+  --bintang: #FFC93C;
+  --peta: #E6F2DC; --taman: #C9E8B4; --air: #A9CDFF; --jalan: #FFFFFF;
+  --pin-1: #FF5A36; --pin-2: #3D7BFF; --pin-3: #4CC9A0; --pin-4: #9B7BFF;
+  --pin-5: #FF7EB6; --pin-6: #FF9F2E; --pin-7: #22C3D6; --pin-8: #C98B5E;
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --pegas: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --kertas: #16152B; --kartu: #23223F; --teks: #EEF0FF; --teks-redup: #B4B3D6;
+    --garis: #E4E3FF; --bayangan: #5652B0;
+    --peta: #1F2E26; --taman: #284032; --air: #26467A; --jalan: #2F3B4A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --kertas: #16152B; --kartu: #23223F; --teks: #EEF0FF; --teks-redup: #B4B3D6;
+  --garis: #E4E3FF; --bayangan: #5652B0;
+  --peta: #1F2E26; --taman: #284032; --air: #26467A; --jalan: #2F3B4A;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--kertas); color: var(--teks); font: 400 16px/1.55 var(--font-sans); padding-inline: 16px; padding-block: 0 64px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; }
+code { font: 400 .86em var(--font-mono); }
+:focus-visible { outline: 3px solid var(--pin-2); outline-offset: 3px; border-radius: 8px; }
+.wrap { max-width: 1040px; margin-inline: auto; display: grid; gap: 28px; }
+.redup { color: var(--teks-redup); }
+.eyebrow { font: 600 12px/1.3 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+
+.top { display: grid; gap: 16px; padding-block: 44px 8px; }
+.top-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.top h1 { font: 800 clamp(40px, 7vw, 68px)/1 var(--font-display); letter-spacing: -.04em; font-variation-settings: "opsz" 96; }
+.top h1 span { text-shadow: 3px 3px 0 var(--merah); }
+.top .lead { font-size: 18px; max-width: 62ch; }
+.status { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; background: var(--bintang); color: var(--tinta); border: 2.5px solid var(--garis); border-radius: 999px; padding: 4px 12px; transform: rotate(-2deg); justify-self: start; }
+
+.stk { background: var(--kartu); border: 3px solid var(--garis); border-radius: 22px; box-shadow: 5px 5px 0 var(--bayangan); padding: clamp(18px, 3vw, 28px); display: grid; gap: 16px; min-width: 0; }
+.stk > h2 { font: 800 26px/1.1 var(--font-display); letter-spacing: -.03em; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 28px; }
+.btn { font: 700 15px var(--font-sans); cursor: pointer; background: var(--kartu); color: var(--teks); border: 2.5px solid var(--garis); border-radius: 999px; padding: 7px 14px; box-shadow: 2px 2px 0 var(--bayangan); transition: transform 600ms var(--pegas), box-shadow 150ms ease; justify-self: start; }
+.btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--bayangan); transition-duration: 90ms; }
+.btn[aria-pressed="true"] { background: var(--bintang); color: var(--tinta); }
+.theme { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.theme .btn { font-size: 13px; padding: 5px 12px; }
+
+/* momen gabung */
+.ill { width: 100%; max-width: 100%; height: auto; display: block; }
+.play .drop { transform-box: fill-box; transform-origin: 50% 100%; animation: drop 760ms var(--pegas) both; }
+.play .drop.d2 { animation-delay: 120ms; } .play .drop.d3 { animation-delay: 240ms; }
+.play .slide { transform-box: fill-box; transform-origin: 50% 100%; animation: slide 2.4s both; }
+.play .gooc { transform-box: fill-box; transform-origin: center; animation: gooc 2.4s both; }
+.play .sunblob { transform-box: fill-box; transform-origin: center; animation: sunblob 2.4s both; }
+.play .star { transform-box: fill-box; transform-origin: center; animation: pop 700ms 1.65s var(--pegas) both; }
+.play .tag { transform-box: fill-box; transform-origin: 0 100%; animation: pop 600ms 2.05s var(--pegas) both; }
+@keyframes drop { 0% { transform: translateY(-140px) scale(.9, 1.15); opacity: 0; } 40% { opacity: 1; } 62% { transform: translateY(0) scale(1.18, .78); } 78% { transform: scale(.93, 1.08); } 100% { transform: none; } }
+@keyframes slide {
+  0%, 38% { transform: translate(var(--ox), var(--oy)); animation-timing-function: cubic-bezier(.6, 0, .3, 1); }
+  62% { transform: translate(0, 0); }
+  70% { transform: translate(0, 0) scale(1.12, .86); }
+  79% { transform: translate(0, 0) scale(.95, 1.06); }
+  88%, 100% { transform: none; }
+}
+@keyframes gooc {
+  0%, 38% { transform: translate(var(--ox), var(--oy)); opacity: 0; animation-timing-function: cubic-bezier(.6, 0, .3, 1); }
+  40% { opacity: 1; }
+  62% { transform: translate(0, 0) scale(1); }
+  70% { transform: translate(0, 0) scale(1.55); }
+  88%, 100% { transform: none; }
+}
+@keyframes sunblob { 0%, 58% { transform: scale(.001); } 72% { transform: scale(1.5); } 100% { transform: scale(.001); } }
+.sunblob { transform: scale(.001); }
+@keyframes pop { from { transform: scale(0); } }
+
+/* pin palette */
+.pins { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 12px 8px; text-align: center; }
+.pins figure { margin: 0; display: grid; gap: 2px; justify-items: center; font-size: 12px; }
+.pins svg { width: 44px; height: auto; overflow: visible; }
+.pins b { font: 600 11px var(--font-mono); }
+.rules { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
+.sw { display: grid; gap: 4px; font-size: 13px; line-height: 1.3; }
+.sw i { display: block; height: 52px; border-radius: 12px; border: 2.5px solid var(--garis); }
+.sw code { font-size: 11px; opacity: .8; }
+
+/* sebelum/sesudah mode gelap: sengaja tetap gelap di kedua tema */
+.ba { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 16px; }
+.ba-box { background: #16152B; color: #EEF0FF; border-radius: 18px; padding: 22px; display: grid; gap: 14px; justify-items: start; }
+.ba-box .eyebrow { color: #B4B3D6; }
+.mini { background: #23223F; border: 3px solid var(--l); border-radius: 16px; box-shadow: 5px 5px 0 var(--s); padding: 14px 16px; display: flex; align-items: center; gap: 12px; font-weight: 700; color: #EEF0FF; }
+.mini svg { width: 30px; height: auto; overflow: visible; }
+.mini-btn { background: #FF5A36; color: #1B1A33; border: 3px solid var(--l); border-radius: 14px; box-shadow: 4px 4px 0 var(--s); padding: 10px 16px; font-weight: 800; }
+.before { --l: #05040F; --s: #05040F; }
+.after { --l: #E4E3FF; --s: #5652B0; }
+
+/* huruf */
+.type-disp { font: 800 clamp(30px, 5vw, 44px)/1.02 var(--font-display); letter-spacing: -.035em; font-variation-settings: "opsz" 96; }
+
+/* komponen */
+.pcard { display: grid; gap: 14px; background: var(--kartu); border: 3px solid var(--garis); border-radius: 20px; box-shadow: 5px 5px 0 var(--bayangan); padding: 18px; max-width: 420px; }
+.rank { justify-self: start; background: var(--bintang); color: var(--tinta); border: 2px solid var(--garis); border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 800; transform: rotate(-3deg); }
+.pcard h3 { font: 800 22px/1.15 var(--font-display); letter-spacing: -.03em; margin-top: 4px; }
+.pcard ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pcard li { display: grid; grid-template-columns: 30px minmax(0, 4.6em) minmax(0, 1fr) 4.2em; gap: 10px; align-items: center; font-size: 14px; }
+.av { width: 30px; height: 30px; border-radius: 50%; border: 2.5px solid var(--garis); display: grid; place-items: center; font-weight: 800; font-size: 13px; color: var(--tinta); }
+.bar { height: 12px; border: 2px solid var(--garis); border-radius: 99px; background: var(--kertas); position: relative; overflow: hidden; }
+.bar i { position: absolute; inset: 0 auto 0 0; border-right: 2px solid var(--garis); }
+.min { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pcard footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; font-size: 13.5px; border-top: 2.5px dashed var(--garis); padding-top: 12px; }
+.cta { font: 800 16px var(--font-sans); cursor: pointer; background: var(--merah); color: var(--tinta); border: 3px solid var(--garis); border-radius: 16px; box-shadow: 4px 4px 0 var(--bayangan); padding: 13px 20px; transition: transform 600ms var(--pegas), box-shadow 150ms ease; }
+.cta:active { transform: translate(3px, 3px) scale(.97, .94); box-shadow: 1px 1px 0 var(--bayangan); transition-duration: 90ms; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* tabel */
+.table-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 2px dashed color-mix(in srgb, var(--garis) 30%, transparent); }
+tr:last-child td { border-bottom: 0; }
+thead th { font: 600 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--teks-redup); }
+td:first-child { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+pre { margin: 0; overflow-x: auto; background: var(--kertas); border: 2px solid var(--garis); border-radius: 14px; padding: 16px; font: 400 12.5px/1.6 var(--font-mono); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="goo" filterUnits="userSpaceOnUse" x="0" y="0" width="320" height="220"><feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b" /><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="g" /><feComposite in="SourceGraphic" in2="g" operator="atop" /></filter>
+    <path id="pinshape" d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z" />
+    <path id="star8" d="M0 -18 L3.4 -8.3 L12.7 -12.7 L8.3 -3.4 L18 0 L8.3 3.4 L12.7 12.7 L3.4 8.3 L0 18 L-3.4 8.3 L-12.7 12.7 L-8.3 3.4 L-18 0 L-8.3 -3.4 L-12.7 -12.7 L-3.4 -8.3 Z" />
+    <g id="face" stroke="#1B1A33" stroke-width="2.2" stroke-linecap="round" fill="none"><circle cx="-5" cy="-2" r="1.6" fill="#1B1A33" /><circle cx="5" cy="-2" r="1.6" fill="#1B1A33" /><path d="M-5 4 Q0 9 5 4" /></g>
+    <clipPath id="map-clip"><rect x="2" y="2" width="316" height="216" rx="20" /></clipPath>
+  </defs>
+</svg>
+
+<main class="wrap">
+  <header class="top">
+    <div class="top-bar">
+      <span class="eyebrow redup">docs/desain · sumber token dan komponen</span>
+      <div class="theme" role="group" aria-label="Tema tampilan">
+        <button type="button" class="btn" data-set="" aria-pressed="true">Sistem</button>
+        <button type="button" class="btn" data-set="light" aria-pressed="false">Terang</button>
+        <button type="button" class="btn" data-set="dark" aria-pressed="false">Gelap</button>
+      </div>
+    </div>
+    <span class="status">Disepakati di #3 · 2 Okt 2026</span>
+    <h1><span>Identitas Tikoem</span></h1>
+    <p class="lead">Dasarnya arah A, Stiker Peta: pin berwajah, garis tebal, dan bayangan keras. Momen gabungnya diambil dari C, yaitu pin-pin yang meluncur lalu menyatu jadi bintang tempat kumpul. Halaman ini juga menjawab dua catatan Haikal: mode gelap dan warna untuk peserta ke-5 dan seterusnya.</p>
+  </header>
+
+  <section class="stk" aria-labelledby="gabung-h">
+    <span class="eyebrow">Momen khas</span>
+    <h2 id="gabung-h">Gabung jadi satu tempat</h2>
+    <p>Dimainkan sekali saat hasil keluar. Pin teman jatuh di lokasi masing-masing, lalu meluncur ke tempat terpilih dan menyatu seperti jeli. Bintang tempat kumpul muncul di atasnya. Setelah itu pin tetap berkumpul di bawah bintang, jadi keadaan akhirnya tetap terbaca tanpa animasi.</p>
+    <svg class="ill play" id="gabung" viewBox="0 0 320 220" role="img" aria-label="Tiga pin teman meluncur dan menyatu di bawah bintang tempat kumpul Kafe Taman Tebet">
+      <g clip-path="url(#map-clip)">
+        <rect width="320" height="220" fill="var(--peta)" />
+        <path d="M246 150 q34 -12 52 14 q12 28 -22 34 q-36 6 -30 -48z" fill="var(--taman)" />
+        <path d="M-10 190 C 60 160 120 220 196 196 S 300 170 332 180" stroke="var(--air)" stroke-width="20" fill="none" stroke-linecap="round" />
+        <path d="M0 96 H320 M92 0 V220 M236 0 L262 220" stroke="var(--jalan)" stroke-width="9" fill="none" />
+      </g>
+      <rect x="2" y="2" width="316" height="216" rx="20" fill="none" stroke="var(--garis)" stroke-width="3" />
+      <g filter="url(#goo)">
+        <circle class="sunblob" cx="160" cy="66" r="22" fill="var(--bintang)" />
+        <circle class="gooc" cx="112" cy="114" r="15" fill="var(--pin-1)" style="--ox:-68px;--oy:-81px" />
+        <circle class="gooc" cx="160" cy="126" r="15" fill="var(--pin-2)" style="--ox:-96px;--oy:49px" />
+        <circle class="gooc" cx="208" cy="114" r="15" fill="var(--pin-3)" style="--ox:68px;--oy:-87px" />
+      </g>
+      <g transform="translate(160 66) scale(1.25)"><use class="star" href="#star8" fill="var(--bintang)" stroke="var(--garis)" stroke-width="2.6" stroke-linejoin="round" /></g>
+      <g class="tag" transform="translate(190 50)"><rect x="0" y="-22" width="108" height="26" rx="13" fill="var(--kartu)" stroke="var(--garis)" stroke-width="2.5" /><text x="54" y="-4.5" text-anchor="middle" font-family="Figtree, sans-serif" font-weight="800" font-size="12" fill="var(--teks)">Kafe Taman Tebet</text></g>
+      <g transform="translate(112 141)"><g class="slide" style="--ox:-68px;--oy:-81px"><g class="drop"><use href="#pinshape" fill="var(--pin-1)" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round" /><use href="#face" transform="translate(0 -27)" /></g></g></g>
+      <g transform="translate(160 153)"><g class="slide" style="--ox:-96px;--oy:49px"><g class="drop d2"><use href="#pinshape" fill="var(--pin-2)" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round" /><use href="#face" transform="translate(0 -27)" /></g></g></g>
+      <g transform="translate(208 141)"><g class="slide" style="--ox:68px;--oy:-87px"><g class="drop d3"><use href="#pinshape" fill="var(--pin-3)" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round" /><use href="#face" transform="translate(0 -27)" /></g></g></g>
+    </svg>
+    <button type="button" class="btn" id="replay">Putar ulang</button>
+  </section>
+
+  <div class="grid2">
+    <section class="stk" aria-labelledby="pin-h">
+      <span class="eyebrow">Catatan Haikal #2</span>
+      <h2 id="pin-h">Warna pin untuk banyak orang</h2>
+      <ol class="rules">
+        <li>Warna dipilih dari <b>urutan gabung</b> yang dikirim backend, jadi sama di semua HP. Tidak dipilih acak atau dari nama.</li>
+        <li>Ada 8 warna pin. Orang ke-<i>n</i> memakai warna ke-<code>((n − 1) mod 8) + 1</code>.</li>
+        <li>Mulai orang ke-9, warnanya berulang tapi pin diberi aksesori: <b>9–16 kacamata</b>, <b>17–24 pita</b>.</li>
+        <li><b>Kuning bintang tidak pernah dipakai untuk orang.</b> Warna itu khusus untuk tempat kumpul.</li>
+        <li>Avatar di daftar dan kartu memakai warna yang sama dengan pinnya.</li>
+      </ol>
+      <div class="pins" id="pins" aria-label="Contoh warna pin orang ke-1 sampai ke-12, ditambah orang ke-17"></div>
+      <p class="redup" style="font-size:14px">Pertanyaan untuk kontrak data: apakah room perlu batas maksimal, misalnya 24 orang? Kalau ya, aturan ini sudah cukup tanpa kombinasi lain.</p>
+    </section>
+
+    <section class="stk" aria-labelledby="gelap-h">
+      <span class="eyebrow">Catatan Haikal #1</span>
+      <h2 id="gelap-h">Stiker di mode gelap</h2>
+      <p>Di mode gelap, outline jadi terang seperti tepi stiker yang dipotong, dan bayangan kerasnya jadi ungu periwinkle. Wajah pin tetap memakai tinta gelap di kedua tema.</p>
+      <div class="ba">
+        <div class="ba-box before"><span class="eyebrow">Sebelum</span><div class="mini"><svg viewBox="-20 -48 40 50" aria-hidden="true"><use href="#pinshape" fill="#3D7BFF" stroke="#05040F" stroke-width="3" /><use href="#face" transform="translate(0 -27)" /></svg>Kafe Taman Tebet</div><span class="mini-btn">Pilih tempat ini</span></div>
+        <div class="ba-box after"><span class="eyebrow">Sesudah</span><div class="mini"><svg viewBox="-20 -48 40 50" aria-hidden="true"><use href="#pinshape" fill="#3D7BFF" stroke="#E4E3FF" stroke-width="3" /><use href="#face" transform="translate(0 -27)" /></svg>Kafe Taman Tebet</div><span class="mini-btn">Pilih tempat ini</span></div>
+      </div>
+    </section>
+  </div>
+
+  <section class="stk" aria-labelledby="warna-h">
+    <span class="eyebrow">Warna</span>
+    <h2 id="warna-h">Palet</h2>
+    <div class="swatches">
+      <div class="sw"><i style="background:#F2F4FF"></i><b>Kertas peta</b><code>#F2F4FF / #16152B</code></div>
+      <div class="sw"><i style="background:#1B1A33"></i><b>Tinta malam</b><code>#1B1A33</code></div>
+      <div class="sw"><i style="background:#FFC93C"></i><b>Kuning bintang</b><code>#FFC93C</code></div>
+      <div class="sw"><i style="background:#FF5A36"></i><b>Merah aksi</b><code>#FF5A36</code></div>
+      <div class="sw"><i style="background:#E4E3FF"></i><b>Tepi stiker (gelap)</b><code>#E4E3FF</code></div>
+      <div class="sw"><i style="background:#5652B0"></i><b>Bayangan (gelap)</b><code>#5652B0</code></div>
+    </div>
+    <div class="swatches" id="pin-swatches"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="stk" aria-labelledby="huruf-h">
+      <span class="eyebrow">Huruf</span>
+      <h2 id="huruf-h">Bricolage Grotesque + Figtree</h2>
+      <p class="type-disp">Ketemuan di tengah, adil buat semua.</p>
+      <p>Waktu tempuh terlama 27 menit. Tidak ada yang jauh sendiri.</p>
+      <p class="redup" style="font-size:14px">Display memakai Bricolage Grotesque 800 dengan <code>opsz 96</code>, hanya untuk judul, nama tempat, dan logo. Teks lain memakai Figtree 400–800. Angka waktu tempuh memakai <code>tabular-nums</code>.</p>
+    </section>
+
+    <section class="stk" aria-labelledby="komp-h">
+      <span class="eyebrow">Komponen</span>
+      <h2 id="komp-h">Kartu tempat</h2>
+      <div class="chips" id="chips">
+        <button type="button" class="btn" aria-pressed="true">Motor</button>
+        <button type="button" class="btn" aria-pressed="false">Mobil</button>
+        <button type="button" class="btn" aria-pressed="false">Jalan kaki</button>
+      </div>
+      <article class="pcard">
+        <header><span class="rank">#1 paling adil</span><h3>Kafe Taman Tebet</h3><p class="redup" style="font-size:13.5px">Kafe · 400 m dari titik tengah</p></header>
+        <ul id="people"></ul>
+        <footer><span>Terlama <b>27 mnt</b></span><span>Selisih 5 mnt · dari 8 tempat</span></footer>
+        <button type="button" class="cta">Pilih tempat ini</button>
+      </article>
+    </section>
+  </div>
+
+  <section class="stk" aria-labelledby="gerak-h">
+    <span class="eyebrow">Gerak</span>
+    <h2 id="gerak-h">Token gerak</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col">Token</th><th scope="col">Nilai</th><th scope="col">Dipakai untuk</th></tr></thead>
+        <tbody>
+          <tr><td>--ease-pegas</td><td><code>linear()</code> pegas, sekitar 600–760 ms</td><td>Pin jatuh, tombol dilepas, chip, kartu muncul</td></tr>
+          <tr><td>--durasi-tekan</td><td>90 ms ease-out</td><td>Tombol turun ke bayangannya saat ditekan</td></tr>
+          <tr><td>--durasi-umum</td><td>260 ms <code>cubic-bezier(.2,.7,.2,1)</code></td><td>Pindah layar, sheet, toast</td></tr>
+          <tr><td>--durasi-gabung</td><td>2,4 s, sekali</td><td>Momen hasil: pin meluncur, menyatu, lalu bintang muncul</td></tr>
+          <tr><td>--durasi-rute</td><td>900 ms linear, loop</td><td>Titik-titik rute di peta selama menghitung</td></tr>
+          <tr><td>reduced motion</td><td>Tanpa gerak</td><td>Elemen langsung tampil di keadaan akhirnya</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="stk" aria-labelledby="tw-h">
+    <span class="eyebrow">Untuk PR berikutnya</span>
+    <h2 id="tw-h">Rencana <code>@theme</code> Tailwind</h2>
+    <p>Begitu fondasi app masuk, token ini dipindah ke <code>src/index.css</code>. Warna yang berubah di mode gelap memakai variabel CSS, sehingga kelas Tailwind-nya tetap sama.</p>
+<pre>@theme {
+  --color-kertas: var(--kertas);     --color-kartu: var(--kartu);
+  --color-teks: var(--teks);         --color-teks-redup: var(--teks-redup);
+  --color-garis: var(--garis);       --color-bayangan: var(--bayangan);
+  --color-tinta: #1B1A33;            --color-bintang: #FFC93C;
+  --color-merah: #FF5A36;
+  --color-pin-1: #FF5A36;  --color-pin-2: #3D7BFF;  --color-pin-3: #4CC9A0;  --color-pin-4: #9B7BFF;
+  --color-pin-5: #FF7EB6;  --color-pin-6: #FF9F2E;  --color-pin-7: #22C3D6;  --color-pin-8: #C98B5E;
+  --font-display: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --radius-stiker: 20px;
+  --shadow-stiker: 5px 5px 0 var(--bayangan);
+  --shadow-stiker-tekan: 1px 1px 0 var(--bayangan);
+  --ease-pegas: linear(0, 0.009, 0.035 2.1%, …, 1);
+}</pre>
+    <p class="redup" style="font-size:14px">Logika warna pin akan masuk ke <code>src/domain/warnaPin.ts</code> beserta unit test-nya. Fungsinya menerima urutan gabung dan mengembalikan nomor warna dan aksesori.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var names = ["Merah cabai", "Biru sungai", "Hijau taman", "Ungu anggur", "Merah jambu", "Jeruk", "Toska", "Kopi susu"];
+  var hex = ["#FF5A36", "#3D7BFF", "#4CC9A0", "#9B7BFF", "#FF7EB6", "#FF9F2E", "#22C3D6", "#C98B5E"];
+
+  // Aturan yang sama dengan rencana src/domain/warnaPin.ts
+  function warnaPin(urutan) {
+    var i = (urutan - 1) % 8;
+    var putaran = Math.floor((urutan - 1) / 8) % 3;
+    return { warna: i + 1, aksesori: ["polos", "kacamata", "pita"][putaran] };
+  }
+  function aksesori(a) {
+    if (a === "kacamata") return '<g transform="translate(0 -27)" stroke="#1B1A33" stroke-width="1.8" fill="rgba(255,255,255,.35)"><circle cx="-5.5" cy="-2" r="4.4"/><circle cx="5.5" cy="-2" r="4.4"/><path d="M-1.1 -2.5 h2.2" fill="none"/></g>';
+    if (a === "pita") return '<g transform="translate(0 -44)" stroke="var(--garis)" stroke-width="2" stroke-linejoin="round" fill="var(--bintang)"><path d="M0 0 L-9 -6 L-9 6 Z"/><path d="M0 0 L9 -6 L9 6 Z"/><circle r="2.6"/></g>';
+    return "";
+  }
+  function pinSvg(urutan) {
+    var w = warnaPin(urutan);
+    return '<svg viewBox="-22 -54 44 58" aria-hidden="true"><use href="#pinshape" fill="var(--pin-' + w.warna + ')" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round"/>' +
+      '<use href="#face" transform="translate(0 -27)"/>' + aksesori(w.aksesori) + '</svg>';
+  }
+  var urutanContoh = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 17];
+  document.getElementById("pins").innerHTML = urutanContoh.map(function (n) {
+    return '<figure>' + pinSvg(n) + '<b>ke-' + n + '</b></figure>';
+  }).join("");
+  document.getElementById("pin-swatches").innerHTML = names.map(function (n, i) {
+    return '<div class="sw"><i style="background:' + hex[i] + '"></i><b>Pin ' + (i + 1) + ' · ' + n + '</b><code>' + hex[i] + '</code></div>';
+  }).join("");
+
+  var people = [{ n: "Haikal", m: 24 }, { n: "Bintang", m: 27 }, { n: "Umar", m: 22 }];
+  document.getElementById("people").innerHTML = people.map(function (p, i) {
+    var c = "var(--pin-" + warnaPin(i + 1).warna + ")";
+    return '<li><span class="av" style="background:' + c + '" aria-hidden="true">' + p.n[0] + '</span><span>' + p.n + '</span>' +
+      '<span class="bar" aria-hidden="true"><i style="width:' + (p.m / 30 * 100).toFixed(1) + '%;background:' + c + '"></i></span><span class="min">' + p.m + ' mnt</span></li>';
+  }).join("");
+
+  document.getElementById("chips").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    this.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+  });
+  document.getElementById("replay").addEventListener("click", function () {
+    var s = document.getElementById("gabung");
+    s.classList.remove("play"); void s.getBoundingClientRect(); s.classList.add("play");
+  });
+  var root = document.documentElement, tb = document.querySelectorAll(".theme .btn");
+  tb.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var v = b.getAttribute("data-set");
+      if (v) root.setAttribute("data-theme", v); else root.removeAttribute("data-theme");
+      tb.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    });
+  });
+})();
+</script>
+</body>
+</html>
