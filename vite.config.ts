@@ -38,6 +38,16 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Peta (~1,5 MB) tidak ikut diunduh di latar belakang saat beranda dibuka, supaya tidak menghabiskan kuota.
+        // Peta disimpan saat pertama kali dipakai. Nama filenya ber-hash, jadi aman disajikan dari cache.
+        globIgnores: ['**/PetaLive-*', '**/maplibre-gl-worker-*'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/assets\/(PetaLive|maplibre-gl-worker)-[\w-]+\.(js|css)$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'tikoem-peta', expiration: { maxEntries: 8 } },
+          },
+        ],
       },
     }),
   ],
