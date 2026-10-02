@@ -15,6 +15,8 @@ export default defineSchema({
     kode: v.string(),
     status: vStatusRoom,
     kedaluwarsaPada: v.number(),
+    /** Dipasang fungsi terjadwal tepat di `kedaluwarsaPada`, karena query tidak boleh membaca jam. */
+    kedaluwarsa: v.optional(v.boolean()),
     /** Sumber `urutanGabung` berikutnya. Tidak pernah turun walaupun ada yang keluar. */
     jumlahGabung: v.number(),
     titikTengah: v.optional(vTitik),
@@ -29,7 +31,7 @@ export default defineSchema({
     kunci: v.string(),
     /** Sudah disamarkan sekitar 110 m sebelum disimpan (src/domain/lokasi.ts). */
     lokasi: v.optional(vTitik),
-  }).index('by_room', ['roomId']),
+  }).index('by_roomId_and_urutanGabung', ['roomId', 'urutanGabung']),
 
   kandidat: defineTable({
     roomId: v.id('room'),
@@ -40,13 +42,13 @@ export default defineSchema({
     jarakDariTengahMeter: v.number(),
     /** Diisi setelah waktu tempuh dihitung lewat OpenRouteService. */
     waktuTempuh: v.optional(v.array(v.object({ pesertaId: v.id('peserta'), menit: v.number() }))),
-  }).index('by_room', ['roomId']),
+  }).index('by_roomId', ['roomId']),
 
   vote: defineTable({
     roomId: v.id('room'),
     pesertaId: v.id('peserta'),
     kandidatId: v.id('kandidat'),
   })
-    .index('by_room', ['roomId'])
-    .index('by_peserta', ['pesertaId']),
+    .index('by_roomId', ['roomId'])
+    .index('by_pesertaId', ['pesertaId']),
 })

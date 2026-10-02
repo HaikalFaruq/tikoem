@@ -1,7 +1,9 @@
 import { ConvexError, v } from 'convex/values'
-import { mutation, query, type QueryCtx } from './_generated/server'
+import { internal } from './_generated/api'
+import type { Doc } from './_generated/dataModel'
+import { internalMutation, mutation, query, type QueryCtx } from './_generated/server'
 import { vKendaraan, vTitik } from './schema'
-import { MASA_ROOM_MS, buatKodeRoom, normalisasiKode, roomPenuh, sudahKedaluwarsa } from '../src/domain/room'
+import { MAKS_PESERTA, MASA_ROOM_MS, buatKodeRoom, normalisasiKode, roomPenuh, sudahKedaluwarsa } from '../src/domain/room'
 import { rapikanNama } from '../src/domain/peserta'
 import { samarkan, titikValid } from '../src/domain/lokasi'
 
@@ -22,6 +24,9 @@ async function cariRoom(ctx: QueryCtx, kodeMasukan: string) {
   return await ctx.db.query('room').withIndex('by_kode', (q) => q.eq('kode', kode)).unique()
 }
 
+/** Untuk mutation. Jam boleh dibaca di sini, jadi room tetap ditolak walaupun fungsi terjadwal belum sempat jalan. */
+const roomKedaluwarsa = (room: Doc<'room'>) => room.kedaluwarsa === true || sudahKedaluwarsa(room.kedaluwarsaPada, Date.now())
+
 export const buat = mutation({
   args: {},
   handler: async (ctx) => {
@@ -29,15 +34,20 @@ export const buat = mutation({
     for (let percobaan = 0; percobaan < 5; percobaan++) {
       const kode = buatKodeRoom(Math.random)
       if (await cariRoom(ctx, kode)) continue
-      await ctx.db.insert('room', {
-        kode,
-        status: 'menunggu_peserta',
-        kedaluwarsaPada: Date.now() + MASA_ROOM_MS,
-        jumlahGabung: 0,
-      })
+      const kedaluwarsaPada = Date.now() + MASA_ROOM_MS
+      const roomId = await ctx.db.insert('room', { kode, status: 'menunggu_peserta', kedaluwarsaPada, jumlahGabung: 0 })
+      await ctx.scheduler.runAt(kedaluwarsaPada, internal.room.tandaiKedaluwarsa, { roomId })
       return { kode }
     }
     throw new Error('Gagal membuat kode room yang unik')
+  },
+})
+
+/** Dijadwalkan saat room dibuat. Item Privasi di #1 nanti juga menghapus data peserta dari sini. */
+export const tandaiKedaluwarsa = internalMutation({
+  args: { roomId: v.id('room') },
+  handler: async (ctx, { roomId }) => {
+    if (await ctx.db.get('room', roomId)) await ctx.db.patch('room', roomId, { kedaluwarsa: true })
   },
 })
 
@@ -46,7 +56,7 @@ export const gabung = mutation({
   handler: async (ctx, args) => {
     const room = await cariRoom(ctx, args.kode)
     if (!room) throw gagal('ROOM_TIDAK_ADA')
-    if (sudahKedaluwarsa(room.kedaluwarsaPada, Date.now())) throw gagal('ROOM_KEDALUWARSA')
+    if (roomKedaluwarsa(room)) throw gagal('ROOM_KEDALUWARSA')
     if (roomPenuh(room.jumlahGabung)) throw gagal('ROOM_PENUH')
     const nama = rapikanNama(args.nama)
     if (!nama) throw gagal('NAMA_TIDAK_VALID')
@@ -73,7 +83,7 @@ export const kirimLokasi = mutation({
     if (!peserta || peserta.kunci !== kunci) throw gagal('PESERTA_TIDAK_DIKENAL')
     const room = await ctx.db.get('room', peserta.roomId)
     if (!room) throw gagal('ROOM_TIDAK_ADA')
-    if (sudahKedaluwarsa(room.kedaluwarsaPada, Date.now())) throw gagal('ROOM_KEDALUWARSA')
+    if (roomKedaluwarsa(room)) throw gagal('ROOM_KEDALUWARSA')
     if (!titikValid(lokasi)) throw gagal('LOKASI_TIDAK_VALID')
     await ctx.db.patch('peserta', pesertaId, { lokasi: samarkan(lokasi) })
   },
@@ -85,12 +95,13 @@ export const lihat = query({
   handler: async (ctx, args) => {
     const room = await cariRoom(ctx, args.kode)
     if (!room) return { ok: false as const, galat: 'ROOM_TIDAK_ADA' as const }
-    if (sudahKedaluwarsa(room.kedaluwarsaPada, Date.now())) return { ok: false as const, galat: 'ROOM_KEDALUWARSA' as const }
+    // Query tidak boleh membaca jam (convex/_generated/ai/guidelines.md), jadi yang dibaca tanda dari tandaiKedaluwarsa.
+    if (room.kedaluwarsa) return { ok: false as const, galat: 'ROOM_KEDALUWARSA' as const }
 
     const peserta = await ctx.db
       .query('peserta')
-      .withIndex('by_room', (q) => q.eq('roomId', room._id))
-      .collect()
+      .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', room._id))
+      .take(MAKS_PESERTA)
     return {
       ok: true as const,
       room: {
@@ -99,15 +110,13 @@ export const lihat = query({
         kedaluwarsaPada: room.kedaluwarsaPada,
         titikTengah: room.titikTengah ?? null,
       },
-      peserta: peserta
-        .toSorted((a, b) => a.urutanGabung - b.urutanGabung)
-        .map((p) => ({
-          id: p._id,
-          nama: p.nama,
-          kendaraan: p.kendaraan,
-          urutanGabung: p.urutanGabung,
-          lokasi: p.lokasi ?? null,
-        })),
+      peserta: peserta.map((p) => ({
+        id: p._id,
+        nama: p.nama,
+        kendaraan: p.kendaraan,
+        urutanGabung: p.urutanGabung,
+        lokasi: p.lokasi ?? null,
+      })),
     }
   },
 })

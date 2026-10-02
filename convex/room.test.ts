@@ -2,9 +2,10 @@
 /// <reference types="vite/client" />
 import { convexTest } from 'convex-test'
 import { ConvexError } from 'convex/values'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { api } from './_generated/api'
 import schema from './schema'
+import { MASA_ROOM_MS } from '../src/domain/room'
 
 // Pola `!(*.*.*)` dari dokumentasi convex-test tidak didukung glob Vite 8, jadi pakai daftar pola dengan pengecualian.
 const modules = import.meta.glob(['./**/*.ts', './**/*.js', '!./**/*.test.ts', '!./**/*.d.ts'])
@@ -75,11 +76,34 @@ describe('room lewat link', () => {
     const kode = await roomBaru(t)
     expect(await galatDari(t.mutation(api.room.gabung, { kode, nama: '   ', kendaraan: 'motor' }))).toBe('NAMA_TIDAK_VALID')
 
+    // Mutation membaca jam sendiri, jadi tetap menolak walaupun fungsi terjadwal belum sempat memasang tanda.
     await t.run(async (ctx) => {
       await ctx.db.insert('room', { kode: 'ABCDEF', status: 'menunggu_peserta', kedaluwarsaPada: Date.now() - 1, jumlahGabung: 0 })
     })
     expect(await galatDari(t.mutation(api.room.gabung, { kode: 'ABCDEF', nama: 'A', kendaraan: 'motor' }))).toBe('ROOM_KEDALUWARSA')
-    expect(await t.query(api.room.lihat, { kode: 'ABCDEF' })).toEqual({ ok: false, galat: 'ROOM_KEDALUWARSA' })
+  })
+
+  it('menandai room kedaluwarsa tepat 24 jam setelah dibuat', async () => {
+    vi.useFakeTimers()
+    try {
+      const t = siapkan()
+      const kode = await roomBaru(t)
+      const { pesertaId, kunci } = await t.mutation(api.room.gabung, { kode, nama: 'Haikal', kendaraan: 'motor' })
+
+      vi.advanceTimersByTime(MASA_ROOM_MS - 1000)
+      await t.finishInProgressScheduledFunctions()
+      expect((await t.query(api.room.lihat, { kode })).ok).toBe(true)
+
+      vi.advanceTimersByTime(1000)
+      await t.finishInProgressScheduledFunctions()
+      expect(await t.query(api.room.lihat, { kode })).toEqual({ ok: false, galat: 'ROOM_KEDALUWARSA' })
+      expect(await galatDari(t.mutation(api.room.gabung, { kode, nama: 'Telat', kendaraan: 'motor' }))).toBe('ROOM_KEDALUWARSA')
+      expect(
+        await galatDari(t.mutation(api.room.kirimLokasi, { pesertaId, kunci, lokasi: { lat: -6.2, lng: 106.8 } })),
+      ).toBe('ROOM_KEDALUWARSA')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('menyimpan lokasi yang sudah disamarkan dan hanya menerima kunci pemiliknya', async () => {
