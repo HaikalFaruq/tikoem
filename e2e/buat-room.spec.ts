@@ -76,7 +76,7 @@ test('link dengan kode huruf kecil tetap membuka room-nya', async ({ page }) => 
   await page.goto(`/r/${kode.toLowerCase()}`)
   await expect(page.getByRole('heading', { level: 1, name: kode })).toBeVisible()
   await expect(page).toHaveURL(new RegExp(`/r/${kode}$`))
-  await expect(page.getByText('Kamu belum gabung room ini.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Gabung ke room ini' })).toBeVisible()
 })
 
 test('salin link menaruh link room di clipboard', async ({ page, context }) => {

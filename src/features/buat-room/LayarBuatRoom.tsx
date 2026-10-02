@@ -1,13 +1,8 @@
-import { useState, type FormEvent } from 'react'
 import { useMutation } from 'convex/react'
-import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
-import { KENDARAAN, type Kendaraan } from '../../domain/kendaraan'
-import { MAKS_PANJANG_NAMA, rapikanNama } from '../../domain/peserta'
-import { IlustrasiKumpul, IsianTeks, KartuStiker, PilihanChip, Pin, Tombol } from '../../ui'
+import { IlustrasiKumpul, KartuStiker, Pin } from '../../ui'
+import { FormPeserta } from '../peserta/FormPeserta'
 import { simpanIdentitas } from '../room/identitas'
-
-const PESAN_NAMA = `Isi namamu, maksimal ${MAKS_PANJANG_NAMA} karakter.`
 
 type Props = {
   /** Dipanggil setelah room jadi dan identitas pembuatnya tersimpan. */
@@ -16,32 +11,6 @@ type Props = {
 
 export function LayarBuatRoom({ onDibuat }: Props) {
   const buat = useMutation(api.room.buat)
-  const [nama, setNama] = useState('')
-  const [kendaraan, setKendaraan] = useState<Kendaraan>('motor')
-  const [galatNama, setGalatNama] = useState<string | null>(null)
-  const [galatUmum, setGalatUmum] = useState<string | null>(null)
-  const [mengirim, setMengirim] = useState(false)
-
-  async function kirim(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setGalatUmum(null)
-    const namaRapi = rapikanNama(nama)
-    if (!namaRapi) {
-      setGalatNama(PESAN_NAMA)
-      return
-    }
-    setGalatNama(null)
-    setMengirim(true)
-    try {
-      const { kode, pesertaId, kunci } = await buat({ nama: namaRapi, kendaraan })
-      simpanIdentitas(kode, { pesertaId, kunci })
-      onDibuat(kode)
-    } catch (galat) {
-      setMengirim(false)
-      if (galat instanceof ConvexError && galat.data?.galat === 'NAMA_TIDAK_VALID') setGalatNama(PESAN_NAMA)
-      else setGalatUmum('Room belum berhasil dibuat. Cek koneksi internetmu, lalu coba lagi.')
-    }
-  }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col gap-8 px-4 pt-10 pb-16">
@@ -61,28 +30,15 @@ export function LayarBuatRoom({ onDibuat }: Props) {
         <h2 id="buat-judul" className="font-display text-2xl font-extrabold tracking-[-0.03em]">
           Buat room
         </h2>
-        <form noValidate onSubmit={kirim} className="flex flex-col gap-5">
-          <IsianTeks
-            label="Namamu"
-            name="nama"
-            autoComplete="given-name"
-            enterKeyHint="next"
-            placeholder="Misal: Bintang"
-            value={nama}
-            onChange={(e) => setNama(e.target.value)}
-            keterangan="Teman-temanmu melihat nama ini di room."
-            galat={galatNama}
-          />
-          <PilihanChip judul="Kamu berangkat naik apa?" pilihan={KENDARAAN} nilai={kendaraan} onUbah={setKendaraan} />
-          {galatUmum && (
-            <p role="alert" className="text-sm font-semibold">
-              {galatUmum}
-            </p>
-          )}
-          <Tombol type="submit" disabled={mengirim} className="w-full">
-            {mengirim ? 'Membuat room…' : 'Buat room'}
-          </Tombol>
-        </form>
+        <FormPeserta
+          labelTombol="Buat room"
+          labelMengirim="Membuat room…"
+          onKirim={async (data) => {
+            const { kode, pesertaId, kunci } = await buat(data)
+            simpanIdentitas(kode, { pesertaId, kunci })
+            onDibuat(kode)
+          }}
+        />
       </KartuStiker>
 
       <section aria-labelledby="cara-judul" className="flex flex-col gap-3">
