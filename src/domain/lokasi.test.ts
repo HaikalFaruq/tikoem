@@ -1,5 +1,22 @@
 import { describe, expect, it } from 'vitest'
-import { samarkan, titikValid } from './lokasi'
+import { jarakMeter, samarkan, titikValid } from './lokasi'
+
+describe('jarakMeter', () => {
+  it('satu derajat lintang kira-kira 111,2 km', () => {
+    expect(jarakMeter({ lat: 0, lng: 0 }, { lat: 1, lng: 0 })).toBeCloseTo(111_195, 0)
+  })
+
+  it('sama dari dua arah dan nol untuk titik yang sama', () => {
+    const tebet = { lat: -6.226, lng: 106.858 }
+    const kemang = { lat: -6.262, lng: 106.813 }
+    expect(jarakMeter(tebet, kemang)).toBeCloseTo(jarakMeter(kemang, tebet), 6)
+    expect(jarakMeter(tebet, tebet)).toBe(0)
+  })
+
+  it('mengambil jalan terpendek melewati garis bujur 180', () => {
+    expect(jarakMeter({ lat: 0, lng: 179.99 }, { lat: 0, lng: -179.99 })).toBeLessThan(2_300)
+  })
+})
 
 describe('titikValid', () => {
   it('menerima koordinat bumi yang wajar', () => {

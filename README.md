@@ -47,7 +47,7 @@ flowchart LR
 
 1. Satu orang membuat room, lalu link-nya dibagikan ke grup WA.
 2. Setiap teman membuka link, mengisi nama, lalu mengizinkan lokasi atau mengetik alamat.
-3. Tikoem menghitung titik tengah geografis sebagai titik awal pencarian.
+3. Tikoem menghitung titik tengah sebagai titik awal pencarian. Titik ini adalah pusat lingkaran terkecil yang memuat lokasi semua orang. Di titik itu, jarak garis lurus ke orang yang paling jauh sekecil mungkin, jadi titiknya tidak condong ke teman-teman yang tinggal berdekatan.
 4. Tempat nyata di sekitarnya diambil dari OpenStreetMap.
 5. Untuk setiap tempat, waktu tempuh dari tiap orang dihitung lewat OpenRouteService.
 6. Yang direkomendasikan adalah tempat dengan **waktu tempuh terlama paling pendek**, jadi tidak ada yang jauh sendiri. Setelah itu semua orang voting.
