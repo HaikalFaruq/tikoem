@@ -73,6 +73,25 @@ function Aksesori({ jenis }: { jenis: AksesoriPin }) {
   return null
 }
 
+type GayaGambar = Required<Pick<Props, 'warna' | 'aksesori' | 'ekspresi'>>
+
+/** Isi pin tanpa `<svg>`, untuk disusun di dalam ilustrasi. Ujung pin ada di titik (0, 0). */
+export function GambarPin({ warna, aksesori, ekspresi }: GayaGambar) {
+  return (
+    <>
+      <path
+        d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z"
+        fill={`var(--color-pin-${warna})`}
+        stroke="var(--color-garis)"
+        strokeWidth={3}
+        strokeLinejoin="round"
+      />
+      <Wajah ekspresi={ekspresi} />
+      <Aksesori jenis={aksesori} />
+    </>
+  )
+}
+
 /** Pin berwajah: tanda tiap teman di peta, daftar, dan ilustrasi. */
 export function Pin({ warna, aksesori = 'polos', ekspresi = 'senang', ukuran = 40, label, className }: Props) {
   return (
@@ -83,17 +102,10 @@ export function Pin({ warna, aksesori = 'polos', ekspresi = 'senang', ukuran = 4
       className={`shrink-0 overflow-visible ${className ?? ''}`}
       data-warna={warna}
       data-aksesori={aksesori}
+      data-ekspresi={ekspresi}
       {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}
     >
-      <path
-        d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z"
-        fill={`var(--color-pin-${warna})`}
-        stroke="var(--color-garis)"
-        strokeWidth={3}
-        strokeLinejoin="round"
-      />
-      <Wajah ekspresi={ekspresi} />
-      <Aksesori jenis={aksesori} />
+      <GambarPin warna={warna} aksesori={aksesori} ekspresi={ekspresi} />
     </svg>
   )
 }

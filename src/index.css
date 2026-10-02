@@ -29,6 +29,17 @@
 
   /* Pegas untuk pin jatuh, tombol dilepas, dan chip. Ditekan memakai 90 ms ease-out. */
   --ease-pegas: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+
+  /* Pin datang: jatuh dari atas, memipih saat mendarat, lalu memantul. Pasang `origin-bottom` di elemennya. */
+  --animate-jatuh: jatuh 760ms var(--ease-pegas) both;
+
+  @keyframes jatuh {
+    0% { transform: translateY(-48px) scale(0.9, 1.15); opacity: 0; }
+    40% { opacity: 1; }
+    62% { transform: translateY(0) scale(1.18, 0.78); }
+    78% { transform: scale(0.93, 1.08); }
+    100% { transform: none; }
+  }
 }
 
 /* Warna yang berganti di mode gelap: kelas Tailwind-nya tetap sama, nilainya ikut tema. */
