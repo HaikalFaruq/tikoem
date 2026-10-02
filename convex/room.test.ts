@@ -238,6 +238,41 @@ describe('room lewat link', () => {
     ).toBe('PESERTA_TIDAK_DIKENAL')
   })
 
+  it('keluar room menghapus nama, lokasi, dan vote, tanpa memakai ulang urutan gabung', async () => {
+    const t = siapkan()
+    const { haikal, bintang, kandidat } = await roomSiap(t)
+    await t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: -6.22, lng: 106.85 } })
+    await t.run(async (ctx) => {
+      // Hasil dianggap sudah memperhitungkan lokasi Bintang.
+      const room = (await ctx.db.query('room').first())!
+      await ctx.db.patch('room', room._id, { versiHasil: room.versiLokasi })
+    })
+    await t.mutation(api.room.vote, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[0] })
+
+    await t.mutation(api.room.keluar, { pesertaId: bintang.pesertaId, kunci: bintang.kunci })
+    const hasil = await t.query(api.room.lihat, { kode: haikal.kode })
+    if (!hasil.ok) throw new Error(hasil.galat)
+    expect(hasil.peserta.map((p) => p.nama)).toEqual(['Haikal'])
+    expect(hasil.kandidat.map((k) => k.pemilih)).toEqual([[], []])
+    expect(hasil.room.hasilUsang).toBe(true)
+    expect(await t.run((ctx) => ctx.db.get('peserta', bintang.pesertaId))).toBeNull()
+
+    // Kunci lama tidak bisa dipakai lagi, dan orang berikutnya mendapat nomor baru.
+    expect(await galatDari(t.mutation(api.room.keluar, { pesertaId: bintang.pesertaId, kunci: bintang.kunci }))).toBe(
+      'PESERTA_TIDAK_DIKENAL',
+    )
+    const umar = await t.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Umar', kendaraan: 'motor' })
+    expect(umar.urutanGabung).toBe(3)
+  })
+
+  it('keluar sebelum berbagi lokasi tidak membuat hasil usang, dan kunci yang salah ditolak', async () => {
+    const t = siapkan()
+    const { haikal, bintang } = await roomSiap(t)
+    expect(await galatDari(t.mutation(api.room.keluar, { pesertaId: bintang.pesertaId, kunci: 'tebakan' }))).toBe('PESERTA_TIDAK_DIKENAL')
+    await t.mutation(api.room.keluar, { pesertaId: bintang.pesertaId, kunci: bintang.kunci })
+    expect(await t.query(api.room.lihat, { kode: haikal.kode })).toMatchObject({ room: { hasilUsang: false } })
+  })
+
   it('tidak pernah mengirim kunci peserta lewat query', async () => {
     const t = siapkan()
     const pembuat = await roomBaru(t)
