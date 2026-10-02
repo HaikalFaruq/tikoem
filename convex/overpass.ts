@@ -1,5 +1,6 @@
 import type { Titik } from '../src/domain/lokasi'
 import { bacaTempat, kueriOverpass, pilihKandidat, radiusPencarianMeter, type Tempat } from '../src/domain/tempat'
+import { PENGENAL } from './pengenal'
 
 const UTAMA = 'https://overpass-api.de/api/interpreter'
 const CADANGAN = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
@@ -11,8 +12,6 @@ const CADANGAN = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
  */
 const PERCOBAAN = [UTAMA, CADANGAN, UTAMA]
 
-/** Overpass meminta setiap aplikasi memperkenalkan diri. */
-const PENGENAL = 'Tikoem/0.1 (https://github.com/HaikalFaruq/tikoem)'
 
 /** Kalau tempat yang ditemukan kurang dari ini, radius pencarian diperluas sekali. */
 const MIN_TEMPAT = 5
