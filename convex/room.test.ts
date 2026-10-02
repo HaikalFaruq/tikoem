@@ -126,11 +126,18 @@ describe('room lewat link', () => {
     expect(await galatDari(t.mutation(api.room.gabung, { kode: 'ABCDEF', nama: 'A', kendaraan: 'motor' }))).toBe('ROOM_KEDALUWARSA')
   })
 
-  it('menandai room kedaluwarsa tepat 24 jam setelah dibuat', async () => {
+  it('tepat 24 jam setelah dibuat, room berakhir dan semua data pribadinya dihapus', async () => {
     vi.useFakeTimers()
     try {
       const t = siapkan()
-      const { kode, pesertaId, kunci } = await roomBaru(t)
+      const { haikal, bintang, kandidat } = await roomSiap(t)
+      const { kode } = haikal
+      await t.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.26, lng: 106.81 } })
+      await t.mutation(api.room.vote, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[0] })
+      await t.run(async (ctx) => {
+        const room = (await ctx.db.query('room').first())!
+        await ctx.db.patch('room', room._id, { titikTengah: { lat: -6.24, lng: 106.83 } })
+      })
 
       vi.advanceTimersByTime(MASA_ROOM_MS - 1000)
       await t.finishInProgressScheduledFunctions()
@@ -140,9 +147,30 @@ describe('room lewat link', () => {
       await t.finishInProgressScheduledFunctions()
       expect(await t.query(api.room.lihat, { kode })).toEqual({ ok: false, galat: 'ROOM_KEDALUWARSA' })
       expect(await galatDari(t.mutation(api.room.gabung, { kode, nama: 'Telat', kendaraan: 'motor' }))).toBe('ROOM_KEDALUWARSA')
+
+      // Nama, lokasi, kunci, vote, kandidat, dan titik tengah sudah tidak ada di database.
+      const sisa = await t.run(async (ctx) => ({
+        peserta: await ctx.db.query('peserta').collect(),
+        vote: await ctx.db.query('vote').collect(),
+        kandidat: await ctx.db.query('kandidat').collect(),
+        room: await ctx.db.query('room').collect(),
+      }))
+      expect(sisa.peserta).toEqual([])
+      expect(sisa.vote).toEqual([])
+      expect(sisa.kandidat).toEqual([])
+      expect(sisa.room).toHaveLength(1)
+      expect(sisa.room[0]).toMatchObject({ kode, kedaluwarsa: true })
+      expect(sisa.room[0].titikTengah).toBeUndefined()
+      // Kunci lama tidak lagi dikenali, karena pesertanya sudah dihapus.
       expect(
-        await galatDari(t.mutation(api.room.kirimLokasi, { pesertaId, kunci, lokasi: { lat: -6.2, lng: 106.8 } })),
-      ).toBe('ROOM_KEDALUWARSA')
+        await galatDari(t.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.2, lng: 106.8 } })),
+      ).toBe('PESERTA_TIDAK_DIKENAL')
+
+      // Seminggu kemudian room dihapus seluruhnya.
+      vi.advanceTimersByTime(7 * 24 * 60 * 60 * 1000)
+      await t.finishInProgressScheduledFunctions()
+      expect(await t.query(api.room.lihat, { kode })).toEqual({ ok: false, galat: 'ROOM_TIDAK_ADA' })
+      expect(await t.run((ctx) => ctx.db.query('room').collect())).toEqual([])
     } finally {
       vi.useRealTimers()
     }

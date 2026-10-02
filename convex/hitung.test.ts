@@ -259,6 +259,37 @@ describe('alur hitung di Convex', () => {
     expect((await lihat(t, kode)).kandidat).toEqual([])
   })
 
+  it('hasil yang datang setelah room berakhir tidak menulis ulang data yang sudah dihapus', async () => {
+    vi.stubGlobal('fetch', tiruanFetch().ambil)
+    const { t, roomId, haikal } = await roomTigaOrang()
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.mutation(internal.room.tandaiKedaluwarsa, { roomId })
+
+    // Action yang dimulai sebelum room berakhir berhenti di `bahan`.
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+    // Action yang sudah lewat `bahan` sebelum room berakhir ditolak di `simpan`.
+    await t.mutation(internal.hitung.simpan, {
+      roomId,
+      putaran: 1,
+      versiLokasi: 3,
+      titikTengah: TEBET,
+      kandidat: [
+        {
+          osmId: 'node/1',
+          nama: 'Terlambat',
+          kategori: 'kafe',
+          lokasi: TEBET,
+          jarakDariTengahMeter: 10,
+          waktuTempuh: [],
+          terlamaMenit: 5,
+          selisihMenit: 0,
+          peringkat: 1,
+        },
+      ],
+    })
+    expect(await t.run((ctx) => ctx.db.query('kandidat').collect())).toEqual([])
+  })
+
   it('menolak tombol Cari tempat yang ditekan lagi saat masih menghitung', async () => {
     const { t, haikal } = await roomTigaOrang()
     await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })

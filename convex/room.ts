@@ -78,11 +78,44 @@ export const buat = mutation({
   },
 })
 
-/** Dijadwalkan saat room dibuat. Item Privasi di #1 nanti juga menghapus data peserta dari sini. */
+/** Room tanpa data pribadi disimpan selama ini supaya link lama menampilkan "room sudah berakhir", lalu dihapus. */
+const MASA_SISA_ROOM_MS = 7 * 24 * 60 * 60 * 1000
+
+/**
+ * Dijadwalkan tepat 24 jam setelah room dibuat (AGENTS.md §8). Semua data pribadi dihapus: nama, lokasi, kunci,
+ * vote, kandidat (waktu tempuhnya dihitung dari lokasi), dan titik tengah. Yang tersisa hanya kode dan status room.
+ */
 export const tandaiKedaluwarsa = internalMutation({
   args: { roomId: v.id('room') },
   handler: async (ctx, { roomId }) => {
-    if (await ctx.db.get('room', roomId)) await ctx.db.patch('room', roomId, { kedaluwarsa: true })
+    const room = await ctx.db.get('room', roomId)
+    if (!room) return
+    const vote = await ctx.db
+      .query('vote')
+      .withIndex('by_roomId', (q) => q.eq('roomId', roomId))
+      .take(MAKS_PESERTA)
+    for (const x of vote) await ctx.db.delete('vote', x._id)
+    const kandidat = await ctx.db
+      .query('kandidat')
+      .withIndex('by_roomId_and_peringkat', (q) => q.eq('roomId', roomId))
+      .take(50)
+    for (const k of kandidat) await ctx.db.delete('kandidat', k._id)
+    const peserta = await ctx.db
+      .query('peserta')
+      .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', roomId))
+      .take(MAKS_PESERTA)
+    for (const p of peserta) await ctx.db.delete('peserta', p._id)
+
+    await ctx.db.patch('room', roomId, { kedaluwarsa: true, titikTengah: undefined })
+    await ctx.scheduler.runAfter(MASA_SISA_ROOM_MS, internal.room.hapusRoom, { roomId })
+  },
+})
+
+/** Seminggu setelah berakhir, room dihapus seluruhnya dan kodenya bisa dipakai room baru. */
+export const hapusRoom = internalMutation({
+  args: { roomId: v.id('room') },
+  handler: async (ctx, { roomId }) => {
+    if (await ctx.db.get('room', roomId)) await ctx.db.delete('room', roomId)
   },
 })
 

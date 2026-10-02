@@ -27,7 +27,7 @@ export const bahan = internalQuery({
   args: { roomId: v.id('room'), putaran: v.number() },
   handler: async (ctx, { roomId, putaran }): Promise<BahanHitung | null> => {
     const room = await ctx.db.get('room', roomId)
-    if (!room || room.status !== 'menghitung' || room.putaranHitung !== putaran) return null
+    if (!room || room.kedaluwarsa || room.status !== 'menghitung' || room.putaranHitung !== putaran) return null
     const peserta = await ctx.db
       .query('peserta')
       .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', roomId))
@@ -44,7 +44,8 @@ export const simpan = internalMutation({
   args: { roomId: v.id('room'), putaran: v.number(), versiLokasi: v.number(), titikTengah: vTitik, kandidat: v.array(vKandidat) },
   handler: async (ctx, { roomId, putaran, versiLokasi, titikTengah: tengah, kandidat }) => {
     const room = await ctx.db.get('room', roomId)
-    if (!room || room.status !== 'menghitung' || room.putaranHitung !== putaran) return
+    // Room yang sudah berakhir sudah dihapus data pribadinya, jadi hasil yang datang terlambat tidak boleh menulis ulang.
+    if (!room || room.kedaluwarsa || room.status !== 'menghitung' || room.putaranHitung !== putaran) return
 
     const lama = await ctx.db
       .query('kandidat')
