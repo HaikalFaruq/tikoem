@@ -103,9 +103,11 @@ Buka alamat yang muncul di terminal.
 | `npm run typecheck` | Cek tipe TypeScript untuk `src/`, `convex/`, dan `e2e/` |
 | `npm run lint` | Lint (oxlint), termasuk aturan import antar layer. Warning dianggap gagal |
 | `npm test` | Unit test (Vitest) |
-| `npm run test:e2e` | E2E di browser HP (Playwright), build production dulu otomatis |
+| `npm run test:e2e` | E2E di browser HP (Playwright). Build production dan backend Convex lokal dijalankan otomatis |
 
 Pertama kali menjalankan E2E di mesin baru: `npx playwright install --only-shell chromium`.
+
+E2E memakai backend Convex lokal di `127.0.0.1:3210`, jadi pilih deployment lokal saat pertama kali menjalankan `npx convex dev`. Kalau `npx convex dev` sudah jalan, E2E memakai backend itu. Kalau belum, E2E menyalakannya sendiri lalu mematikannya lagi. Room yang dibuat E2E ikut tersimpan di deployment lokalmu. Di CI, backend-nya dibuat baru tanpa akun setiap kali jalan.
 
 `convex/_generated/` ikut di-commit supaya typecheck dan CI jalan tanpa backend. Isinya dibuat ulang oleh `npx convex dev`, jadi commit perubahannya bersama perubahan di `convex/`.
 
@@ -117,7 +119,7 @@ CI di GitHub Actions menjalankan semuanya di setiap PR dan setiap push ke `main`
 npm run typecheck   # tsc: src, convex, e2e
 npm run lint        # oxlint: React hooks, aksesibilitas, TypeScript, batas antar layer
 npm test            # Vitest: domain, lib, convex
-npm run test:e2e    # Playwright: alur pengguna di layar HP
+npm run test:e2e    # Playwright: alur pengguna di layar HP, dengan backend Convex lokal
 ```
 
 Perilaku baru wajib disertai test: logika di unit test, alur pengguna di E2E. Tampilan dicek di lebar 320 px dan 390 px, mode terang dan gelap.
