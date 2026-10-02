@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as overpass from "../overpass.js";
 import type * as room from "../room.js";
 
 import type {
@@ -17,6 +18,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  overpass: typeof overpass;
   room: typeof room;
 }>;
 

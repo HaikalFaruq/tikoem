@@ -9,6 +9,8 @@ export const vStatusRoom = v.union(
 )
 export const vKendaraan = v.union(v.literal('motor'), v.literal('mobil'), v.literal('jalan_kaki'))
 export const vTitik = v.object({ lat: v.number(), lng: v.number() })
+/** Sama dengan `KategoriTempat` di src/domain/tempat.ts. Stasiun belum dicari (Discussions #8). */
+export const vKategoriTempat = v.union(v.literal('kafe'), v.literal('resto'), v.literal('mall'), v.literal('stasiun'))
 
 export default defineSchema({
   room: defineTable({
@@ -37,8 +39,10 @@ export default defineSchema({
     roomId: v.id('room'),
     osmId: v.string(),
     nama: v.string(),
-    kategori: v.string(),
+    kategori: vKategoriTempat,
     lokasi: vTitik,
+    /** Nama jalan dari `addr:street` OSM, diringkas. Tidak ada kalau OSM tidak punya datanya. */
+    alamat: v.optional(v.string()),
     jarakDariTengahMeter: v.number(),
     /** Diisi setelah waktu tempuh dihitung lewat OpenRouteService. */
     waktuTempuh: v.optional(v.array(v.object({ pesertaId: v.id('peserta'), menit: v.number() }))),
