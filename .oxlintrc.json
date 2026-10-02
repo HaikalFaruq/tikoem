@@ -1,0 +1,70 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "unicorn", "oxc", "react", "jsx-a11y", "vitest"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "react/react-in-jsx-scope": "off"
+  },
+  "overrides": [
+    {
+      "files": ["src/lib/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [
+            { "group": ["react", "react/*", "react-dom", "react-dom/*", "motion", "motion/*", "convex", "convex/*"], "message": "lib tidak boleh import React atau Convex (AGENTS.md §6)." },
+            { "regex": "^(\\.\\./)+(domain|ui|features|app|convex)(/|$)", "message": "lib tidak boleh import layer lain (AGENTS.md §6)." }
+          ]
+        }]
+      }
+    },
+    {
+      "files": ["src/domain/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [
+            { "group": ["react", "react/*", "react-dom", "react-dom/*", "motion", "motion/*", "convex", "convex/*"], "message": "domain tidak boleh import React atau Convex (AGENTS.md §6)." },
+            { "regex": "^(\\.\\./)+(ui|features|app|convex)(/|$)", "message": "domain hanya boleh import lib (AGENTS.md §6)." }
+          ]
+        }]
+      }
+    },
+    {
+      "files": ["src/ui/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [
+            { "group": ["convex", "convex/*"], "message": "ui tidak memanggil Convex; data masuk lewat props dari features (AGENTS.md §6)." },
+            { "regex": "^(\\.\\./)+(domain|features|app|convex)(/|$)", "message": "ui hanya boleh import lib (AGENTS.md §6)." }
+          ]
+        }]
+      }
+    },
+    {
+      "files": ["src/features/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [
+            { "regex": "^(\\.\\./)+app(/|$)", "message": "features tidak boleh import app (AGENTS.md §6)." }
+          ]
+        }]
+      }
+    },
+    {
+      "files": ["convex/**"],
+      "rules": {
+        "no-restricted-imports": ["error", {
+          "patterns": [
+            { "group": ["react", "react/*", "react-dom", "react-dom/*", "motion", "motion/*"], "message": "convex berjalan di server, tanpa React (AGENTS.md §6)." },
+            { "regex": "^(\\.\\./)+src/(ui|features|app)(/|$)", "message": "convex hanya boleh import src/domain dan src/lib (AGENTS.md §6)." }
+          ]
+        }]
+      }
+    }
+  ],
+  "ignorePatterns": ["dist", "dev-dist", "test-results", "playwright-report", "convex/_generated"]
+}

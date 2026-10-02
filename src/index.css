@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* Token warna, huruf, dan radius dari arah identitas terpilih (Discussions #3) diisi Bintang. */
+@theme {
+}
+
+:root {
+  color-scheme: light dark;
+}
