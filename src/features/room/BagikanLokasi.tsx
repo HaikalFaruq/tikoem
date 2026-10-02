@@ -4,6 +4,7 @@ import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
 import { pesanGalatGeolokasi } from '../../lib/geolokasi'
 import { KartuStiker, Pin, Tombol, type AksesoriPin, type WarnaPin } from '../../ui'
+import { CariAlamat } from './CariAlamat'
 import type { IdentitasRoom } from './identitas'
 
 type Props = {
@@ -36,21 +37,15 @@ export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: P
   const kirimLokasi = useMutation(api.room.kirimLokasi)
   const [status, setStatus] = useState<'diam' | 'mencari' | 'menyimpan'>('diam')
   const [galat, setGalat] = useState<string | null>(null)
+  const [pakaiAlamat, setPakaiAlamat] = useState(false)
 
-  async function pakaiGps() {
+  /** Dipakai GPS maupun alamat. Backend yang menyamarkan lokasinya. */
+  async function simpan(posisi: Posisi) {
     setGalat(null)
-    setStatus('mencari')
-    let posisi: Posisi
-    try {
-      posisi = await ambilPosisi()
-    } catch (e) {
-      setStatus('diam')
-      setGalat(pesanGalatGeolokasi((e as { code?: number }).code ?? -1))
-      return
-    }
     setStatus('menyimpan')
     try {
       await kirimLokasi({ ...identitas, lokasi: posisi })
+      setPakaiAlamat(false)
     } catch (e) {
       const kode = e instanceof ConvexError ? (e.data as { galat?: string } | undefined)?.galat : undefined
       if (kode === 'PESERTA_TIDAK_DIKENAL') return onIdentitasHilang()
@@ -62,6 +57,21 @@ export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: P
     } finally {
       setStatus('diam')
     }
+  }
+
+  async function pakaiGps() {
+    setGalat(null)
+    setStatus('mencari')
+    let posisi: Posisi
+    try {
+      posisi = await ambilPosisi()
+    } catch (e) {
+      setStatus('diam')
+      setGalat(`${pesanGalatGeolokasi((e as { code?: number }).code ?? -1)} Bisa juga ketik alamat di bawah.`)
+      setPakaiAlamat(true)
+      return
+    }
+    await simpan(posisi)
   }
 
   const sibuk = status !== 'diam'
@@ -79,14 +89,22 @@ export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: P
             <p className="text-sm text-teks-redup">Disamarkan sekitar 100 m, jadi rumahmu tidak terlihat persis.</p>
           </div>
         </div>
-        <Tombol varian="biasa" onClick={pakaiGps} disabled={sibuk} className="self-start">
-          {labelTombol ?? 'Perbarui lokasi'}
-        </Tombol>
+        <div className="flex flex-wrap gap-2">
+          <Tombol varian="biasa" onClick={pakaiGps} disabled={sibuk}>
+            {labelTombol ?? 'Perbarui lewat GPS'}
+          </Tombol>
+          {!pakaiAlamat && (
+            <Tombol varian="biasa" onClick={() => setPakaiAlamat(true)} disabled={sibuk}>
+              Pakai alamat
+            </Tombol>
+          )}
+        </div>
         {galat && (
           <p role="alert" className="text-sm font-semibold">
             {galat}
           </p>
         )}
+        {pakaiAlamat && <CariAlamat onPilih={simpan} sibuk={sibuk} />}
       </KartuStiker>
     )
   }
@@ -113,7 +131,12 @@ export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: P
           {galat}
         </p>
       )}
-      <p className="text-sm text-teks-redup">Pilihan ketik alamat segera hadir untuk yang tidak bisa memakai GPS.</p>
+      <div className="flex items-center gap-3 text-sm font-semibold text-teks-redup" aria-hidden>
+        <span className="h-0.5 flex-1 rounded-full bg-garis/20" />
+        atau
+        <span className="h-0.5 flex-1 rounded-full bg-garis/20" />
+      </div>
+      <CariAlamat onPilih={simpan} sibuk={sibuk} />
     </KartuStiker>
   )
 }

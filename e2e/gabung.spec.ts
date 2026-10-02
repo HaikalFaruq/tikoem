@@ -74,3 +74,44 @@ test('room yang sudah 24 orang menolak orang berikutnya dengan pesan yang jelas'
   await expect(page.getByRole('alert')).toContainText('Room ini sudah penuh. Satu room maksimal 24 orang.')
   await expect(page.locator('li', { hasText: 'Telat' })).toHaveCount(0)
 })
+
+test.describe('ketik alamat', () => {
+  // Pencarian sungguhan memanggil Nominatim lewat backend. Di sini hanya jalur yang tidak memanggilnya,
+  // supaya E2E tidak bergantung internet dan tidak membebani Nominatim.
+
+  test('isian alamat ada di kartu lokasi dan teks yang terlalu pendek ditolak di layar', async ({ page }) => {
+    const { kode } = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'mobil' })
+    await page.goto(`/r/${kode}`)
+    await page.getByLabel('Namamu').fill('Gita')
+    await page.getByRole('button', { name: 'Gabung' }).click()
+
+    const alamat = page.getByLabel('Ketik alamat atau nama tempat')
+    await expect(alamat).toBeVisible()
+    await alamat.fill('  ab ')
+    await page.getByRole('button', { name: 'Cari', exact: true }).click()
+    await expect(page.getByRole('alert')).toContainText('Ketik minimal 3 huruf')
+  })
+
+  test('izin lokasi ditolak menyarankan ketik alamat', async ({ page }) => {
+    const { kode } = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'mobil' })
+    await page.goto(`/r/${kode}`)
+    await page.getByLabel('Namamu').fill('Yuda')
+    await page.getByRole('button', { name: 'Gabung' }).click()
+    await page.getByRole('button', { name: 'Pakai lokasiku sekarang' }).click()
+    await expect(page.getByRole('alert')).toContainText('Bisa juga ketik alamat di bawah.')
+    await expect(page.getByLabel('Ketik alamat atau nama tempat')).toBeVisible()
+  })
+
+  test('yang lokasinya sudah masuk bisa menggantinya lewat alamat', async ({ page }) => {
+    const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'mobil' })
+    await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.2, lng: 106.85 } })
+    await page.goto('/')
+    await page.evaluate(([k, v]) => localStorage.setItem(`tikoem:peserta:${k}`, JSON.stringify(v)), [haikal.kode, haikal] as const)
+    await page.goto(`/r/${haikal.kode}`)
+
+    await expect(page.getByRole('heading', { name: 'Lokasimu sudah masuk' })).toBeVisible()
+    await expect(page.getByLabel('Ketik alamat atau nama tempat')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Pakai alamat' }).click()
+    await expect(page.getByLabel('Ketik alamat atau nama tempat')).toBeVisible()
+  })
+})
