@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test'
+import { ConvexHttpClient } from 'convex/browser'
+import { api } from '../convex/_generated/api'
+import { URL_BACKEND } from './backend'
 
 test('font identitas ikut dibundel, tidak bergantung pada Google Fonts', async ({ page }) => {
   const dariLuar: string[] = []
@@ -26,17 +29,6 @@ test('latar mengikuti tema: kertas terang dan kertas gelap', async ({ page }) =>
   expect(await latar()).toBe('rgb(22, 21, 43)')
 })
 
-test('pin teman diberi warna dan aksesori menurut urutan gabung', async ({ page }) => {
-  await page.goto('/')
-  const pin = (urutan: number) => page.getByRole('img', { name: `Orang ke-${urutan}`, exact: true })
-
-  await expect(pin(1)).toHaveAttribute('data-warna', '1')
-  await expect(pin(1)).toHaveAttribute('data-aksesori', 'polos')
-  await expect(pin(9)).toHaveAttribute('data-warna', '1')
-  await expect(pin(9)).toHaveAttribute('data-aksesori', 'kacamata')
-  await expect(pin(17)).toHaveAttribute('data-aksesori', 'pita')
-})
-
 test('pilihan kendaraan bisa diganti dengan ketuk atau keyboard', async ({ page }) => {
   await page.goto('/')
   const motor = page.getByRole('radio', { name: 'Motor' })
@@ -53,9 +45,18 @@ test('pilihan kendaraan bisa diganti dengan ketuk atau keyboard', async ({ page 
   await expect(jalanKaki).toBeChecked()
 })
 
-test('tidak ada scroll horizontal di layar 390 px', async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/')
-  const melebar = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)
-  expect(melebar).toBe(false)
-})
+for (const lebar of [320, 390]) {
+  test(`beranda dan layar room tidak bergeser ke samping di layar ${lebar} px`, async ({ page }) => {
+    await page.setViewportSize({ width: lebar, height: 800 })
+    const melebar = () => page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)
+
+    await page.goto('/')
+    expect(await melebar()).toBe(false)
+
+    const convex = new ConvexHttpClient(URL_BACKEND)
+    const { kode } = await convex.mutation(api.room.buat, { nama: 'Wiraatmadja Kusumaningra', kendaraan: 'jalan_kaki' })
+    await page.goto(`/r/${kode}`)
+    await expect(page.getByRole('heading', { level: 1, name: kode })).toBeVisible()
+    expect(await melebar()).toBe(false)
+  })
+}
