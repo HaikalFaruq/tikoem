@@ -3,7 +3,7 @@ import { PENGENAL } from './pengenal'
 
 const URL_CARI = 'https://nominatim.openstreetmap.org/search'
 
-export type OpsiNominatim = { ambil?: typeof fetch; batasMs?: number }
+export type OpsiNominatim = { ambil?: typeof fetch; batasMs?: number; url?: string }
 
 export class NominatimGagal extends Error {
   override name = 'NominatimGagal'
@@ -14,11 +14,14 @@ export class NominatimGagal extends Error {
  * Aturan pakai Nominatim: paling banyak satu permintaan per detik dan tanpa autocomplete,
  * jadi layar hanya memanggil ini saat tombol cari ditekan (Discussions #8).
  */
-export async function cariAlamat(teks: string, { ambil = fetch, batasMs = 8000 }: OpsiNominatim = {}): Promise<HasilCariAlamat[]> {
+export async function cariAlamat(
+  teks: string,
+  { ambil = fetch, batasMs = 8000, url: urlCari = URL_CARI }: OpsiNominatim = {},
+): Promise<HasilCariAlamat[]> {
   const q = rapikanTeksCari(teks)
   if (!q) return []
 
-  const url = new URL(URL_CARI)
+  const url = new URL(urlCari)
   url.search = new URLSearchParams({
     q,
     format: 'jsonv2',

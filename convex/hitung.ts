@@ -3,7 +3,7 @@ import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { env, internalAction, internalMutation, internalQuery, type MutationCtx } from './_generated/server'
 import { cariTempatSekitar } from './overpass'
-import { KODE_TITIK_TIDAK_TERJANGKAU, OrsGagal, matriksDurasi } from './ors'
+import { KODE_TITIK_TIDAK_TERJANGKAU, OrsGagal, matriksDurasi, type OpsiOrs } from './ors'
 import { vGalatHitung, vKandidat, vTitik } from './schema'
 import { PROFIL_RUTE, menitDariDetik, peringkatKandidat } from '../src/domain/keadilan'
 import type { Kendaraan } from '../src/domain/kendaraan'
@@ -98,7 +98,11 @@ export const jalankan = internalAction({
     const data: BahanHitung | null = await ctx.runQuery(internal.hitung.bahan, { roomId, putaran })
     if (!data) return
     try {
-      const hasil = await hitungHasil(data.peserta, { kunciOrs: env.ORS_API_KEY })
+      const hasil = await hitungHasil(data.peserta, {
+        kunciOrs: env.ORS_API_KEY,
+        urlOverpass: env.OVERPASS_URL,
+        urlOrs: env.ORS_URL,
+      })
       if ('galat' in hasil) await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: hasil.galat })
       else await ctx.runMutation(internal.hitung.simpan, { roomId, putaran, versiLokasi: data.versiLokasi, ...hasil })
     } catch (galat) {
@@ -109,7 +113,13 @@ export const jalankan = internalAction({
   },
 })
 
-export type OpsiHitung = { kunciOrs: string | undefined; ambil?: typeof fetch }
+export type OpsiHitung = {
+  kunciOrs: string | undefined
+  ambil?: typeof fetch
+  /** Kosong berarti server asli. Diisi dari env `OVERPASS_URL` dan `ORS_URL`, misalnya oleh E2E. */
+  urlOverpass?: string
+  urlOrs?: string
+}
 export type HasilHitung = { titikTengah: Titik; kandidat: Infer<typeof vKandidat>[] } | { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
 
 /** Tempat yang terlalu jauh dari jalan, sehingga ORS menolak seluruh matriks. */
@@ -123,16 +133,23 @@ class TempatTakTerjangkau extends Error {
  * Titik tengah, kandidat dari Overpass, waktu tempuh lewat ORS, lalu 5 kandidat paling adil.
  * Melempar galat kalau layanan luar gagal. Hasil `{ galat }` berarti memang tidak ada tempat yang bisa dipakai.
  */
-export async function hitungHasil(peserta: readonly PesertaDihitung[], { kunciOrs, ambil = fetch }: OpsiHitung): Promise<HasilHitung> {
+export async function hitungHasil(
+  peserta: readonly PesertaDihitung[],
+  { kunciOrs, ambil = fetch, urlOverpass, urlOrs }: OpsiHitung,
+): Promise<HasilHitung> {
   const tengah = titikTengah(peserta.map((p) => p.lokasi))
   if (!tengah) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
   if (!kunciOrs) throw new OrsGagal('ORS_API_KEY belum diisi di env Convex')
 
-  let tempat = await cariTempatSekitar(tengah.titik, tengah.radiusMeter, { ambil, batasMs: 15_000 })
+  let tempat = await cariTempatSekitar(tengah.titik, tengah.radiusMeter, {
+    ambil,
+    batasMs: 15_000,
+    server: urlOverpass ? [urlOverpass] : undefined,
+  })
   // Tempat yang ditolak ORS dibuang, lalu dicoba lagi. Tiga kali sudah lebih dari cukup untuk data kota.
   for (let percobaan = 0; percobaan < 3 && tempat.length > 0; percobaan++) {
     try {
-      const menit = await menitTiapPeserta(peserta, tempat, kunciOrs, ambil)
+      const menit = await menitTiapPeserta(peserta, tempat, { kunci: kunciOrs, ambil, urlDasar: urlOrs })
       const terjangkau = tempat.flatMap((t, j) => {
         if (peserta.some((_, i) => menit[i][j] === null)) return []
         return [
@@ -157,8 +174,7 @@ export async function hitungHasil(peserta: readonly PesertaDihitung[], { kunciOr
 async function menitTiapPeserta(
   peserta: readonly PesertaDihitung[],
   tempat: readonly Tempat[],
-  kunci: string,
-  ambil: typeof fetch,
+  opsiOrs: OpsiOrs,
 ): Promise<(number | null)[][]> {
   const menit: (number | null)[][] = peserta.map(() => [])
   for (const profil of new Set(peserta.map((p) => PROFIL_RUTE[p.kendaraan]))) {
@@ -169,7 +185,7 @@ async function menitTiapPeserta(
         anggota.map((i) => peserta[i].lokasi),
         tempat.map((t) => t.lokasi),
         profil,
-        { kunci, ambil },
+        opsiOrs,
       )
     } catch (galat) {
       const indeks = galat instanceof OrsGagal && galat.kode === KODE_TITIK_TIDAK_TERJANGKAU ? galat.indeksTitik : undefined

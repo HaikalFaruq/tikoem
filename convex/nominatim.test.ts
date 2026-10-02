@@ -47,6 +47,12 @@ describe('cariAlamat', () => {
     expect((init.headers as Record<string, string>)['User-Agent']).toMatch(/^Tikoem\//)
   })
 
+  it('memakai alamat dari opsi kalau diisi', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => new Response(JSON.stringify(JAWABAN)))
+    await cariAlamat('Kota Kasablanka', { ambil, url: 'http://127.0.0.1:4319/nominatim/search' })
+    expect(panggilan[0].url.origin + panggilan[0].url.pathname).toBe('http://127.0.0.1:4319/nominatim/search')
+  })
+
   it('teks yang terlalu pendek tidak dikirim sama sekali', async () => {
     const { ambil, panggilan } = tiruanFetch(() => new Response('[]'))
     expect(await cariAlamat('ab', { ambil })).toEqual([])

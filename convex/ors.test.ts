@@ -53,6 +53,12 @@ describe('matriksDurasi', () => {
     expect((galat as Error).message).not.toMatch(/106|6\.22/)
   })
 
+  it('memakai alamat dasar dari opsi kalau diisi', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => Response.json({ durations: [[60]] }))
+    await matriksDurasi([KEMANG], [KAFE], 'foot-walking', { kunci: 'k', ambil, urlDasar: 'http://127.0.0.1:4319/ors' })
+    expect(panggilan[0].url).toBe('http://127.0.0.1:4319/ors/v2/matrix/foot-walking')
+  })
+
   it('menolak jawaban yang bentuknya tidak sesuai jumlah titik', async () => {
     const { ambil } = tiruanFetch(() => Response.json({ durations: [[600]] }))
     await expect(matriksDurasi([KEMANG, TEBET], [KAFE], 'foot-walking', { kunci: 'k', ambil })).rejects.toThrow(/tidak dikenali/)
