@@ -1,8 +1,10 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
-import type { Doc } from './_generated/dataModel'
+import type { Doc, Id } from './_generated/dataModel'
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
+import { BATAS_HITUNG_MS } from './hitung'
 import { vKendaraan, vTitik } from './schema'
+import { JUMLAH_KANDIDAT_AKHIR } from '../src/domain/keadilan'
 import { MAKS_PESERTA, MASA_ROOM_MS, buatKodeRoom, normalisasiKode, roomPenuh, sudahKedaluwarsa } from '../src/domain/room'
 import { rapikanNama } from '../src/domain/peserta'
 import { samarkan, titikValid } from '../src/domain/lokasi'
@@ -15,6 +17,8 @@ export type Galat =
   | 'NAMA_TIDAK_VALID'
   | 'LOKASI_TIDAK_VALID'
   | 'PESERTA_TIDAK_DIKENAL'
+  | 'LOKASI_BELUM_CUKUP'
+  | 'SEDANG_MENGHITUNG'
 
 const gagal = (galat: Galat) => new ConvexError({ galat })
 
@@ -26,6 +30,16 @@ async function cariRoom(ctx: QueryCtx, kodeMasukan: string) {
 
 /** Untuk mutation. Jam boleh dibaca di sini, jadi room tetap ditolak walaupun fungsi terjadwal belum sempat jalan. */
 const roomKedaluwarsa = (room: Doc<'room'>) => room.kedaluwarsa === true || sudahKedaluwarsa(room.kedaluwarsaPada, Date.now())
+
+/** Untuk mutation yang memakai kunci peserta: pemiliknya harus cocok, dan room-nya masih hidup. */
+async function pesertaDanRoom(ctx: MutationCtx, pesertaId: Id<'peserta'>, kunci: string) {
+  const peserta = await ctx.db.get('peserta', pesertaId)
+  if (!peserta || peserta.kunci !== kunci) throw gagal('PESERTA_TIDAK_DIKENAL')
+  const room = await ctx.db.get('room', peserta.roomId)
+  if (!room) throw gagal('ROOM_TIDAK_ADA')
+  if (roomKedaluwarsa(room)) throw gagal('ROOM_KEDALUWARSA')
+  return { peserta, room }
+}
 
 /** Dipakai `buat` dan `gabung`, jadi pembuat room dan teman yang gabung mendapat aturan yang sama. */
 async function tambahPeserta(
@@ -86,13 +100,31 @@ export const gabung = mutation({
 export const kirimLokasi = mutation({
   args: { pesertaId: v.id('peserta'), kunci: v.string(), lokasi: vTitik },
   handler: async (ctx, { pesertaId, kunci, lokasi }) => {
-    const peserta = await ctx.db.get('peserta', pesertaId)
-    if (!peserta || peserta.kunci !== kunci) throw gagal('PESERTA_TIDAK_DIKENAL')
-    const room = await ctx.db.get('room', peserta.roomId)
-    if (!room) throw gagal('ROOM_TIDAK_ADA')
-    if (roomKedaluwarsa(room)) throw gagal('ROOM_KEDALUWARSA')
+    const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
     if (!titikValid(lokasi)) throw gagal('LOKASI_TIDAK_VALID')
     await ctx.db.patch('peserta', pesertaId, { lokasi: samarkan(lokasi) })
+    // Hasil yang sudah keluar jadi usang kalau ada lokasi yang berubah (Discussions #8).
+    await ctx.db.patch('room', room._id, { versiLokasi: (room.versiLokasi ?? 0) + 1 })
+  },
+})
+
+/** Tombol "Cari tempat". Siapa saja di room boleh menekannya setelah minimal 2 orang berbagi lokasi (Discussions #8). */
+export const hitung = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string() },
+  handler: async (ctx, { pesertaId, kunci }) => {
+    const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    if (room.status === 'menghitung') throw gagal('SEDANG_MENGHITUNG')
+    const peserta = await ctx.db
+      .query('peserta')
+      .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', room._id))
+      .take(MAKS_PESERTA)
+    if (peserta.filter((p) => p.lokasi).length < 2) throw gagal('LOKASI_BELUM_CUKUP')
+
+    // Kandidat lama tetap ditampilkan sampai hasil baru menggantikannya.
+    const putaran = (room.putaranHitung ?? 0) + 1
+    await ctx.db.patch('room', room._id, { status: 'menghitung', galatHitung: undefined, putaranHitung: putaran })
+    await ctx.scheduler.runAfter(0, internal.hitung.jalankan, { roomId: room._id, putaran })
+    await ctx.scheduler.runAfter(BATAS_HITUNG_MS, internal.hitung.batasWaktu, { roomId: room._id, putaran })
   },
 })
 
@@ -109,6 +141,10 @@ export const lihat = query({
       .query('peserta')
       .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', room._id))
       .take(MAKS_PESERTA)
+    const kandidat = await ctx.db
+      .query('kandidat')
+      .withIndex('by_roomId_and_peringkat', (q) => q.eq('roomId', room._id))
+      .take(JUMLAH_KANDIDAT_AKHIR)
     return {
       ok: true as const,
       room: {
@@ -116,6 +152,9 @@ export const lihat = query({
         status: room.status,
         kedaluwarsaPada: room.kedaluwarsaPada,
         titikTengah: room.titikTengah ?? null,
+        galatHitung: room.galatHitung ?? null,
+        hasilPada: room.hasilPada ?? null,
+        hasilUsang: room.hasilPada !== undefined && (room.versiLokasi ?? 0) !== (room.versiHasil ?? 0),
       },
       peserta: peserta.map((p) => ({
         id: p._id,
@@ -123,6 +162,19 @@ export const lihat = query({
         kendaraan: p.kendaraan,
         urutanGabung: p.urutanGabung,
         lokasi: p.lokasi ?? null,
+      })),
+      // Urut peringkat, langsung dari index.
+      kandidat: kandidat.map((k) => ({
+        id: k._id,
+        nama: k.nama,
+        kategori: k.kategori,
+        lokasi: k.lokasi,
+        alamat: k.alamat ?? null,
+        jarakDariTengahMeter: k.jarakDariTengahMeter,
+        waktuTempuh: k.waktuTempuh,
+        terlamaMenit: k.terlamaMenit,
+        selisihMenit: k.selisihMenit,
+        peringkat: k.peringkat,
       })),
     }
   },

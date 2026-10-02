@@ -105,6 +105,14 @@ Buka alamat yang muncul di terminal.
 | `npm test` | Unit test (Vitest) |
 | `npm run test:e2e` | E2E di browser HP (Playwright). Build production dan backend Convex lokal dijalankan otomatis |
 
+Untuk mencoba tombol "Cari tempat" di lokal, isi key OpenRouteService di deployment Convex-mu. Daftarnya gratis di [account.heigit.org](https://account.heigit.org/signup). Jalankan perintah ini di terminalmu sendiri supaya key-nya tidak tersimpan di mana pun selain Convex:
+
+```bash
+npx convex env set ORS_API_KEY <key-mu>
+```
+
+Tanpa key ini, hitung berakhir dengan `LAYANAN_GAGAL`. Fitur lain tetap jalan.
+
 Pertama kali menjalankan E2E di mesin baru: `npx playwright install --only-shell chromium`.
 
 E2E memakai backend Convex lokal di `127.0.0.1:3210`, jadi pilih deployment lokal saat pertama kali menjalankan `npx convex dev`. Kalau `npx convex dev` sudah jalan, E2E memakai backend itu. Kalau belum, E2E menyalakannya sendiri lalu mematikannya lagi. Room yang dibuat E2E ikut tersimpan di deployment lokalmu. Di CI, backend-nya dibuat baru tanpa akun setiap kali jalan.
