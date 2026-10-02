@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Arah Identitas Tikoem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Figtree:wght@400..800&family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=Gochi+Hand&family=JetBrains+Mono:wght@400;600&family=Manrope:wght@400..800&family=Unbounded:wght@400..800&display=swap" />
+<style>
+/* Layout: satu kolom papan presentasi; tiap arah punya "dunia" sendiri (papan bertema), dibingkai halaman netral. */
+:root {
+  --bg: #F3F4F7;
+  --surface: #FFFFFF;
+  --fg: #17181C;
+  --muted: #5B5F6E;
+  --line: #DCDEE5;
+  --focus: #3D7BFF;
+  --font-ui: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1);
+
+  /* A: Stiker Peta */
+  --a-paper: #F2F4FF; --a-card: #FFFFFF; --a-fg: #1B1A33; --a-muted: #545372; --a-line: #1B1A33;
+  --a-red: #FF5A36; --a-blue: #3D7BFF; --a-sun: #FFC93C; --a-mint: #4CC9A0;
+  --a-map: #E6F2DC; --a-park: #C9E8B4; --a-water: #A9CDFF; --a-road: #FFFFFF; --a-on-red: #1B1A33;
+
+  /* B: Buku Tulis */
+  --b-paper: #FDFEFB; --b-card: #FFFFFF; --b-fg: #1E2340; --b-muted: #4F5675; --b-ink: #2340B8;
+  --b-rule: #D3E2F5; --b-margin: #F2A7A2; --b-red: #E23B2E; --b-hi: #FFE45C; --b-green: #2E9E5B;
+
+  /* C: Jeli Kumpul */
+  --c-bg: #F6F1FF; --c-card: #FFFFFF; --c-fg: #2A1A55; --c-muted: #5E5185;
+  --c-grape: #6C3BFF; --c-gum: #FF5FA8; --c-orange: #FF8A1F; --c-sky: #34C3FF;
+  --c-land: #EDE4FF; --c-island: #DCCCFF; --c-road: #FFFFFF; --c-shadow: rgba(76, 40, 170, .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111216; --surface: #1A1B21; --fg: #ECEDF2; --muted: #A0A4B3; --line: #2C2E37; --focus: #7FA6FF;
+    --a-paper: #16152B; --a-card: #23223F; --a-fg: #EEF0FF; --a-muted: #B4B3D6; --a-line: #05040F;
+    --a-map: #1F2E26; --a-park: #284032; --a-water: #26467A; --a-road: #2F3B4A; --a-on-red: #1B1A33;
+    --b-paper: #1D2A26; --b-card: #23332E; --b-fg: #EEF2EA; --b-muted: #B7C4BC; --b-ink: #D6E2FF;
+    --b-rule: #2C3D38; --b-margin: #6A3B3B; --b-red: #FF8A7A; --b-hi: #FFE45C; --b-green: #8BE3A8;
+    --c-bg: #150E2B; --c-card: #22183F; --c-fg: #F3EDFF; --c-muted: #BDB0E6;
+    --c-grape: #8E68FF; --c-gum: #FF74B6; --c-orange: #FF9A3D; --c-sky: #4FD0FF;
+    --c-land: #1E1540; --c-island: #2B1F57; --c-road: #3A2E68; --c-shadow: rgba(0, 0, 0, .45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111216; --surface: #1A1B21; --fg: #ECEDF2; --muted: #A0A4B3; --line: #2C2E37; --focus: #7FA6FF;
+  --a-paper: #16152B; --a-card: #23223F; --a-fg: #EEF0FF; --a-muted: #B4B3D6; --a-line: #05040F;
+  --a-map: #1F2E26; --a-park: #284032; --a-water: #26467A; --a-road: #2F3B4A; --a-on-red: #1B1A33;
+  --b-paper: #1D2A26; --b-card: #23332E; --b-fg: #EEF2EA; --b-muted: #B7C4BC; --b-ink: #D6E2FF;
+  --b-rule: #2C3D38; --b-margin: #6A3B3B; --b-red: #FF8A7A; --b-hi: #FFE45C; --b-green: #8BE3A8;
+  --c-bg: #150E2B; --c-card: #22183F; --c-fg: #F3EDFF; --c-muted: #BDB0E6;
+  --c-grape: #8E68FF; --c-gum: #FF74B6; --c-orange: #FF9A3D; --c-sky: #4FD0FF;
+  --c-land: #1E1540; --c-island: #2B1F57; --c-road: #3A2E68; --c-shadow: rgba(0, 0, 0, .45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font: 400 16px/1.55 var(--font-ui);
+  padding-inline: 16px; padding-block: 0 64px;
+}
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+.wrap { max-width: 1120px; margin-inline: auto; display: grid; gap: 56px; }
+.label { font: 600 11px/1.3 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------- Header ---------- */
+.top { display: grid; gap: 20px; padding-block: 48px 0; }
+.top-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; }
+.top h1 { font: 800 clamp(34px, 6vw, 60px)/1.02 var(--font-ui); letter-spacing: -.03em; max-width: 16ch; }
+.top .lead { font-size: 18px; color: var(--muted); max-width: 62ch; }
+.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.theme button { font: 600 12px var(--font-ui); border: 0; background: none; color: var(--muted); padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.theme button[aria-pressed="true"] { background: var(--fg); color: var(--bg); }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; }
+.jump a { text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.jump a:hover { border-color: var(--fg); }
+
+/* ---------- Riset ---------- */
+.research { display: grid; gap: 20px; }
+.research h2, .compare h2, .pick h2 { font: 800 28px/1.15 var(--font-ui); letter-spacing: -.02em; }
+.trends { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); gap: 12px; list-style: none; margin: 0; padding: 0; }
+.trends li { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.trends b { font-size: 16px; }
+.trends p { color: var(--muted); font-size: 14.5px; }
+.trends .use { color: var(--fg); font-size: 14px; border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 2px; }
+.sources { font-size: 13px; color: var(--muted); }
+
+/* ---------- Papan arah (umum) ---------- */
+.dir { border-radius: 28px; padding: clamp(20px, 4vw, 40px); display: grid; gap: 28px; min-width: 0; }
+.dir-head { display: grid; gap: 10px; }
+.dir-head .tag { font: 600 12px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.dir-head h2 { font-size: clamp(32px, 5vw, 52px); line-height: 1; }
+.dir-head .concept { font-size: 17px; max-width: 60ch; }
+.board { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+.tile { grid-column: span 4; min-width: 0; display: grid; gap: 12px; align-content: start; padding: 20px; }
+.tile.wide { grid-column: span 7; }
+.tile.mid { grid-column: span 5; }
+.tile.half { grid-column: span 6; }
+.tile h3 { font: 600 11px/1.3 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+@media (max-width: 900px) {
+  .tile, .tile.wide, .tile.mid, .tile.half { grid-column: span 12; }
+}
+.ill { width: 100%; height: auto; display: block; max-width: 100%; }
+.ill-frame { position: relative; }
+.replay { justify-self: start; font: 600 13px var(--font-ui); cursor: pointer; }
+.swatches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sw { display: grid; gap: 4px; font-size: 12px; line-height: 1.3; }
+.sw i { display: block; aspect-ratio: 4 / 3; border-radius: 10px; max-width: 100%; }
+.sw b { font-weight: 700; }
+.sw code { font: 400 11px var(--font-mono); opacity: .75; }
+.icons { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.icons svg { width: 64px; height: 64px; display: block; }
+.icons svg.sm { width: 40px; height: 40px; }
+.motion-list, .fit-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; font-size: 14.5px; }
+.motion-list li { display: grid; grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr); gap: 10px; }
+.motion-list li > span:first-child { font-weight: 700; }
+.motion-list code { font: 400 12px var(--font-mono); }
+@media (max-width: 520px) { .motion-list li { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.fit-list li { padding-left: 22px; position: relative; }
+.fit-list li::before { position: absolute; left: 0; top: 0; font-weight: 800; }
+.fit-list .plus::before { content: "+"; }
+.fit-list .minus::before { content: "–"; }
+.exprs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; text-align: center; font-size: 12px; }
+.exprs svg { width: 100%; max-width: 72px; height: auto; margin-inline: auto; display: block; overflow: visible; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 14px; cursor: pointer; padding: 7px 14px; }
+
+/* kartu tempat (markup sama, gaya per arah) */
+.pcard { display: grid; gap: 14px; padding: 18px; }
+.pcard-rank { font-size: 12px; font-weight: 700; justify-self: start; padding: 3px 10px; }
+.pcard h4 { font-size: 22px; line-height: 1.15; margin-top: 6px; }
+.pcard .meta { font-size: 13.5px; }
+.pcard ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pcard li { display: grid; grid-template-columns: 30px minmax(0, 4.6em) minmax(0, 1fr) 4.2em; align-items: center; gap: 10px; font-size: 14px; }
+.pcard .av { width: 30px; height: 30px; display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+.pcard .bar { height: 10px; position: relative; overflow: hidden; }
+.pcard .bar i { position: absolute; inset: 0 auto 0 0; width: var(--w); }
+.pcard .min { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; }
+.pcard footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; font-size: 13.5px; }
+.squish { font: inherit; font-weight: 700; font-size: 16px; cursor: pointer; padding: 13px 20px; transition: transform 600ms var(--spring), box-shadow 200ms ease; }
+.squish:active { transition-duration: 90ms; transition-timing-function: ease-out; }
+
+/* ================= A: STIKER PETA ================= */
+.dir-a { background: var(--a-paper); color: var(--a-fg); font-family: "Figtree", ui-sans-serif, system-ui, sans-serif; }
+.dir-a .dir-head h2, .dir-a .disp { font-family: "Bricolage Grotesque", "Figtree", ui-sans-serif, sans-serif; font-weight: 800; letter-spacing: -.035em; font-variation-settings: "opsz" 96; }
+.dir-a .tag { color: var(--a-red); }
+.dir-a .tile { background: var(--a-card); border: 3px solid var(--a-line); border-radius: 20px; box-shadow: 5px 5px 0 var(--a-line); }
+.dir-a .muted { color: var(--a-muted); }
+.dir-a .logo { display: flex; align-items: center; gap: 10px; }
+.dir-a .logo svg { width: 64px; height: auto; flex: none; }
+.dir-a .wordmark { font: 800 clamp(46px, 7vw, 60px)/1 "Bricolage Grotesque", "Figtree", sans-serif; letter-spacing: -.05em; font-variation-settings: "opsz" 96; text-shadow: 3px 3px 0 var(--a-red); }
+.dir-a .replay, .dir-a .chip { background: var(--a-card); color: var(--a-fg); border: 2.5px solid var(--a-line); border-radius: 999px; padding: 7px 14px; box-shadow: 2px 2px 0 var(--a-line); }
+.dir-a .chip[aria-pressed="true"] { background: var(--a-sun); color: #1B1A33; }
+.dir-a .pcard { background: var(--a-card); }
+.dir-a .pcard-rank { background: var(--a-sun); color: #1B1A33; border: 2px solid var(--a-line); border-radius: 999px; transform: rotate(-3deg); }
+.dir-a .pcard h4 { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; letter-spacing: -.03em; }
+.dir-a .pcard .av { border: 2.5px solid var(--a-line); border-radius: 50%; color: #1B1A33; }
+.dir-a .pcard .bar { border: 2px solid var(--a-line); border-radius: 99px; background: var(--a-paper); }
+.dir-a .pcard .bar i { border-right: 2px solid var(--a-line); }
+.dir-a .p1 { background: var(--a-red); } .dir-a .p2 { background: var(--a-blue); } .dir-a .p3 { background: var(--a-mint); }
+.dir-a .pcard footer { border-top: 2.5px dashed var(--a-line); padding-top: 12px; }
+.dir-a .squish { background: var(--a-red); color: var(--a-on-red); border: 3px solid var(--a-line); border-radius: 16px; box-shadow: 4px 4px 0 var(--a-line); }
+.dir-a .squish:active { transform: translate(3px, 3px) scale(.97, .94); box-shadow: 1px 1px 0 var(--a-line); }
+.dir-a .exprs svg path.pin, .dir-a .ill .pin { stroke: var(--a-line); }
+.dir-a .ill .route { stroke: var(--a-line); stroke-width: 3.2; stroke-linecap: round; stroke-dasharray: .1 9; fill: none; }
+/* gerak A */
+.a-play .pin-drop { transform-box: fill-box; transform-origin: 50% 100%; animation: a-drop 760ms var(--spring) both; }
+.a-play .pin-drop.d2 { animation-delay: 140ms; }
+.a-play .pin-drop.d3 { animation-delay: 280ms; }
+.a-play .route { animation: a-fade 300ms 650ms both, a-march 900ms linear infinite; }
+.a-play .star { transform-box: fill-box; transform-origin: center; animation: a-pop 700ms 900ms var(--spring) both, a-spin 12s 1.6s linear infinite; }
+.a-play .tagpin { transform-box: fill-box; transform-origin: 0 100%; animation: a-pop 600ms 1200ms var(--spring) both; }
+@keyframes a-drop { 0% { transform: translateY(-160px) scale(.9, 1.15); opacity: 0; } 40% { opacity: 1; } 62% { transform: translateY(0) scale(1.18, .78); } 78% { transform: scale(.93, 1.08); } 100% { transform: none; } }
+@keyframes a-fade { from { opacity: 0; } }
+@keyframes a-march { to { stroke-dashoffset: -9.1; } }
+@keyframes a-pop { from { transform: scale(0); } }
+@keyframes a-spin { to { transform: rotate(360deg); } }
+
+/* ================= B: BUKU TULIS ================= */
+.dir-b { background: var(--b-paper); color: var(--b-fg); font-family: "Atkinson Hyperlegible Next", "Figtree", ui-sans-serif, sans-serif;
+  background-image: repeating-linear-gradient(transparent 0 31px, var(--b-rule) 31px 32px); }
+.dir-b .dir-head h2, .dir-b .disp { font-family: "Fraunces", Georgia, serif; font-weight: 700; font-style: italic; font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 144; letter-spacing: -.02em; }
+.dir-b .tag { color: var(--b-red); }
+.dir-b .hand { font-family: "Gochi Hand", "Comic Sans MS", cursive; }
+.dir-b .tile { background: var(--b-card); border: 2px solid var(--b-ink); border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px; padding: 24px; }
+.dir-b .tile:nth-child(even) { border-radius: 18px 225px 18px 255px / 255px 18px 225px 18px; }
+.dir-b .muted { color: var(--b-muted); }
+.dir-b .logo { display: flex; align-items: baseline; gap: 2px; }
+.dir-b .wordmark { font: italic 700 clamp(48px, 7.5vw, 64px)/1 "Fraunces", Georgia, serif; font-variation-settings: "SOFT" 100, "WONK" 1, "opsz" 144; color: var(--b-ink); letter-spacing: -.03em; position: relative; }
+.dir-b .wordmark .o { position: relative; display: inline-block; }
+.dir-b .wordmark .o svg { position: absolute; left: 66%; top: 58%; width: 1.15em; height: 1.2em; transform: translate(-50%, -50%); overflow: visible; }
+.dir-b .replay, .dir-b .chip { background: transparent; color: var(--b-ink); border: 2px solid var(--b-ink); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; font-family: "Gochi Hand", cursive; font-size: 17px; padding: 4px 14px; }
+.dir-b .chip[aria-pressed="true"] { background: var(--b-hi); color: #1E2340; border-color: var(--b-hi); }
+.dir-b .pcard { background: var(--b-card); }
+.dir-b .pcard-rank { font-family: "Gochi Hand", cursive; font-size: 17px; font-weight: 400; color: var(--b-red); border: 2px solid var(--b-red); border-radius: 50% 45% 55% 40% / 55% 45% 50% 45%; transform: rotate(-4deg); }
+.dir-b .pcard h4 { font-family: "Fraunces", Georgia, serif; font-style: italic; font-variation-settings: "SOFT" 100, "WONK" 1; }
+.dir-b .pcard .av { border: 2px solid var(--b-ink); border-radius: 48% 52% 45% 55% / 52% 45% 55% 48%; color: var(--b-ink); font-family: "Gochi Hand", cursive; font-size: 16px; font-weight: 400; }
+.dir-b .pcard .bar { height: 12px; }
+.dir-b .pcard .bar i { background: var(--b-hi); border-radius: 3px 8px 4px 9px; transform: skewX(-8deg); opacity: .95; }
+.dir-b .p1, .dir-b .p2, .dir-b .p3 { background: transparent; }
+.dir-b .pcard footer { border-top: 2px solid var(--b-ink); padding-top: 12px; border-radius: 0 0 2px 2px / 0 0 6px 6px; }
+.dir-b .squish { background: var(--b-ink); color: var(--b-paper); border: 0; border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; font-family: "Gochi Hand", cursive; font-size: 21px; font-weight: 400; padding: 10px 20px; }
+.dir-b .squish:active { transform: rotate(-1.5deg) scale(.95); }
+.dir-b .notebook { background: var(--b-paper);
+  background-image: linear-gradient(90deg, transparent 34px, var(--b-margin) 34px 36px, transparent 36px), repeating-linear-gradient(transparent 0 23px, var(--b-rule) 23px 24px);
+  border-radius: 6px; }
+.dir-b .ill .route, .dir-b .ill .scrib { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.b-play .route { stroke-dasharray: 1; animation: b-draw 900ms cubic-bezier(.2, .7, .2, 1) both; }
+.b-play .route.r2 { animation-delay: 200ms; }
+.b-play .route.r3 { animation-delay: 400ms; }
+.b-play .xmark { stroke-dasharray: 1; animation: b-draw 300ms 1000ms ease-out both; }
+.b-play .scrib { stroke-dasharray: 1; animation: b-draw 700ms 1250ms cubic-bezier(.3, .6, .2, 1) both; }
+.b-play .hilite { transform-box: fill-box; transform-origin: 0 50%; animation: b-swipe 450ms 1800ms ease-out both; }
+@keyframes b-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes b-swipe { from { transform: scaleX(0); } }
+
+/* ================= C: JELI KUMPUL ================= */
+.dir-c { background: var(--c-bg); color: var(--c-fg); font-family: "Manrope", "Figtree", ui-sans-serif, sans-serif; }
+.dir-c .dir-head h2, .dir-c .disp { font-family: "Unbounded", "Figtree", ui-sans-serif, sans-serif; font-weight: 700; letter-spacing: -.03em; }
+.dir-c .tag { color: var(--c-grape); }
+.dir-c .tile { background: var(--c-card); border-radius: 28px; box-shadow: 0 1px 0 rgba(255, 255, 255, .6) inset, 0 18px 40px -18px var(--c-shadow), 0 2px 6px var(--c-shadow); }
+.dir-c .muted { color: var(--c-muted); }
+.dir-c .logo { display: flex; align-items: center; gap: 12px; }
+.dir-c .logo svg { width: 72px; height: auto; flex: none; overflow: visible; }
+.dir-c .wordmark { font: 700 clamp(38px, 6vw, 50px)/1 "Unbounded", "Figtree", sans-serif; letter-spacing: -.04em; color: var(--c-grape); }
+.dir-c .replay, .dir-c .chip { background: var(--c-land); color: var(--c-fg); border: 0; border-radius: 999px; padding: 8px 16px; font-weight: 700; transition: transform 500ms var(--spring); }
+.dir-c .chip:active, .dir-c .replay:active { transform: scale(1.08, .88); transition-duration: 80ms; }
+.dir-c .chip[aria-pressed="true"] { background: var(--c-grape); color: #FFFFFF; }
+.dir-c .pcard { background: var(--c-card); }
+.dir-c .pcard-rank { background: linear-gradient(135deg, var(--c-gum), var(--c-orange)); color: #FFFFFF; border-radius: 999px; }
+.dir-c .pcard h4 { font-family: "Unbounded", sans-serif; font-weight: 700; font-size: 19px; letter-spacing: -.03em; }
+.dir-c .pcard .av { border-radius: 42% 58% 55% 45% / 50% 45% 55% 50%; color: #FFFFFF; box-shadow: inset -3px -4px 0 rgba(0, 0, 0, .15), inset 3px 3px 0 rgba(255, 255, 255, .35); }
+.dir-c .pcard .bar { background: var(--c-land); border-radius: 99px; height: 12px; }
+.dir-c .pcard .bar i { border-radius: 99px; box-shadow: inset 0 3px 0 rgba(255, 255, 255, .35); }
+.dir-c .p1 { background: var(--c-grape); } .dir-c .p2 { background: var(--c-gum); } .dir-c .p3 { background: var(--c-orange); }
+.dir-c .pcard footer { background: var(--c-land); border-radius: 16px; padding: 10px 14px; }
+.dir-c .squish { background: linear-gradient(160deg, var(--c-gum), var(--c-grape) 70%); color: #FFFFFF; border: 0; border-radius: 999px; box-shadow: inset 0 4px 0 rgba(255, 255, 255, .3), inset 0 -5px 0 rgba(0, 0, 0, .18), 0 12px 24px -10px var(--c-grape); }
+.dir-c .squish:active { transform: scale(1.06, .86); }
+.c-play .blob { transform-box: fill-box; transform-origin: center; animation: c-merge 4.8s cubic-bezier(.6, 0, .3, 1) infinite; }
+.c-play .cface { transform-box: fill-box; transform-origin: center; animation: c-face 4.8s ease-in-out infinite; }
+.c-play .target { transform-box: fill-box; transform-origin: center; animation: c-pulse 2.4s ease-in-out infinite; }
+@keyframes c-merge {
+  0%, 12% { transform: translate(var(--dx), var(--dy)); }
+  42% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(0, 0) scale(1.1, .9); }
+  58% { transform: translate(0, 0) scale(.95, 1.05); }
+  66%, 74% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(var(--dx), var(--dy)); }
+}
+@keyframes c-face { 0%, 40% { opacity: 0; transform: scale(.5); } 50%, 72% { opacity: 1; transform: scale(1); } 80%, 100% { opacity: 0; transform: scale(.5); } }
+@keyframes c-pulse { 50% { transform: scale(1.08); opacity: .55; } }
+
+/* ---------- Perbandingan & cara pilih ---------- */
+.compare { display: grid; gap: 16px; }
+.table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14.5px; }
+th, td { text-align: left; vertical-align: top; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+tr:last-child td { border-bottom: 0; }
+thead th { font: 600 11px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+tbody th { font-weight: 700; white-space: nowrap; }
+.pick { display: grid; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 24px; }
+.pick p { max-width: 70ch; }
+.pick ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="boil1"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="1" /><feDisplacementMap in="SourceGraphic" scale="3.2" /></filter>
+    <filter id="boil2"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7" /><feDisplacementMap in="SourceGraphic" scale="3.2" /></filter>
+    <filter id="boil3"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="13" /><feDisplacementMap in="SourceGraphic" scale="3.2" /></filter>
+    <filter id="goo" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b" /><feColorMatrix in="b" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9" result="g" /><feComposite in="SourceGraphic" in2="g" operator="atop" /></filter>
+    <path id="pinshape" d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z" />
+    <path id="star8" d="M0 -18 L3.4 -8.3 L12.7 -12.7 L8.3 -3.4 L18 0 L8.3 3.4 L12.7 12.7 L3.4 8.3 L0 18 L-3.4 8.3 L-12.7 12.7 L-8.3 3.4 L-18 0 L-8.3 -3.4 L-12.7 -12.7 L-3.4 -8.3 Z" />
+    <path id="doodlehead" d="M-15 0 C -15 -9 -8 -15.5 1 -15 C 10 -14 15.5 -8 15 1 C 14 10 8 15 -1 15.5 C -10 15 -15.5 9 -15 0 Z" />
+    <clipPath id="a-clip"><rect x="2" y="2" width="316" height="216" rx="20" /></clipPath>
+    <clipPath id="c-clip"><rect x="0" y="0" width="320" height="220" rx="28" /></clipPath>
+  </defs>
+</svg>
+
+<main class="wrap">
+  <header class="top">
+    <div class="top-bar">
+      <span class="label">Tikoem · identitas visual · draf untuk dipilih bareng</span>
+      <div class="theme" role="group" aria-label="Tema tampilan">
+        <button type="button" data-set="" aria-pressed="true">Sistem</button>
+        <button type="button" data-set="light" aria-pressed="false">Terang</button>
+        <button type="button" data-set="dark" aria-pressed="false">Gelap</button>
+      </div>
+    </div>
+    <h1>Tiga arah buat wajah Tikoem</h1>
+    <p class="lead">Ketiganya playful dan ilustratif, dan ketiganya sengaja beda dari Tookthel: tanpa lime, tanpa Instrument Serif, tanpa kartu bento. Tiap arah dilengkapi logo, palet, huruf, ilustrasi bergerak, contoh kartu tempat, dan ekspresi maskot. Pilih satu, atau campur bagian yang kamu suka.</p>
+    <nav class="jump" aria-label="Lompat ke arah">
+      <a href="#riset">Riset tren</a>
+      <a href="#arah-a">A · Stiker Peta</a>
+      <a href="#arah-b">B · Buku Tulis</a>
+      <a href="#arah-c">C · Jeli Kumpul</a>
+      <a href="#banding">Perbandingan</a>
+    </nav>
+  </header>
+
+  <section class="research" id="riset" aria-labelledby="riset-h">
+    <h2 id="riset-h">Yang lagi tren, dan cara Tikoem memakainya</h2>
+    <ul class="trends">
+      <li><b>Buatan tangan, sengaja tidak sempurna</b><p>Garis sketsa, bentuk tidak rata, dan tekstur jadi penanda karya manusia di tengah banjir gambar AI.</p><p class="use">Dipakai paling kuat di arah B, dan sebagai garis rute "coretan" di A.</p></li>
+      <li><b>Maskot dengan sistem ekspresi</b><p>Maskot yang kuat punya siluet yang gampang dikenali dan beberapa ekspresi untuk onboarding, nunggu, error, dan selebrasi, seperti Duo di Duolingo.</p><p class="use">Tiap arah punya maskot dan empat ekspresi: nunggu, senang, kaget, sepakat.</p></li>
+      <li><b>Tombol taktil dan squishy</b><p>Tombol yang menyembul lalu memantul saat ditekan. Neo-brutalism memakai bayangan keras, sementara clay memakai bentuk jeli.</p><p class="use">Semua tombol pakai pegas CSS <code>linear()</code>. Coba tekan tombol di tiap kartu.</p></li>
+      <li><b>Gerak yang punya tujuan</b><p>Animasi 200–400 ms untuk umpan balik, ditambah satu momen khas yang jadi tanda merek. Reduced motion dihormati.</p><p class="use">Momen khas Tikoem: teman-teman "berkumpul" ke satu titik. Tiap arah menerjemahkannya beda.</p></li>
+      <li><b>Display ekspresif + body tenang</b><p>Satu keluarga display yang berkarakter, satu body yang netral, dan font variable untuk lebar atau optical size.</p><p class="use">Bricolage Grotesque, Fraunces "wonky", atau Unbounded, masing-masing dipasangkan dengan body yang mudah dibaca.</p></li>
+      <li><b>Warna jenuh dan loop yang memuaskan</b><p>Palet ultra-saturated dengan loop gerak yang mulus, sering memakai bentuk 3D lembut atau clay.</p><p class="use">Paling terasa di arah C: blob yang menyatu dalam loop.</p></li>
+    </ul>
+    <p class="sources">Sumber: <a href="https://www.creativebloq.com/art/illustration/messy-meaningful-and-made-by-humans-the-biggest-illustration-trends-for-2026">Creative Bloq</a>, <a href="https://www.sessions.edu/notes-on-design/top-illustration-trends/">Sessions College</a>, <a href="https://svgapp.ai/blog/mascot-design-trends-2026/">SVGapp: mascot trends</a>, <a href="https://craftwork.design/blog/website-illustration-trends-2026-explained">Craftwork</a>, <a href="https://www.setproduct.com/blog/retro-brutalist-ui-design-2026">Setproduct: retro &amp; brutalist UI</a>, <a href="https://fireart.studio/blog/the-best-web-design-trends/">Fireart: tactile brutalism</a>, <a href="https://acodez.in/micro-interactions-motion-design/">Acodez: micro-interactions</a>, <a href="https://elements.envato.com/learn/font-trends">Envato: font trends</a>, <a href="https://elements.envato.com/learn/ux-ui-design-trends">Envato: UX/UI trends</a>.</p>
+  </section>
+
+  <!-- ================= A ================= -->
+  <section class="dir dir-a" id="arah-a" aria-labelledby="a-h">
+    <div class="dir-head">
+      <span class="tag">Arah A</span>
+      <h2 id="a-h">Stiker Peta</h2>
+      <p class="concept">Setiap teman adalah pin berwajah, ditempel seperti stiker di atas peta kota. Garisnya tebal, bayangannya keras, warnanya cerah. Pin-pin itu jatuh, memantul, lalu berjalan titik-titik ke satu bintang tempat kumpul.</p>
+    </div>
+    <div class="board">
+      <div class="tile mid">
+        <h3>Logo</h3>
+        <div class="logo">
+          <svg viewBox="-24 -50 48 54" aria-hidden="true"><use href="#pinshape" fill="var(--a-red)" stroke="var(--a-line)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="var(--a-line)" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.6" fill="var(--a-line)" /><circle cx="5.5" cy="-2" r="1.6" fill="var(--a-line)" /><path d="M-6 4 Q0 10 6 4" /></g></svg>
+          <span class="wordmark" aria-label="tikoem">tikoem</span>
+        </div>
+        <div class="icons" aria-label="Ikon aplikasi">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="16" fill="var(--a-red)" stroke="#1B1A33" stroke-width="3" /><g transform="translate(32 52)"><use href="#pinshape" fill="#FFFFFF" stroke="#1B1A33" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1B1A33" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.6" fill="#1B1A33" /><circle cx="5.5" cy="-2" r="1.6" fill="#1B1A33" /><path d="M-6 4 Q0 10 6 4" /></g></g></svg>
+          <svg class="sm" viewBox="0 0 64 64" aria-hidden="true"><rect x="1.5" y="1.5" width="61" height="61" rx="16" fill="#1B1A33" /><g transform="translate(32 52)"><use href="#pinshape" fill="#FFC93C" stroke="#FFC93C" stroke-width="3" /><g transform="translate(0 -27)" stroke="#1B1A33" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.6" fill="#1B1A33" /><circle cx="5.5" cy="-2" r="1.6" fill="#1B1A33" /><path d="M-6 4 Q0 10 6 4" /></g></g></svg>
+        </div>
+        <p class="muted">Pin berwajah gampang dikenali dari siluetnya saja, dan bisa jadi stiker WA.</p>
+      </div>
+      <div class="tile wide">
+        <h3>Ilustrasi + momen khas</h3>
+        <svg class="ill a-play" id="a-ill" viewBox="0 0 320 220" role="img" aria-label="Tiga pin teman di peta berjalan menuju satu bintang titik kumpul">
+          <g clip-path="url(#a-clip)">
+            <rect x="0" y="0" width="320" height="220" fill="var(--a-map)" />
+            <path d="M246 26 q34 -12 52 14 q12 28 -22 34 q-36 6 -30 -48z" fill="var(--a-park)" />
+            <path d="M-10 168 C 60 132 120 206 196 172 S 300 136 332 150" stroke="var(--a-water)" stroke-width="22" fill="none" stroke-linecap="round" />
+            <path d="M0 80 H320 M120 0 V220 M226 0 L262 220" stroke="var(--a-road)" stroke-width="9" fill="none" />
+            <path class="route" d="M52 52 Q 96 72 160 112" />
+            <path class="route" d="M272 66 Q 222 72 160 112" />
+            <path class="route" d="M84 192 Q 118 150 160 112" />
+          </g>
+          <rect x="2" y="2" width="316" height="216" rx="20" fill="none" stroke="var(--a-line)" stroke-width="3" />
+          <g transform="translate(160 112)"><use class="star" href="#star8" fill="var(--a-sun)" stroke="var(--a-line)" stroke-width="3" stroke-linejoin="round" /></g>
+          <g class="tagpin" transform="translate(176 92)"><rect x="0" y="-22" width="104" height="24" rx="12" fill="var(--a-card)" stroke="var(--a-line)" stroke-width="2.5" /><text x="52" y="-5.5" text-anchor="middle" font-family="Figtree, sans-serif" font-weight="700" font-size="12" fill="var(--a-fg)">Kafe Taman Tebet</text></g>
+          <g transform="translate(52 52)"><g class="pin-drop"><use href="#pinshape" fill="var(--a-red)" stroke="var(--a-line)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1B1A33" stroke-width="2.2" stroke-linecap="round" fill="none"><circle cx="-5" cy="-2" r="1.6" fill="#1B1A33" /><circle cx="5" cy="-2" r="1.6" fill="#1B1A33" /><path d="M-5 4 Q0 9 5 4" /></g></g></g>
+          <g transform="translate(272 66)"><g class="pin-drop d2"><use href="#pinshape" fill="var(--a-blue)" stroke="var(--a-line)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1B1A33" stroke-width="2.2" stroke-linecap="round" fill="none"><circle cx="-5" cy="-2" r="1.6" fill="#1B1A33" /><circle cx="5" cy="-2" r="1.6" fill="#1B1A33" /><path d="M-5 4 Q0 9 5 4" /></g></g></g>
+          <g transform="translate(84 192)"><g class="pin-drop d3"><use href="#pinshape" fill="var(--a-mint)" stroke="var(--a-line)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1B1A33" stroke-width="2.2" stroke-linecap="round" fill="none"><circle cx="-5" cy="-2" r="1.6" fill="#1B1A33" /><circle cx="5" cy="-2" r="1.6" fill="#1B1A33" /><path d="M-5 4 Q0 9 5 4" /></g></g></g>
+        </svg>
+        <button type="button" class="replay" data-replay="a-ill" data-cls="a-play">Putar ulang</button>
+      </div>
+      <div class="tile">
+        <h3>Palet</h3>
+        <div class="swatches">
+          <div class="sw"><i style="background:#FF5A36"></i><b>Merah pin</b><code>#FF5A36</code></div>
+          <div class="sw"><i style="background:#3D7BFF"></i><b>Biru sungai</b><code>#3D7BFF</code></div>
+          <div class="sw"><i style="background:#FFC93C"></i><b>Kuning bintang</b><code>#FFC93C</code></div>
+          <div class="sw"><i style="background:#4CC9A0"></i><b>Hijau taman</b><code>#4CC9A0</code></div>
+          <div class="sw"><i style="background:#1B1A33"></i><b>Tinta malam</b><code>#1B1A33</code></div>
+          <div class="sw"><i style="background:#F2F4FF;outline:1.5px solid #1B1A33;outline-offset:-1.5px"></i><b>Kertas peta</b><code>#F2F4FF</code></div>
+        </div>
+      </div>
+      <div class="tile">
+        <h3>Huruf</h3>
+        <p class="disp" style="font-size:30px;line-height:1.05">Ketemuan di tengah, adil buat semua.</p>
+        <p>Waktu tempuh terlama 27 menit. Tidak ada yang jauh sendiri.</p>
+        <p class="muted" style="font-size:13px">Display: Bricolage Grotesque 800 (variable, opsz). Body: Figtree.</p>
+      </div>
+      <div class="tile">
+        <h3>Ekspresi maskot</h3>
+        <div class="exprs" data-expr="a"></div>
+      </div>
+      <div class="tile half">
+        <h3>Kartu tempat + tombol</h3>
+        <div class="chips" data-chips></div>
+        <div data-card></div>
+      </div>
+      <div class="tile half">
+        <h3>Gerak</h3>
+        <ul class="motion-list">
+          <li><span>Pin gabung</span><span>Jatuh dari atas, squash saat mendarat, pegas 760 ms. <code>linear()</code> spring</span></li>
+          <li><span>Rute</span><span>Titik-titik berjalan ke titik kumpul, loop 900 ms linear</span></li>
+          <li><span>Tempat terpilih</span><span>Bintang pop 700 ms lalu berputar pelan</span></li>
+          <li><span>Tombol</span><span>Turun ke bayangannya saat ditekan, memantul saat dilepas</span></li>
+        </ul>
+        <h3>Kenapa / risikonya</h3>
+        <ul class="fit-list">
+          <li class="plus">Paling mudah dibaca di atas peta: pin memang bahasa peta.</li>
+          <li class="plus">Gaya stiker cocok dengan budaya stiker di WA, sehingga kartu hasil langsung terasa bisa dibagikan.</li>
+          <li class="minus">Neo-brutalism sudah ramai dipakai. Karakternya harus datang dari pin berwajah, bukan dari bayangan kerasnya.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= B ================= -->
+  <section class="dir dir-b" id="arah-b" aria-labelledby="b-h">
+    <div class="dir-head">
+      <span class="tag hand" style="font-size:20px;letter-spacing:0;text-transform:none">Arah B</span>
+      <h2 id="b-h">Buku Tulis</h2>
+      <p class="concept">Seperti rencana nongkrong yang dicoret di halaman belakang buku tulis sekolah: garis biru, margin merah, tinta pulpen, dan stabilo. Rute digambar tangan dan tempat kumpulnya dilingkari spidol merah. Di mode gelap, bukunya berubah jadi papan tulis.</p>
+    </div>
+    <div class="board">
+      <div class="tile mid">
+        <h3>Logo</h3>
+        <div class="logo">
+          <span class="wordmark" aria-label="tikoem">tik<span class="o">o<svg viewBox="0 0 60 60" aria-hidden="true"><g class="boil" filter="url(#boil1)"><path d="M10 34 C 6 16 30 6 46 14 C 58 22 54 46 34 52 C 16 56 4 44 12 28 C 16 20 28 14 40 16" fill="none" stroke="var(--b-red)" stroke-width="3" stroke-linecap="round" /></g></svg></span>em</span>
+        </div>
+        <div class="icons" aria-label="Ikon aplikasi">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><rect x="1" y="1" width="62" height="62" rx="15" fill="#FDFEFB" stroke="#D3E2F5" stroke-width="2" /><path d="M2 22 H62 M2 34 H62 M2 46 H62" stroke="#D3E2F5" stroke-width="1.5" /><path d="M14 2 V62" stroke="#F2A7A2" stroke-width="2" /><g filter="url(#boil2)" fill="none" stroke-linecap="round"><path d="M26 26 L40 40 M40 26 L26 40" stroke="#2340B8" stroke-width="4" /><path d="M20 36 C 16 22 34 14 44 22 C 52 30 46 46 32 48 C 22 49 16 40 22 28" stroke="#E23B2E" stroke-width="3" /></g></svg>
+          <svg class="sm" viewBox="0 0 64 64" aria-hidden="true"><rect x="1" y="1" width="62" height="62" rx="15" fill="#1D2A26" /><g filter="url(#boil3)" fill="none" stroke-linecap="round"><path d="M26 26 L40 40 M40 26 L26 40" stroke="#EEF2EA" stroke-width="4" /><path d="M20 36 C 16 22 34 14 44 22 C 52 30 46 46 32 48 C 22 49 16 40 22 28" stroke="#FF8A7A" stroke-width="3" /></g></svg>
+        </div>
+        <p class="muted">Huruf "o" dilingkari tangan sebagai tanda titik kumpul. Lingkarannya terus "bergetar" seperti animasi gambar tangan.</p>
+      </div>
+      <div class="tile wide">
+        <h3>Ilustrasi + momen khas</h3>
+        <div class="notebook">
+          <svg class="ill b-play" id="b-ill" viewBox="0 0 320 220" role="img" aria-label="Tiga coretan teman dengan rute gambar tangan menuju tanda silang yang dilingkari merah">
+            <g class="boil" filter="url(#boil1)">
+              <path class="route" pathLength="1" d="M74 66 C 100 84 108 72 128 94 S 150 108 156 112" stroke="var(--b-ink)" stroke-width="2.6" />
+              <path class="route r2" pathLength="1" d="M250 72 C 226 86 216 80 200 97 S 182 108 174 112" stroke="var(--b-ink)" stroke-width="2.6" />
+              <path class="route r3" pathLength="1" d="M94 168 C 112 160 116 148 134 140 S 152 126 160 122" stroke="var(--b-ink)" stroke-width="2.6" />
+              <path class="hilite" d="M178 146 h132 v20 h-132z" fill="var(--b-hi)" opacity=".75" />
+              <text x="184" y="161" font-family="Gochi Hand, cursive" font-size="16" fill="var(--b-fg)">kafe taman tebet!</text>
+              <path class="xmark" pathLength="1" d="M156 106 L174 124 M174 106 L156 124" stroke="var(--b-ink)" stroke-width="3.2" fill="none" stroke-linecap="round" />
+              <path class="scrib" pathLength="1" d="M150 100 C 166 86 194 96 192 116 C 190 138 156 140 146 122 C 138 106 160 94 180 98" stroke="var(--b-red)" stroke-width="2.6" />
+              <g transform="translate(58 52)"><use href="#doodlehead" fill="var(--b-card)" stroke="var(--b-ink)" stroke-width="2.4" /><g stroke="var(--b-ink)" stroke-width="2" stroke-linecap="round" fill="none"><circle cx="-5" cy="-2" r="1.3" fill="var(--b-ink)" /><circle cx="5" cy="-2" r="1.3" fill="var(--b-ink)" /><path d="M-5 5 Q0 9 5 5" /></g><text x="0" y="34" text-anchor="middle" font-family="Gochi Hand, cursive" font-size="15" fill="var(--b-fg)">Haikal</text></g>
+              <g transform="translate(266 58)"><use href="#doodlehead" fill="var(--b-card)" stroke="var(--b-ink)" stroke-width="2.4" /><g stroke="var(--b-ink)" stroke-width="2" stroke-linecap="round" fill="none"><circle cx="-5" cy="-2" r="1.3" fill="var(--b-ink)" /><circle cx="5" cy="-2" r="1.3" fill="var(--b-ink)" /><path d="M-5 5 Q0 9 5 5" /><path d="M-10 -12 q4 -6 10 -4 q6 -5 11 2" /></g><text x="0" y="34" text-anchor="middle" font-family="Gochi Hand, cursive" font-size="15" fill="var(--b-fg)">Bintang</text></g>
+              <g transform="translate(78 174)"><use href="#doodlehead" fill="var(--b-card)" stroke="var(--b-ink)" stroke-width="2.4" /><g stroke="var(--b-ink)" stroke-width="2" stroke-linecap="round" fill="none"><circle cx="-5" cy="-2" r="1.3" fill="var(--b-ink)" /><circle cx="5" cy="-2" r="1.3" fill="var(--b-ink)" /><path d="M-5 5 Q0 9 5 5" /></g><text x="0" y="36" text-anchor="middle" font-family="Gochi Hand, cursive" font-size="15" fill="var(--b-fg)">Umar</text></g>
+            </g>
+          </svg>
+        </div>
+        <button type="button" class="replay" data-replay="b-ill" data-cls="b-play">putar ulang</button>
+      </div>
+      <div class="tile">
+        <h3>Palet</h3>
+        <div class="swatches">
+          <div class="sw"><i style="background:#2340B8"></i><b>Tinta pulpen</b><code>#2340B8</code></div>
+          <div class="sw"><i style="background:#E23B2E"></i><b>Merah koreksi</b><code>#E23B2E</code></div>
+          <div class="sw"><i style="background:#FFE45C"></i><b>Stabilo</b><code>#FFE45C</code></div>
+          <div class="sw"><i style="background:#2E9E5B"></i><b>Hijau centang</b><code>#2E9E5B</code></div>
+          <div class="sw"><i style="background:#FDFEFB;background-image:repeating-linear-gradient(transparent 0 7px,#D3E2F5 7px 8px);outline:1.5px solid #D3E2F5;outline-offset:-1.5px"></i><b>Kertas bergaris</b><code>#FDFEFB</code></div>
+          <div class="sw"><i style="background:#1D2A26;outline:1.5px solid #3A4A45;outline-offset:-1.5px"></i><b>Papan tulis</b><code>#1D2A26</code></div>
+        </div>
+      </div>
+      <div class="tile">
+        <h3>Huruf</h3>
+        <p class="disp" style="font-size:32px;line-height:1.05">Ketemuan di tengah, adil buat semua.</p>
+        <p>Waktu tempuh terlama 27 menit. <span class="hand" style="font-size:19px;color:var(--b-red)">nggak ada yang jauh sendiri</span></p>
+        <p class="muted" style="font-size:13px">Display: Fraunces italic (SOFT 100, WONK 1). Body: Atkinson Hyperlegible Next. Catatan: Gochi Hand.</p>
+      </div>
+      <div class="tile">
+        <h3>Ekspresi maskot</h3>
+        <div class="exprs" data-expr="b"></div>
+      </div>
+      <div class="tile half">
+        <h3>Kartu tempat + tombol</h3>
+        <div class="chips" data-chips></div>
+        <div data-card></div>
+      </div>
+      <div class="tile half">
+        <h3>Gerak</h3>
+        <ul class="motion-list">
+          <li><span>Garis "bergetar"</span><span>Efek boiling: tiga variasi noise bergantian setiap 140 ms (±7 fps), seperti animasi gambar tangan</span></li>
+          <li><span>Rute</span><span>Digambar dari tiap teman, 900 ms, berurutan 200 ms</span></li>
+          <li><span>Tempat terpilih</span><span>Disilang lalu dilingkari spidol merah 700 ms, kemudian distabilo</span></li>
+          <li><span>Tombol</span><span>Sedikit miring dan mengecil saat ditekan, memantul saat dilepas</span></li>
+        </ul>
+        <h3>Kenapa / risikonya</h3>
+        <ul class="fit-list">
+          <li class="plus">Paling "manusia" dan paling lokal. Buku tulis bergaris itu akrab buat semua orang Indonesia.</li>
+          <li class="plus">Mode gelap papan tulis jadi kejutan kecil yang gampang diingat.</li>
+          <li class="minus">Peta MapLibre yang rapi bisa terasa bentrok dengan gaya coretan, jadi butuh style peta khusus.</li>
+          <li class="minus">Paling berat dari sisi aset dan butuh disiplin supaya tetap terbaca.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= C ================= -->
+  <section class="dir dir-c" id="arah-c" aria-labelledby="c-h">
+    <div class="dir-head">
+      <span class="tag">Arah C</span>
+      <h2 id="c-h">Jeli Kumpul</h2>
+      <p class="concept">Setiap teman adalah blob jeli berwarna. Saat semua sampai di titik tengah, blob-blob itu menyatu jadi satu dan muncul wajah. Kumpul secara harfiah. Warnanya jenuh, bentuknya empuk, gerakannya loop yang memuaskan.</p>
+    </div>
+    <div class="board">
+      <div class="tile mid">
+        <h3>Logo</h3>
+        <div class="logo">
+          <svg viewBox="-40 -36 80 72" aria-hidden="true"><g filter="url(#goo)"><circle cx="-14" cy="-6" r="17" fill="var(--c-grape)" /><circle cx="14" cy="-8" r="15" fill="var(--c-gum)" /><circle cx="2" cy="14" r="15" fill="var(--c-orange)" /></g><g stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" fill="none"><circle cx="-6" cy="0" r="1.8" fill="#FFFFFF" /><circle cx="6" cy="0" r="1.8" fill="#FFFFFF" /><path d="M-6 7 Q0 12 6 7" /></g><ellipse cx="-20" cy="-14" rx="5" ry="3" fill="#FFFFFF" opacity=".45" transform="rotate(-30 -20 -14)" /></svg>
+          <span class="wordmark" aria-label="tikoem">tikoem</span>
+        </div>
+        <div class="icons" aria-label="Ikon aplikasi">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="cig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7A4BFF" /><stop offset="1" stop-color="#4A1FD6" /></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#cig)" /><g transform="translate(32 33) scale(.82)"><g filter="url(#goo)"><circle cx="-14" cy="-6" r="17" fill="#FF5FA8" /><circle cx="14" cy="-8" r="15" fill="#FF8A1F" /><circle cx="2" cy="14" r="15" fill="#34C3FF" /></g><g stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" fill="none"><circle cx="-6" cy="0" r="1.8" fill="#FFFFFF" /><circle cx="6" cy="0" r="1.8" fill="#FFFFFF" /><path d="M-6 7 Q0 12 6 7" /></g></g></svg>
+          <svg class="sm" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#150E2B" /><g transform="translate(32 33) scale(.82)"><g filter="url(#goo)"><circle cx="-14" cy="-6" r="17" fill="#8E68FF" /><circle cx="14" cy="-8" r="15" fill="#FF74B6" /><circle cx="2" cy="14" r="15" fill="#FF9A3D" /></g><g stroke="#FFFFFF" stroke-width="2.8" stroke-linecap="round" fill="none"><circle cx="-6" cy="0" r="1.8" fill="#FFFFFF" /><circle cx="6" cy="0" r="1.8" fill="#FFFFFF" /><path d="M-6 7 Q0 12 6 7" /></g></g></svg>
+        </div>
+        <p class="muted">Tiga blob yang menyatu jadi satu wajah. Bentuk logonya sekaligus menjelaskan cara kerja aplikasinya.</p>
+      </div>
+      <div class="tile wide">
+        <h3>Ilustrasi + momen khas</h3>
+        <svg class="ill c-play" id="c-ill" viewBox="0 0 320 220" role="img" aria-label="Tiga blob warna bergerak dari arah berbeda lalu menyatu di titik tengah dan tersenyum">
+          <g clip-path="url(#c-clip)">
+            <rect width="320" height="220" fill="var(--c-land)" />
+            <path d="M-20 40 q60 -30 110 0 q30 30 -10 50 q-60 20 -100 -10z" fill="var(--c-island)" />
+            <path d="M230 150 q50 -20 100 10 v80 h-120 q-20 -50 20 -90z" fill="var(--c-island)" />
+            <path d="M0 130 C 80 100 140 150 200 120 S 290 70 330 90" stroke="var(--c-road)" stroke-width="14" fill="none" stroke-linecap="round" />
+            <path d="M130 0 C 150 60 120 150 170 230" stroke="var(--c-road)" stroke-width="10" fill="none" stroke-linecap="round" />
+            <circle class="target" cx="160" cy="112" r="46" fill="none" stroke="var(--c-sky)" stroke-width="3" stroke-dasharray="4 8" stroke-linecap="round" />
+          </g>
+          <g filter="url(#goo)">
+            <circle class="blob" cx="160" cy="112" r="30" fill="var(--c-grape)" style="--dx:-98px;--dy:-58px" />
+            <circle class="blob" cx="160" cy="112" r="27" fill="var(--c-gum)" style="--dx:104px;--dy:-48px" />
+            <circle class="blob" cx="160" cy="112" r="27" fill="var(--c-orange)" style="--dx:-66px;--dy:70px" />
+          </g>
+          <g class="cface"><g transform="translate(160 114)" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" fill="none"><circle cx="-10" cy="-4" r="2.6" fill="#FFFFFF" /><circle cx="10" cy="-4" r="2.6" fill="#FFFFFF" /><path d="M-10 8 Q0 17 10 8" /></g><ellipse cx="142" cy="92" rx="8" ry="4.5" fill="#FFFFFF" opacity=".45" transform="rotate(-30 142 92)" /></g>
+        </svg>
+        <button type="button" class="replay" data-replay="c-ill" data-cls="c-play">Putar ulang</button>
+      </div>
+      <div class="tile">
+        <h3>Palet</h3>
+        <div class="swatches">
+          <div class="sw"><i style="background:#6C3BFF"></i><b>Anggur</b><code>#6C3BFF</code></div>
+          <div class="sw"><i style="background:#FF5FA8"></i><b>Permen karet</b><code>#FF5FA8</code></div>
+          <div class="sw"><i style="background:#FF8A1F"></i><b>Jeruk</b><code>#FF8A1F</code></div>
+          <div class="sw"><i style="background:#34C3FF"></i><b>Langit</b><code>#34C3FF</code></div>
+          <div class="sw"><i style="background:#F6F1FF;outline:1.5px solid #DCCCFF;outline-offset:-1.5px"></i><b>Lilac</b><code>#F6F1FF</code></div>
+          <div class="sw"><i style="background:#150E2B"></i><b>Malam ungu</b><code>#150E2B</code></div>
+        </div>
+      </div>
+      <div class="tile">
+        <h3>Huruf</h3>
+        <p class="disp" style="font-size:25px;line-height:1.1">Ketemuan di tengah, adil buat semua.</p>
+        <p>Waktu tempuh terlama 27 menit. Tidak ada yang jauh sendiri.</p>
+        <p class="muted" style="font-size:13px">Display: Unbounded 700 (bulat dan lebar). Body: Manrope.</p>
+      </div>
+      <div class="tile">
+        <h3>Ekspresi maskot</h3>
+        <div class="exprs" data-expr="c"></div>
+      </div>
+      <div class="tile half">
+        <h3>Kartu tempat + tombol</h3>
+        <div class="chips" data-chips></div>
+        <div data-card></div>
+      </div>
+      <div class="tile half">
+        <h3>Gerak</h3>
+        <ul class="motion-list">
+          <li><span>Kumpul</span><span>Blob meluncur ke tengah lalu menyatu (gooey filter), loop 4,8 s</span></li>
+          <li><span>Mendarat</span><span>Jiggle seperti jeli: squash 1,1 × 0,9 lalu kembali</span></li>
+          <li><span>Titik tengah</span><span>Cincin putus-putus berdenyut 2,4 s</span></li>
+          <li><span>Tombol</span><span>Melebar dan memipih saat ditekan, memantul dengan pegas</span></li>
+        </ul>
+        <h3>Kenapa / risikonya</h3>
+        <ul class="fit-list">
+          <li class="plus">Momen khasnya paling kuat: "kumpul" yang benar-benar terlihat.</li>
+          <li class="plus">Gampang dijadikan animasi loading dan stiker. Ilustrasinya cukup bentuk dasar, tanpa banyak menggambar.</li>
+          <li class="minus">Warna jenuh dan gradien bisa terasa seperti app crypto atau gaming kalau tidak dijaga.</li>
+          <li class="minus">Filter gooey perlu diuji performanya di HP murah.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="compare" id="banding" aria-labelledby="banding-h">
+    <h2 id="banding-h">Perbandingan singkat</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th scope="col"></th><th scope="col">A · Stiker Peta</th><th scope="col">B · Buku Tulis</th><th scope="col">C · Jeli Kumpul</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Rasa</th><td>Cerah, tegas, seperti stiker</td><td>Hangat, akrab, gambar tangan</td><td>Empuk, jenuh, menyenangkan</td></tr>
+          <tr><th scope="row">Di atas peta</th><td>Paling cocok, karena pin memang bahasa peta</td><td>Butuh style peta khusus</td><td>Cocok, blob tetap terbaca</td></tr>
+          <tr><th scope="row">Kartu hasil di WA</th><td>Kuat, gaya stiker</td><td>Unik, seperti catatan</td><td>Mencolok, berwarna</td></tr>
+          <tr><th scope="row">Beban aset</th><td>Sedang</td><td>Tinggi</td><td>Rendah</td></tr>
+          <tr><th scope="row">Beda dari Tookthel</th><td>Jelas beda, tapi tetap satu "keluarga" yang playful</td><td>Paling beda</td><td>Jelas beda</td></tr>
+          <tr><th scope="row">Risiko utama</th><td>Neo-brutalism yang pasaran</td><td>Keterbacaan dan kerja ilustrasi</td><td>Terasa seperti app crypto atau game</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="pick" aria-labelledby="pick-h">
+    <h2 id="pick-h">Cara memilih</h2>
+    <p>Usul Bintang: <b>A sebagai dasar</b>, karena paling cocok untuk aplikasi yang isinya peta. Momen gabungnya bisa meminjam efek menyatu dari C supaya punya animasi khas sendiri. Keputusannya tetap bareng.</p>
+    <ol>
+      <li>Balas di Discussions dengan A, B, C, atau campuran (misalnya "A + gerak C").</li>
+      <li>Sebutkan bagian yang tidak cocok: warna, huruf, maskot, atau gerak.</li>
+      <li>Setelah sepakat, arah terpilih dijadikan token Tailwind dan komponen <code>src/ui</code> setelah fondasi app masuk.</li>
+    </ol>
+  </section>
+</main>
+
+<script>
+(function () {
+  var people = [
+    { n: "Haikal", m: 24, c: "p1" },
+    { n: "Bintang", m: 27, c: "p2" },
+    { n: "Umar", m: 22, c: "p3" }
+  ];
+  var longest = Math.max.apply(null, people.map(function (p) { return p.m; }));
+  var shortest = Math.min.apply(null, people.map(function (p) { return p.m; }));
+  var scale = 30;
+
+  function card() {
+    return '<article class="pcard">' +
+      '<header><span class="pcard-rank">#1 paling adil</span><h4>Kafe Taman Tebet</h4><p class="meta muted">Kafe · 400 m dari titik tengah</p></header>' +
+      '<ul>' + people.map(function (p) {
+        return '<li><span class="av ' + p.c + '" aria-hidden="true">' + p.n[0] + '</span><span>' + p.n + '</span>' +
+          '<span class="bar" aria-hidden="true"><i class="' + p.c + '" style="--w:' + (p.m / scale * 100).toFixed(1) + '%"></i></span>' +
+          '<span class="min">' + p.m + ' mnt</span></li>';
+      }).join('') + '</ul>' +
+      '<footer><span>Terlama <b>' + longest + ' mnt</b></span><span>Selisih ' + (longest - shortest) + ' mnt · dari 8 tempat</span></footer>' +
+      '<button type="button" class="squish">Pilih tempat ini</button>' +
+      '</article>';
+  }
+
+  function chips(dir) {
+    var opts = ["Motor", "Mobil", "Jalan kaki"];
+    return opts.map(function (o, i) {
+      return '<button type="button" class="chip" aria-pressed="' + (i === 0) + '">' + o + '</button>';
+    }).join('');
+  }
+
+  // Wajah: eyes + mouth per ekspresi, digambar di sekitar (0,0)
+  var faces = {
+    nunggu: { eyes: '<circle cx="-3" cy="-2" r="1.7" fill="currentColor"/><circle cx="7" cy="-2" r="1.7" fill="currentColor"/>', mouth: '<path d="M-4 6 h7"/>' },
+    senang: { eyes: '<circle cx="-5" cy="-2" r="1.7" fill="currentColor"/><circle cx="5" cy="-2" r="1.7" fill="currentColor"/>', mouth: '<path d="M-5 4 Q0 10 5 4"/>' },
+    kaget: { eyes: '<circle cx="-5" cy="-3" r="2.3" fill="currentColor"/><circle cx="5" cy="-3" r="2.3" fill="currentColor"/>', mouth: '<ellipse cx="0" cy="6" rx="2.6" ry="3.2"/>' },
+    sepakat: { eyes: '<path d="M-8 -1 q3 -4 6 0"/><path d="M2 -1 q3 -4 6 0"/>', mouth: '<path d="M-6 3 Q0 11 6 3 Z" fill="currentColor"/>' }
+  };
+  var labels = { nunggu: "nunggu", senang: "senang", kaget: "kaget", sepakat: "sepakat" };
+
+  function faceG(k, color, sw) {
+    var f = faces[k];
+    return '<g style="color:' + color + '" stroke="currentColor" stroke-width="' + sw + '" stroke-linecap="round" stroke-linejoin="round" fill="none">' + f.eyes + f.mouth + '</g>';
+  }
+
+  var shapes = {
+    a: function (k, i) {
+      var fills = ["var(--a-blue)", "var(--a-sun)", "var(--a-red)", "var(--a-mint)"];
+      return '<svg viewBox="-24 -52 48 56" aria-hidden="true"><use href="#pinshape" fill="' + fills[i] + '" stroke="var(--a-line)" stroke-width="3" stroke-linejoin="round"/>' +
+        '<g transform="translate(0 -27)">' + faceG(k, "#1B1A33", 2.2) + '</g></svg>';
+    },
+    b: function (k) {
+      return '<svg viewBox="-24 -24 48 48" aria-hidden="true"><g class="boil" filter="url(#boil2)"><use href="#doodlehead" transform="scale(1.3)" fill="var(--b-card)" stroke="var(--b-ink)" stroke-width="2"/>' +
+        '<g transform="scale(1.15)">' + faceG(k, "var(--b-ink)", 2) + '</g></g></svg>';
+    },
+    c: function (k, i) {
+      var fills = ["var(--c-sky)", "var(--c-orange)", "var(--c-gum)", "var(--c-grape)"];
+      return '<svg viewBox="-24 -24 48 48" aria-hidden="true"><path d="M-19 2 C -20 -14 -8 -21 3 -20 C 15 -19 21 -9 20 3 C 19 15 10 20 -1 20 C -12 20 -18 14 -19 2 Z" fill="' + fills[i] + '"/>' +
+        '<ellipse cx="-9" cy="-11" rx="5" ry="2.8" fill="#FFFFFF" opacity=".45" transform="rotate(-30 -9 -11)"/>' +
+        '<g transform="translate(0 1) scale(1.1)">' + faceG(k, "#FFFFFF", 2.4) + '</g></svg>';
+    }
+  };
+
+  document.querySelectorAll("[data-card]").forEach(function (el) { el.innerHTML = card(); });
+  document.querySelectorAll("[data-chips]").forEach(function (el) { el.innerHTML = chips(); });
+  document.querySelectorAll("[data-expr]").forEach(function (el) {
+    var d = el.getAttribute("data-expr");
+    el.innerHTML = Object.keys(faces).map(function (k, i) {
+      return '<div>' + shapes[d](k, i) + '<span class="muted">' + labels[k] + '</span></div>';
+    }).join('');
+  });
+
+  // Chip toggle
+  document.addEventListener("click", function (e) {
+    var chip = e.target.closest(".chip");
+    if (chip) {
+      chip.parentElement.querySelectorAll(".chip").forEach(function (c) { c.setAttribute("aria-pressed", String(c === chip)); });
+    }
+    var rp = e.target.closest("[data-replay]");
+    if (rp) {
+      var svg = document.getElementById(rp.getAttribute("data-replay"));
+      var cls = rp.getAttribute("data-cls");
+      svg.classList.remove(cls);
+      void svg.getBoundingClientRect();
+      svg.classList.add(cls);
+    }
+  });
+
+  // Tema
+  var root = document.documentElement;
+  var themeBtns = document.querySelectorAll(".theme button");
+  themeBtns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      var v = b.getAttribute("data-set");
+      if (v) root.setAttribute("data-theme", v); else root.removeAttribute("data-theme");
+      themeBtns.forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+    });
+  });
+
+  // Boiling line (arah B): ganti seed noise ~7 fps
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduce) {
+    var ids = ["boil1", "boil2", "boil3"], f = 0;
+    setInterval(function () {
+      f = (f + 1) % 3;
+      document.querySelectorAll(".boil").forEach(function (g, i) {
+        g.setAttribute("filter", "url(#" + ids[(f + i) % 3] + ")");
+      });
+    }, 140);
+  }
+})();
+</script>
+</body>
+</html>
