@@ -15,7 +15,7 @@ yang waktu tempuhnya paling seimbang. PWA, tanpa akun.
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white&labelColor=141414)](https://www.typescriptlang.org)
 [![OpenStreetMap](https://img.shields.io/badge/peta-OpenStreetMap-7ebc6f?style=flat-square&logo=openstreetmap&logoColor=white&labelColor=141414)](https://www.openstreetmap.org)
 
-[Roadmap](https://github.com/HaikalFaruq/tikoem/issues/1) · [Cara kerja](#cara-kerja) · [Tim](#tim) · [Aturan kerja](AGENTS.md)
+[Roadmap](https://github.com/HaikalFaruq/tikoem/issues/1) · [Cara kerja](#cara-kerja) · [Menjalankan lokal](#menjalankan-lokal) · [Tim](#tim) · [Aturan kerja](AGENTS.md)
 
 </div>
 
@@ -68,9 +68,59 @@ flowchart LR
 | Peta | MapLibre GL + OpenFreeMap |
 | Tempat | OpenStreetMap lewat Overpass API |
 | Waktu tempuh | OpenRouteService Matrix |
+| Kualitas | Vitest, Playwright, oxlint, GitHub Actions |
 | Deploy | Vercel + Convex Cloud |
 
-Struktur folder dan aturan import antar layer ada di [`AGENTS.md`](AGENTS.md#6-stack-dan-arsitektur). Cara menjalankan lokal ditulis setelah fondasi app masuk.
+Struktur folder dan aturan import antar layer ada di [`AGENTS.md`](AGENTS.md#6-stack-dan-arsitektur). Aturan import itu ikut dicek oleh lint.
+
+## Menjalankan lokal
+
+Butuh Node.js 22 atau lebih baru.
+
+```bash
+git clone https://github.com/HaikalFaruq/tikoem.git
+cd tikoem
+npm install
+npx convex dev
+```
+
+Pertama kali `npx convex dev` dijalankan, pilih **Start without an account (run Convex locally)**. Backend Convex lalu berjalan di laptop sendiri tanpa akun, dan alamatnya otomatis ditulis ke `.env.local`. Biarkan perintah ini tetap jalan, karena ia menyinkronkan folder `convex/` setiap kali ada perubahan.
+
+Lalu di terminal kedua:
+
+```bash
+npm run dev
+```
+
+Buka alamat yang muncul di terminal.
+
+| Perintah | Fungsi |
+| --- | --- |
+| `npx convex dev` | Backend Convex lokal: menyinkronkan `convex/` dan membuat ulang `convex/_generated/` |
+| `npm run dev` | Server development frontend |
+| `npm run build` | Build production + PWA ke `dist/` |
+| `npm run preview` | Menyajikan hasil build secara lokal |
+| `npm run typecheck` | Cek tipe TypeScript untuk `src/`, `convex/`, dan `e2e/` |
+| `npm run lint` | Lint (oxlint), termasuk aturan import antar layer. Warning dianggap gagal |
+| `npm test` | Unit test (Vitest) |
+| `npm run test:e2e` | E2E di browser HP (Playwright), build production dulu otomatis |
+
+Pertama kali menjalankan E2E di mesin baru: `npx playwright install --only-shell chromium`.
+
+`convex/_generated/` ikut di-commit supaya typecheck dan CI jalan tanpa backend. Isinya dibuat ulang oleh `npx convex dev`, jadi commit perubahannya bersama perubahan di `convex/`.
+
+## Gerbang mutu
+
+CI di GitHub Actions menjalankan semuanya di setiap PR dan setiap push ke `main`:
+
+```bash
+npm run typecheck   # tsc: src, convex, e2e
+npm run lint        # oxlint: React hooks, aksesibilitas, TypeScript, batas antar layer
+npm test            # Vitest: domain, lib, convex
+npm run test:e2e    # Playwright: alur pengguna di layar HP
+```
+
+Perilaku baru wajib disertai test: logika di unit test, alur pengguna di E2E. Tampilan dicek di lebar 320 px dan 390 px, mode terang dan gelap.
 
 ## Tim
 

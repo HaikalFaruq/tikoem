@@ -74,7 +74,7 @@ Pertanyaan teknis atau desain yang butuh jawaban pasangan ditulis di **Discussio
 | Waktu tempuh | OpenRouteService Matrix | Dipanggil dari Convex action, key-nya di env Convex |
 | Deploy | Vercel (frontend) + Convex Cloud (backend) | Free tier, tanpa domain sendiri |
 
-Rencana folder (dibuat di PR fondasi app):
+Struktur folder:
 
 ```
 convex/      backend: schema.ts, query, mutation, action, cron
@@ -97,6 +97,7 @@ e2e/         skenario Playwright
 | `convex` | `domain`, `lib` |
 
 - `domain` dan `lib` tidak boleh import React atau Convex, supaya bisa dites dengan unit test biasa dan dipakai di frontend maupun backend.
+- `npm run lint` menegakkan tabel di atas lewat aturan `no-restricted-imports` di `.oxlintrc.json`. Kalau tabelnya berubah, ubah aturan lint-nya juga.
 - Logika baru (hitungan, validasi, format) masuk ke `domain` atau `lib` beserta unit test-nya. Test ditaruh di sebelah filenya: `midpoint.ts` → `midpoint.test.ts`.
 - Perilaku baru wajib disertai test: logika di unit test, alur pengguna di E2E.
 
