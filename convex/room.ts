@@ -1,7 +1,7 @@
 import { ConvexError, v } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Doc } from './_generated/dataModel'
-import { internalMutation, mutation, query, type QueryCtx } from './_generated/server'
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { vKendaraan, vTitik } from './schema'
 import { MAKS_PESERTA, MASA_ROOM_MS, buatKodeRoom, normalisasiKode, roomPenuh, sudahKedaluwarsa } from '../src/domain/room'
 import { rapikanNama } from '../src/domain/peserta'
@@ -27,9 +27,28 @@ async function cariRoom(ctx: QueryCtx, kodeMasukan: string) {
 /** Untuk mutation. Jam boleh dibaca di sini, jadi room tetap ditolak walaupun fungsi terjadwal belum sempat jalan. */
 const roomKedaluwarsa = (room: Doc<'room'>) => room.kedaluwarsa === true || sudahKedaluwarsa(room.kedaluwarsaPada, Date.now())
 
+/** Dipakai `buat` dan `gabung`, jadi pembuat room dan teman yang gabung mendapat aturan yang sama. */
+async function tambahPeserta(
+  ctx: MutationCtx,
+  room: Pick<Doc<'room'>, '_id' | 'jumlahGabung'>,
+  nama: string,
+  kendaraan: Doc<'peserta'>['kendaraan'],
+) {
+  // Penghitung dan peserta baru ditulis di transaksi yang sama, jadi dua orang yang gabung bersamaan tidak dapat nomor kembar.
+  const urutanGabung = room.jumlahGabung + 1
+  await ctx.db.patch('room', room._id, { jumlahGabung: urutanGabung })
+  const kunci = crypto.randomUUID()
+  const pesertaId = await ctx.db.insert('peserta', { roomId: room._id, nama, kendaraan, urutanGabung, kunci })
+  return { pesertaId, kunci, urutanGabung }
+}
+
+/** Membuat room sekaligus menggabungkan pembuatnya sebagai orang ke-1, jadi tidak ada room kosong yang tertinggal. */
 export const buat = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { nama: v.string(), kendaraan: vKendaraan },
+  handler: async (ctx, args) => {
+    const nama = rapikanNama(args.nama)
+    if (!nama) throw gagal('NAMA_TIDAK_VALID')
+
     // Peluang bentrok sangat kecil (31^6 kode), tapi tetap dicek karena kode harus unik selama room hidup.
     for (let percobaan = 0; percobaan < 5; percobaan++) {
       const kode = buatKodeRoom(Math.random)
@@ -37,7 +56,7 @@ export const buat = mutation({
       const kedaluwarsaPada = Date.now() + MASA_ROOM_MS
       const roomId = await ctx.db.insert('room', { kode, status: 'menunggu_peserta', kedaluwarsaPada, jumlahGabung: 0 })
       await ctx.scheduler.runAt(kedaluwarsaPada, internal.room.tandaiKedaluwarsa, { roomId })
-      return { kode }
+      return { kode, ...(await tambahPeserta(ctx, { _id: roomId, jumlahGabung: 0 }, nama, args.kendaraan)) }
     }
     throw new Error('Gagal membuat kode room yang unik')
   },
@@ -60,19 +79,7 @@ export const gabung = mutation({
     if (roomPenuh(room.jumlahGabung)) throw gagal('ROOM_PENUH')
     const nama = rapikanNama(args.nama)
     if (!nama) throw gagal('NAMA_TIDAK_VALID')
-
-    // Penghitung dan peserta baru ditulis di transaksi yang sama, jadi dua orang yang gabung bersamaan tidak dapat nomor kembar.
-    const urutanGabung = room.jumlahGabung + 1
-    await ctx.db.patch('room', room._id, { jumlahGabung: urutanGabung })
-    const kunci = crypto.randomUUID()
-    const pesertaId = await ctx.db.insert('peserta', {
-      roomId: room._id,
-      nama,
-      kendaraan: args.kendaraan,
-      urutanGabung,
-      kunci,
-    })
-    return { pesertaId, kunci, urutanGabung }
+    return await tambahPeserta(ctx, room, nama, args.kendaraan)
   },
 })
 

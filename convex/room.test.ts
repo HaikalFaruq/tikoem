@@ -19,25 +19,27 @@ const galatDari = (janji: Promise<unknown>) =>
     (e: unknown) => (e instanceof ConvexError ? (e.data as { galat: string }).galat : String(e)),
   )
 
-async function roomBaru(t: Tes) {
-  const { kode } = await t.mutation(api.room.buat, {})
-  return kode
-}
+/** Room baru dengan Haikal sebagai pembuat, yaitu orang ke-1. */
+const roomBaru = (t: Tes) => t.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
 
 describe('room lewat link', () => {
-  it('membuat room baru yang bisa dibuka dengan kode huruf kecil', async () => {
+  it('membuat room dan langsung menggabungkan pembuatnya sebagai orang ke-1', async () => {
     const t = siapkan()
-    const kode = await roomBaru(t)
-    expect(kode).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/)
+    const pembuat = await roomBaru(t)
+    expect(pembuat.kode).toMatch(/^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{6}$/)
+    expect(pembuat.urutanGabung).toBe(1)
 
-    const hasil = await t.query(api.room.lihat, { kode: kode.toLowerCase() })
-    expect(hasil).toMatchObject({ ok: true, room: { kode, status: 'menunggu_peserta', titikTengah: null }, peserta: [] })
+    const hasil = await t.query(api.room.lihat, { kode: pembuat.kode.toLowerCase() })
+    expect(hasil).toMatchObject({
+      ok: true,
+      room: { kode: pembuat.kode, status: 'menunggu_peserta', titikTengah: null },
+      peserta: [{ id: pembuat.pesertaId, nama: 'Haikal', kendaraan: 'motor', urutanGabung: 1, lokasi: null }],
+    })
   })
 
-  it('memberi urutan gabung mulai dari 1 dan mengurutkan peserta', async () => {
+  it('memberi urutan gabung berikutnya dan mengurutkan peserta', async () => {
     const t = siapkan()
-    const kode = await roomBaru(t)
-    await t.mutation(api.room.gabung, { kode, nama: 'Haikal', kendaraan: 'motor' })
+    const { kode } = await roomBaru(t)
     await t.mutation(api.room.gabung, { kode, nama: '  Bintang ', kendaraan: 'mobil' })
     await t.mutation(api.room.gabung, { kode, nama: 'Umar', kendaraan: 'jalan_kaki' })
 
@@ -52,18 +54,18 @@ describe('room lewat link', () => {
 
   it('tidak memberi nomor kembar ke dua orang yang gabung bersamaan', async () => {
     const t = siapkan()
-    const kode = await roomBaru(t)
+    const { kode } = await roomBaru(t)
     const [a, b] = await Promise.all([
       t.mutation(api.room.gabung, { kode, nama: 'A', kendaraan: 'motor' }),
       t.mutation(api.room.gabung, { kode, nama: 'B', kendaraan: 'motor' }),
     ])
-    expect([a.urutanGabung, b.urutanGabung].toSorted((x, y) => x - y)).toEqual([1, 2])
+    expect([a.urutanGabung, b.urutanGabung].toSorted((x, y) => x - y)).toEqual([2, 3])
   })
 
-  it('menolak orang ke-25 dengan ROOM_PENUH', async () => {
+  it('menolak orang ke-25 dengan ROOM_PENUH, termasuk pembuat room dalam hitungan', async () => {
     const t = siapkan()
-    const kode = await roomBaru(t)
-    for (let i = 1; i <= 24; i++) await t.mutation(api.room.gabung, { kode, nama: `Teman ${i}`, kendaraan: 'motor' })
+    const { kode } = await roomBaru(t)
+    for (let i = 2; i <= 24; i++) await t.mutation(api.room.gabung, { kode, nama: `Teman ${i}`, kendaraan: 'motor' })
     expect(await galatDari(t.mutation(api.room.gabung, { kode, nama: 'Teman 25', kendaraan: 'motor' }))).toBe('ROOM_PENUH')
   })
 
@@ -73,7 +75,8 @@ describe('room lewat link', () => {
     expect(await galatDari(t.mutation(api.room.gabung, { kode: 'bukan kode', nama: 'A', kendaraan: 'motor' }))).toBe('ROOM_TIDAK_ADA')
     expect(await t.query(api.room.lihat, { kode: 'ZZZZZZ' })).toEqual({ ok: false, galat: 'ROOM_TIDAK_ADA' })
 
-    const kode = await roomBaru(t)
+    expect(await galatDari(t.mutation(api.room.buat, { nama: '   ', kendaraan: 'motor' }))).toBe('NAMA_TIDAK_VALID')
+    const { kode } = await roomBaru(t)
     expect(await galatDari(t.mutation(api.room.gabung, { kode, nama: '   ', kendaraan: 'motor' }))).toBe('NAMA_TIDAK_VALID')
 
     // Mutation membaca jam sendiri, jadi tetap menolak walaupun fungsi terjadwal belum sempat memasang tanda.
@@ -87,8 +90,7 @@ describe('room lewat link', () => {
     vi.useFakeTimers()
     try {
       const t = siapkan()
-      const kode = await roomBaru(t)
-      const { pesertaId, kunci } = await t.mutation(api.room.gabung, { kode, nama: 'Haikal', kendaraan: 'motor' })
+      const { kode, pesertaId, kunci } = await roomBaru(t)
 
       vi.advanceTimersByTime(MASA_ROOM_MS - 1000)
       await t.finishInProgressScheduledFunctions()
@@ -108,30 +110,31 @@ describe('room lewat link', () => {
 
   it('menyimpan lokasi yang sudah disamarkan dan hanya menerima kunci pemiliknya', async () => {
     const t = siapkan()
-    const kode = await roomBaru(t)
-    const haikal = await t.mutation(api.room.gabung, { kode, nama: 'Haikal', kendaraan: 'motor' })
+    const { kode } = await roomBaru(t)
+    const bintang = await t.mutation(api.room.gabung, { kode, nama: 'Bintang', kendaraan: 'mobil' })
     const lokasi = { lat: -6.2087634, lng: 106.8455991 }
 
-    expect(await galatDari(t.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: 'tebakan', lokasi }))).toBe(
+    expect(await galatDari(t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: 'tebakan', lokasi }))).toBe(
       'PESERTA_TIDAK_DIKENAL',
     )
     expect(
       await galatDari(
-        t.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: 120, lng: 0 } }),
+        t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: 120, lng: 0 } }),
       ),
     ).toBe('LOKASI_TIDAK_VALID')
 
-    await t.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi })
+    await t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi })
     const hasil = await t.query(api.room.lihat, { kode })
     if (!hasil.ok) throw new Error(hasil.galat)
-    expect(hasil.peserta[0].lokasi).toEqual({ lat: -6.209, lng: 106.846 })
+    expect(hasil.peserta.map((p) => p.lokasi)).toEqual([null, { lat: -6.209, lng: 106.846 }])
   })
 
   it('tidak pernah mengirim kunci peserta lewat query', async () => {
     const t = siapkan()
-    const kode = await roomBaru(t)
-    const { kunci } = await t.mutation(api.room.gabung, { kode, nama: 'Haikal', kendaraan: 'motor' })
-    const hasil = await t.query(api.room.lihat, { kode })
-    expect(JSON.stringify(hasil)).not.toContain(kunci)
+    const pembuat = await roomBaru(t)
+    const teman = await t.mutation(api.room.gabung, { kode: pembuat.kode, nama: 'Bintang', kendaraan: 'mobil' })
+    const hasil = JSON.stringify(await t.query(api.room.lihat, { kode: pembuat.kode }))
+    expect(hasil).not.toContain(pembuat.kunci)
+    expect(hasil).not.toContain(teman.kunci)
   })
 })
