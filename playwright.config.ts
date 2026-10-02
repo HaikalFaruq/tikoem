@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { URL_BACKEND } from './e2e/backend'
+import { PAKAI_LAYANAN_TIRUAN, PORT_TIRUAN, URL_BACKEND, URL_TIRUAN } from './e2e/backend'
 
 // Port khusus E2E supaya tidak pernah memakai server preview lama yang masih jalan.
 const PORT = 4318
@@ -15,6 +15,10 @@ export default defineConfig({
   },
   projects: [{ name: 'mobile', use: { ...devices['Pixel 7'] } }],
   webServer: [
+    // Overpass, ORS, dan Nominatim tiruan. Env Convex diarahkan ke sini oleh e2e/siapkan-backend.ts.
+    ...(PAKAI_LAYANAN_TIRUAN
+      ? [{ command: `node e2e/layanan-tiruan.ts ${PORT_TIRUAN}`, url: `${URL_TIRUAN}/`, reuseExistingServer: false }]
+      : []),
     {
       // Kalau `npx convex dev` sudah jalan di terminal lain, backend itu yang dipakai.
       command: 'npx convex dev',

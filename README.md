@@ -117,6 +117,14 @@ Pertama kali menjalankan E2E di mesin baru: `npx playwright install --only-shell
 
 E2E memakai backend Convex lokal di `127.0.0.1:3210`, jadi pilih deployment lokal saat pertama kali menjalankan `npx convex dev`. Kalau `npx convex dev` sudah jalan, E2E memakai backend itu. Kalau belum, E2E menyalakannya sendiri lalu mematikannya lagi. Room yang dibuat E2E ikut tersimpan di deployment lokalmu. Di CI, backend-nya dibuat baru tanpa akun setiap kali jalan.
 
+Overpass, OpenRouteService, dan Nominatim tidak dipanggil sungguhan saat E2E. Di CI, ketiganya selalu diganti server tiruan (`e2e/layanan-tiruan.ts`). Di laptop, E2E yang butuh layanan itu dilewati, kecuali dijalankan dengan:
+
+```bash
+E2E_LAYANAN_TIRUAN=1 npm run test:e2e
+```
+
+Selama E2E berjalan, env `OVERPASS_URL`, `ORS_URL`, dan `NOMINATIM_URL` di deployment Convex-mu diarahkan ke server tiruan. Setelah selesai, env-nya dikembalikan. Kalau ketiga env itu kosong, backend memakai server asli.
+
 `convex/_generated/` ikut di-commit supaya typecheck dan CI jalan tanpa backend. Isinya dibuat ulang oleh `npx convex dev`, jadi commit perubahannya bersama perubahan di `convex/`.
 
 ## Gerbang mutu

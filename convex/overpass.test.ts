@@ -52,6 +52,12 @@ describe('cariTempatSekitar', () => {
     expect(panggilan[0].kueri).toBe(kueriOverpass(TEBET, 1000))
   })
 
+  it('memakai server dari opsi kalau diisi, misalnya server tiruan untuk E2E', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => json(kafe(5)))
+    await cariTempatSekitar(TEBET, 2000, { ambil, server: ['http://127.0.0.1:4319/overpass'] })
+    expect(panggilan.map((p) => p.server)).toEqual(['http://127.0.0.1:4319/overpass'])
+  })
+
   it('langsung pindah ke server cadangan kalau server utama menjawab galat', async () => {
     const { ambil, panggilan } = tiruanFetch((server) => (server === UTAMA ? json({}, 504) : json(kafe(5))))
     const mulai = Date.now()

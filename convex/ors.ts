@@ -2,7 +2,9 @@ import type { Titik } from '../src/domain/lokasi'
 import type { ProfilRute } from '../src/domain/keadilan'
 import { PENGENAL } from './pengenal'
 
-export type OpsiOrs = { kunci: string; ambil?: typeof fetch; batasMs?: number }
+export type OpsiOrs = { kunci: string; ambil?: typeof fetch; batasMs?: number; urlDasar?: string }
+
+const URL_DASAR_ORS = 'https://api.openrouteservice.org'
 
 /** Kode galat ORS saat salah satu titik terlalu jauh dari jalan yang bisa dilewati. */
 export const KODE_TITIK_TIDAK_TERJANGKAU = 6010
@@ -27,12 +29,12 @@ export async function matriksDurasi(
   asal: readonly Titik[],
   tujuan: readonly Titik[],
   profil: ProfilRute,
-  { kunci, ambil = fetch, batasMs = 10_000 }: OpsiOrs,
+  { kunci, ambil = fetch, batasMs = 10_000, urlDasar = URL_DASAR_ORS }: OpsiOrs,
 ): Promise<(number | null)[][]> {
   const henti = new AbortController()
   const jam = setTimeout(() => henti.abort(), batasMs)
   try {
-    const jawaban = await ambil(`https://api.openrouteservice.org/v2/matrix/${profil}`, {
+    const jawaban = await ambil(`${urlDasar}/v2/matrix/${profil}`, {
       method: 'POST',
       headers: { Authorization: kunci, 'Content-Type': 'application/json', Accept: 'application/json', 'User-Agent': PENGENAL },
       body: JSON.stringify({

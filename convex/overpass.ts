@@ -18,6 +18,8 @@ const MIN_TEMPAT = 5
 
 export type OpsiOverpass = {
   ambil?: typeof fetch
+  /** Urutan server yang dicoba. Bawaannya server utama, cadangan, lalu server utama lagi. */
+  server?: readonly string[]
   /** Server berikutnya ikut ditanya setelah jeda ini. */
   jedaCadanganMs?: number
   /** Batas waktu satu pencarian, untuk semua server sekaligus. */
@@ -43,7 +45,10 @@ export async function cariTempatSekitar(tengah: Titik, radiusTemanMeter: number,
 
 type Percobaan = { henti: AbortController; selesai: boolean; janji: Promise<unknown> }
 
-async function mintaOverpass(kueri: string, { ambil = fetch, jedaCadanganMs = 4000, batasMs = 20_000 }: OpsiOverpass) {
+async function mintaOverpass(
+  kueri: string,
+  { ambil = fetch, server: daftarServer = PERCOBAAN, jedaCadanganMs = 4000, batasMs = 20_000 }: OpsiOverpass,
+) {
   const tanya = async (server: string, sinyal: AbortSignal): Promise<unknown> => {
     const jawaban = await ambil(server, {
       method: 'POST',
@@ -65,7 +70,7 @@ async function mintaOverpass(kueri: string, { ambil = fetch, jedaCadanganMs = 40
   // Server berikutnya ditanya setelah jeda, atau langsung begitu server sebelumnya gagal.
   // Tiap percobaan punya AbortController sendiri: menghentikan fetch yang sudah selesai dibaca membuat runtime Convex melempar galat.
   const daftar: Percobaan[] = []
-  for (const [urutan, server] of PERCOBAAN.entries()) {
+  for (const [urutan, server] of daftarServer.entries()) {
     const henti = new AbortController()
     const sebelumnya = daftar.at(-1)?.janji
     const giliran = sebelumnya
