@@ -1,7 +1,7 @@
-/** Kode dari `GeolocationPositionError`, ditambah 0 untuk browser yang tidak punya fitur lokasi sama sekali. */
-export type KodeGalatGeolokasi = 0 | 1 | 2 | 3
-
-/** Pesan yang menjelaskan kenapa lokasi gagal dibaca dan apa yang bisa dilakukan. */
+/**
+ * Pesan yang menjelaskan kenapa lokasi gagal dibaca dan apa yang bisa dilakukan. `kode` dari `GeolocationPositionError`,
+ * ditambah 0 untuk browser yang tidak punya fitur lokasi sama sekali.
+ */
 export function pesanGalatGeolokasi(kode: number): string {
   switch (kode) {
     case 0:

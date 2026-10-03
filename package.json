@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "lint": "oxlint --deny-warnings",
+    "knip": "knip",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
@@ -20,7 +21,6 @@
     "@fontsource-variable/figtree": "^5.3.0",
     "convex": "^1.46.0",
     "maplibre-gl": "^6.11.2",
-    "motion": "^13.5.1",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
@@ -33,6 +33,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "convex-test": "^0.0.60",
+    "knip": "^6.39.0",
     "oxlint": "^1.86.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",

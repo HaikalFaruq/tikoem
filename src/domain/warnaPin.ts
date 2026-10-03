@@ -1,11 +1,11 @@
 /** Banyaknya warna pin. Kuning bintang sengaja tidak termasuk karena khusus untuk tempat kumpul. */
-export const JUMLAH_WARNA_PIN = 8
+const JUMLAH_WARNA_PIN = 8
 
 /** Putaran warna ke-1, ke-2, dan ke-3 dibedakan dengan aksesori: cukup untuk 24 orang per room. */
-export const AKSESORI_PIN = ['polos', 'kacamata', 'pita'] as const
+const AKSESORI_PIN = ['polos', 'kacamata', 'pita'] as const
 
-export type NomorWarnaPin = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
-export type AksesoriPin = (typeof AKSESORI_PIN)[number]
+type NomorWarnaPin = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+type AksesoriPin = (typeof AKSESORI_PIN)[number]
 export type GayaPin = { warna: NomorWarnaPin; aksesori: AksesoriPin }
 
 /**

@@ -7,7 +7,7 @@ import { IsianTeks, PilihanChip, Tombol } from '../../ui'
 const PESAN_NAMA = `Isi namamu, maksimal ${MAKS_PANJANG_NAMA} karakter.`
 const PESAN_UMUM = 'Belum berhasil. Cek koneksi internetmu, lalu coba lagi.'
 
-export type DataPeserta = { nama: string; kendaraan: Kendaraan }
+type DataPeserta = { nama: string; kendaraan: Kendaraan }
 
 type Props = {
   labelTombol: string
