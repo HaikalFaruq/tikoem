@@ -7,7 +7,7 @@ import urlWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { batasPeta, lingkaranGeo, sebarPinBerdekatan } from '../../domain/peta'
 import type { Titik } from '../../domain/lokasi'
 import { namaPendek } from '../../lib/teks'
-import { Pin, type AksesoriPin, type WarnaPin } from '../../ui'
+import { Bintang, Pin, type AksesoriPin, type WarnaPin } from '../../ui'
 
 setWorkerUrl(urlWorker)
 
@@ -29,22 +29,44 @@ export type PinPeta = {
   saya: boolean
 }
 
+export type KandidatPeta = {
+  id: string
+  nama: string
+  lokasi: Titik
+  peringkat: number
+  /** Suara terbanyak saat ini (pilihanAkhir). Digambar sebagai bintang tempat kumpul. */
+  terpilih: boolean
+}
+
 type Props = {
   pin: PinPeta[]
   tengah: Titik | null
+  kandidat: KandidatPeta[]
+  /** Selama hitung ulang, kandidat lama tetap tampil tapi redup. */
+  kandidatRedup: boolean
+  /** Dipanggil saat penanda kandidat diketuk, untuk menggulir ke kartu tempatnya. */
+  onPilihKandidat: (peringkat: number) => void
 }
 
 type Penanda = { marker: Marker; el: HTMLDivElement }
 
 const geraknyaDikurangi = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-export default function PetaLive({ pin, tengah }: Props) {
+export default function PetaLive({ pin, tengah, kandidat, kandidatRedup, onPilihKandidat }: Props) {
   const wadah = useRef<HTMLDivElement>(null)
   const peta = useRef<PetaMapLibre | null>(null)
   const penandaPin = useRef(new Map<string, Penanda>())
   const penandaTengah = useRef<Penanda | null>(null)
   const pinTerakhir = useRef<PinPeta[]>([])
+  const penandaKandidat = useRef(new Map<string, Penanda>())
+  const kandidatTerakhir = useRef<KandidatPeta[]>([])
+  const sebarSemua = (m: PetaMapLibre) =>
+    aturSebaran(m, [
+      { isi: kandidatTerakhir.current, penanda: penandaKandidat.current },
+      { isi: pinTerakhir.current, penanda: penandaPin.current },
+    ])
   const [elemenPin, setElemenPin] = useState<{ id: string; el: HTMLDivElement }[]>([])
+  const [elemenKandidat, setElemenKandidat] = useState<{ id: string; el: HTMLDivElement }[]>([])
   const [elemenTengah, setElemenTengah] = useState<HTMLDivElement | null>(null)
   const [versiGaya, setVersiGaya] = useState(0)
   const [tanpaWebGL, setTanpaWebGL] = useState(false)
@@ -80,7 +102,7 @@ export default function PetaLive({ pin, tengah }: Props) {
       if (!m.isStyleLoaded()) setPetaDasarGagal(true)
     })
     // Jarak antarpin di layar berubah setiap zoom, jadi sebaran pin dihitung ulang.
-    m.on('zoom', () => aturSebaranPin(m, pinTerakhir.current, penandaPin.current))
+    m.on('zoom', () => sebarSemua(m))
     // Atribusi OpenFreeMap dan OpenStreetMap tetap ada di tombol (i), tapi tidak menutupi peta saat dibuka.
     m.once('load', () => wadah.current?.querySelector('.maplibregl-ctrl-attrib')?.classList.remove('maplibregl-compact-show'))
     peta.current = m
@@ -88,11 +110,13 @@ export default function PetaLive({ pin, tengah }: Props) {
     const gantiTema = () => m.setStyle(gelap.matches ? GAYA_PETA.gelap : GAYA_PETA.terang)
     gelap.addEventListener('change', gantiTema)
     const semuaPenanda = penandaPin.current
+    const semuaKandidat = penandaKandidat.current
     return () => {
       gelap.removeEventListener('change', gantiTema)
       m.remove()
       peta.current = null
       semuaPenanda.clear()
+      semuaKandidat.clear()
       penandaTengah.current = null
     }
   }, [])
@@ -120,7 +144,7 @@ export default function PetaLive({ pin, tengah }: Props) {
       penanda.el.style.zIndex = p.saya ? '3' : '2'
     })
     pinTerakhir.current = pin
-    aturSebaranPin(m, pin, ada)
+    sebarSemua(m)
     setElemenPin(pin.map((p) => ({ id: p.id, el: ada.get(p.id)!.el })))
   }, [pin])
 
@@ -144,6 +168,34 @@ export default function PetaLive({ pin, tengah }: Props) {
     }
     penandaTengah.current.marker.setLngLat([tengah.lng, tengah.lat])
   }, [tengah])
+
+  // Kandidat tempat: angka peringkat, dan bintang untuk suara terbanyak. Bintang paling atas supaya tidak tertutup.
+  useEffect(() => {
+    const m = peta.current
+    if (!m) return
+    const ada = penandaKandidat.current
+    const idSekarang = new Set(kandidat.map((k) => k.id))
+    for (const [id, { marker }] of ada) {
+      if (!idSekarang.has(id)) {
+        marker.remove()
+        ada.delete(id)
+      }
+    }
+    for (const k of kandidat) {
+      let penanda = ada.get(k.id)
+      if (!penanda) {
+        const el = document.createElement('div')
+        penanda = { el, marker: new Marker({ element: el, anchor: 'bottom' }).setLngLat([k.lokasi.lng, k.lokasi.lat]).addTo(m) }
+        ada.set(k.id, penanda)
+      }
+      penanda.marker.setLngLat([k.lokasi.lng, k.lokasi.lat])
+      // Setelah hasil keluar, kandidat lebih penting untuk diketuk daripada pin teman, jadi berada di atasnya.
+      penanda.el.style.zIndex = k.terpilih ? '6' : '5'
+    }
+    kandidatTerakhir.current = kandidat
+    sebarSemua(m)
+    setElemenKandidat(kandidat.map((k) => ({ id: k.id, el: ada.get(k.id)!.el })))
+  }, [kandidat])
 
   // Lingkaran samar di lokasi sendiri: jujur bahwa titik itu hanya perkiraan ~110 m. Dipasang ulang setiap gaya peta berganti.
   const saya = pin.find((p) => p.saya)
@@ -181,10 +233,11 @@ export default function PetaLive({ pin, tengah }: Props) {
   }, [kunciSaya, versiGaya])
 
   // Kamera hanya menyesuaikan saat ada orang yang baru berbagi lokasi atau berhenti, bukan setiap data berubah.
-  const kunciBatas = pin.map((p) => p.id).join('|')
+  // Kandidat ikut menentukan kamera, supaya semua tempat dan semua teman terlihat setelah hasil keluar.
+  const kunciBatas = [...pin.map((p) => p.id), ...kandidat.map((k) => k.id)].join('|')
   useEffect(() => {
     const m = peta.current
-    const batas = batasPeta([...pin.map((p) => p.lokasi), ...(tengah ? [tengah] : [])])
+    const batas = batasPeta([...pin.map((p) => p.lokasi), ...kandidat.map((k) => k.lokasi), ...(tengah ? [tengah] : [])])
     if (!m || !batas) return
     m.fitBounds(batas, {
       padding: { top: 72, bottom: 48, left: 48, right: 48 },
@@ -216,14 +269,26 @@ export default function PetaLive({ pin, tengah }: Props) {
         return p ? createPortal(<PinDiPeta pin={p} />, el, id) : null
       })}
       {elemenTengah && tengah && createPortal(<PenandaTengah />, elemenTengah)}
+      {elemenKandidat.map(({ id, el }) => {
+        const k = kandidat.find((x) => x.id === id)
+        return k ? createPortal(<PenandaKandidat kandidat={k} redup={kandidatRedup} onPilih={onPilihKandidat} />, el, id) : null
+      })}
     </div>
   )
 }
 
-/** Pin yang di layar terlalu berdekatan disebar sedikit, supaya semua teman terlihat. */
-function aturSebaranPin(m: PetaMapLibre, pin: readonly PinPeta[], penanda: Map<string, Penanda>) {
-  const geser = sebarPinBerdekatan(pin.map((p) => m.project([p.lokasi.lng, p.lokasi.lat])))
-  pin.forEach((p, i) => penanda.get(p.id)?.marker.setOffset([geser[i].x, geser[i].y]))
+/**
+ * Pin teman dan kandidat yang di layar terlalu berdekatan disebar bersama, supaya tidak ada yang tertutup dan semuanya bisa diketuk.
+ * Kandidat sering berdekatan (beberapa kafe di satu ruas jalan) dan sering dekat dengan teman yang tinggal di dekat titik tengah.
+ */
+function aturSebaran(m: PetaMapLibre, kelompok: readonly { isi: readonly { id: string; lokasi: Titik }[]; penanda: Map<string, Penanda> }[]) {
+  const semua = kelompok.flatMap(({ isi, penanda }) => isi.map((x) => ({ ...x, penanda })))
+  const geser = sebarPinBerdekatan(
+    semua.map((x) => m.project([x.lokasi.lng, x.lokasi.lat])),
+    34,
+    26,
+  )
+  semua.forEach((x, i) => x.penanda.get(x.id)?.marker.setOffset([geser[i].x, geser[i].y]))
 }
 
 function PinDiPeta({ pin }: { pin: PinPeta }) {
@@ -239,6 +304,34 @@ function PinDiPeta({ pin }: { pin: PinPeta }) {
         className="animate-jatuh origin-bottom drop-shadow-[2px_2px_0_var(--color-bayangan)] motion-reduce:animate-none"
       />
     </div>
+  )
+}
+
+function PenandaKandidat({ kandidat, redup, onPilih }: { kandidat: KandidatPeta; redup: boolean; onPilih: (peringkat: number) => void }) {
+  const label = `${kandidat.nama}, peringkat ${kandidat.peringkat}${kandidat.terpilih ? ', suara terbanyak' : ''}`
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={kandidat.nama}
+      onClick={() => onPilih(kandidat.peringkat)}
+      data-kandidat-peta={kandidat.peringkat}
+      {...(kandidat.terpilih ? { 'data-pilihan-peta': '' } : {})}
+      className={`flex cursor-pointer flex-col items-center transition-opacity focus-visible:outline-3 focus-visible:outline-pin-2 ${redup ? 'opacity-40' : ''}`}
+    >
+      {kandidat.terpilih ? (
+        <>
+          <span className="mb-0.5 max-w-36 truncate rounded-full border-2 border-garis bg-bintang px-1.5 text-[11px] leading-4 font-extrabold text-tinta">
+            {kandidat.nama}
+          </span>
+          <Bintang ukuran={34} className="animate-jatuh origin-bottom motion-reduce:animate-none" />
+        </>
+      ) : (
+        <span className="grid size-7 place-items-center rounded-full border-[2.5px] border-garis bg-kartu text-xs font-extrabold text-teks shadow-stiker-kecil">
+          {kandidat.peringkat}
+        </span>
+      )}
+    </button>
   )
 }
 

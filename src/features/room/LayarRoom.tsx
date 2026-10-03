@@ -140,7 +140,12 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             identitas={identitas}
             onIdentitasHilang={lupakanIdentitas}
           />
-          <BagianPeta pin={pinPeta} />
+          <BagianPeta
+            pin={pinPeta}
+            kandidat={hasil.kandidat}
+            titikTengahHasil={room.titikTengah}
+            menghitung={room.status === 'menghitung'}
+          />
           <BagikanRoom kode={room.kode} sendirian={daftar.length === 1} />
         </>
       ) : (
