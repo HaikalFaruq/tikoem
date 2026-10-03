@@ -1,10 +1,12 @@
 // @vitest-environment edge-runtime
 /// <reference types="vite/client" />
+import rateLimiter from '@convex-dev/rate-limiter/test'
 import { convexTest } from 'convex-test'
 import { ConvexError } from 'convex/values'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
+import { batasLaju } from './batasLaju'
 import { hitungHasil, type PesertaDihitung } from './hitung'
 import { OrsGagal } from './ors'
 import schema from './schema'
@@ -105,6 +107,21 @@ describe('hitungHasil', () => {
     expect(await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil })).toEqual({ galat: 'TEMPAT_TIDAK_DITEMUKAN' })
   })
 
+  it('menunggu antrean sebelum tiap permintaan ORS, dan berhenti tanpa memanggil ORS kalau antrean penuh', async () => {
+    const { ambil, panggilanOrs } = tiruanFetch()
+    // Mencatat berapa permintaan ORS yang sudah terkirim saat antrean dipanggil.
+    const giliran: number[] = []
+    await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil, antreOrs: async () => void giliran.push(panggilanOrs.length) })
+    expect(giliran).toEqual([0, 1])
+    expect(panggilanOrs).toHaveLength(2)
+
+    const penuh = tiruanFetch()
+    await expect(
+      hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil: penuh.ambil, antreOrs: () => Promise.reject(new OrsGagal('Antrean ORS penuh')) }),
+    ).rejects.toThrow('Antrean ORS penuh')
+    expect(penuh.panggilanOrs).toEqual([])
+  })
+
   it('melempar OrsGagal kalau key ORS belum diisi, sebelum memanggil layanan apa pun', async () => {
     const { ambil } = tiruanFetch()
     await expect(hitungHasil(TIGA_ORANG, { kunciOrs: undefined, ambil })).rejects.toThrow(OrsGagal)
@@ -115,6 +132,7 @@ describe('hitungHasil', () => {
 /** Room berisi Haikal (motor), Bintang (mobil), dan Umar (jalan kaki) yang semuanya sudah berbagi lokasi. */
 async function roomTigaOrang() {
   const t = convexTest(schema, modules)
+  rateLimiter.register(t)
   const haikal = await t.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
   const bintang = await t.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Bintang', kendaraan: 'mobil' })
   const umar = await t.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Umar', kendaraan: 'jalan_kaki' })
@@ -168,7 +186,7 @@ describe('alur hitung di Convex', () => {
 
   it('hitung ulang mengganti kandidat sekaligus dan mengosongkan vote', async () => {
     vi.stubGlobal('fetch', tiruanFetch().ambil)
-    const { t, kode, roomId, haikal } = await roomTigaOrang()
+    const { t, kode, roomId, haikal, umar } = await roomTigaOrang()
     await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
     await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
     const kandidatLama = (await lihat(t, kode)).kandidat
@@ -176,6 +194,8 @@ describe('alur hitung di Convex', () => {
       await ctx.db.insert('vote', { roomId, pesertaId: haikal.pesertaId, kandidatId: kandidatLama[0].id })
     })
 
+    // Hitung ulang baru jalan setelah ada lokasi yang berubah.
+    await t.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: { lat: -6.17, lng: 106.9 } })
     await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
     // Selama hitung ulang, kandidat lama tetap dikirim supaya layar tidak berkedip kosong.
     expect((await lihat(t, kode)).kandidat.map((k) => k.id)).toEqual(kandidatLama.map((k) => k.id))
@@ -185,6 +205,70 @@ describe('alur hitung di Convex', () => {
     expect(baru.kandidat).toHaveLength(5)
     expect(baru.kandidat.map((k) => k.id)).not.toEqual(kandidatLama.map((k) => k.id))
     expect(await t.run((ctx) => ctx.db.query('vote').collect())).toEqual([])
+  })
+
+  it('hasil yang masih berlaku tidak dihitung ulang, jadi kuota ORS tidak terpakai dan vote tetap ada', async () => {
+    const tiruan = tiruanFetch()
+    vi.stubGlobal('fetch', tiruan.ambil)
+    const { t, kode, roomId, haikal } = await roomTigaOrang()
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+    const sebelum = await lihat(t, kode)
+    await t.mutation(api.room.vote, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: sebelum.kandidat[0].id })
+    const permintaanOrs = tiruan.panggilanOrs.length
+
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    const sesudah = await lihat(t, kode)
+    expect(sesudah.room).toMatchObject({ status: 'siap', hasilUsang: false, hasilPada: sebelum.room.hasilPada })
+    expect(sesudah.kandidat.map((k) => k.id)).toEqual(sebelum.kandidat.map((k) => k.id))
+    expect(sesudah.kandidat[0].pemilih).toEqual([haikal.pesertaId])
+    await t.finishAllScheduledFunctions(vi.runAllTimers)
+    expect(tiruan.panggilanOrs).toHaveLength(permintaanOrs)
+  })
+
+  it('permintaan ORS antre kalau jatah per menit sudah habis', async () => {
+    const tiruan = tiruanFetch()
+    vi.stubGlobal('fetch', tiruan.ambil)
+    const { t, kode, haikal } = await roomTigaOrang()
+    await t.run((ctx) => batasLaju.limit(ctx, 'ors', { count: 10 }))
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+
+    // `jalankan` yang dijadwalkan `room.hitung` mulai begitu jam dimajukan. 30 per menit berarti satu jatah tiap 2 detik,
+    // dan room ini butuh dua permintaan: profil mobil dan jalan kaki.
+    await vi.advanceTimersByTimeAsync(1900)
+    expect(tiruan.panggilanOrs).toHaveLength(0)
+    await vi.advanceTimersByTimeAsync(200)
+    expect(tiruan.panggilanOrs).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(2000)
+    await t.finishInProgressScheduledFunctions()
+    expect(tiruan.panggilanOrs).toHaveLength(2)
+    expect((await lihat(t, kode)).room.status).toBe('siap')
+  })
+
+  it('LAYANAN_GAGAL tanpa memanggil ORS kalau antreannya penuh', async () => {
+    const tiruan = tiruanFetch()
+    vi.stubGlobal('fetch', tiruan.ambil)
+    const { t, kode, roomId, haikal } = await roomTigaOrang()
+    // Isi 10 terpakai dan lima antrean terisi.
+    await t.run((ctx) => batasLaju.limit(ctx, 'ors', { count: 15, reserve: true }))
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+
+    expect((await lihat(t, kode)).room).toMatchObject({ status: 'gagal', galatHitung: 'LAYANAN_GAGAL' })
+    expect(tiruan.panggilanOrs).toEqual([])
+  })
+
+  it('server ORS lain yang diisi lewat ORS_URL tidak memakai antrean', async () => {
+    vi.stubEnv('ORS_URL', 'http://127.0.0.1:4319/openrouteservice')
+    const tiruan = tiruanFetch()
+    vi.stubGlobal('fetch', tiruan.ambil)
+    const { t, kode, roomId, haikal } = await roomTigaOrang()
+    await t.run((ctx) => batasLaju.limit(ctx, 'ors', { count: 15, reserve: true }))
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+
+    expect((await lihat(t, kode)).room.status).toBe('siap')
+    expect(tiruan.panggilanOrs).toHaveLength(2)
   })
 
   it('LAYANAN_GAGAL kalau ORS gagal, dan room bisa dicoba lagi', async () => {

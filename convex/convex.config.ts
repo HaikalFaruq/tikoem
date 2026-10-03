@@ -1,3 +1,4 @@
+import rateLimiter from '@convex-dev/rate-limiter/convex.config'
 import { defineApp } from 'convex/server'
 import { v } from 'convex/values'
 
@@ -12,5 +13,8 @@ const app = defineApp({
     NOMINATIM_URL: v.optional(v.string()),
   },
 })
+
+// Batas pemakaian layanan luar, lihat convex/batasLaju.ts.
+app.use(rateLimiter)
 
 export default app

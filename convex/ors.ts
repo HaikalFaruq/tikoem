@@ -2,7 +2,14 @@ import type { Titik } from '../src/domain/lokasi'
 import type { ProfilRute } from '../src/domain/keadilan'
 import { PENGENAL } from './pengenal'
 
-export type OpsiOrs = { kunci: string; ambil?: typeof fetch; batasMs?: number; urlDasar?: string }
+export type OpsiOrs = {
+  kunci: string
+  ambil?: typeof fetch
+  batasMs?: number
+  urlDasar?: string
+  /** Dipanggil tepat sebelum permintaan dikirim, untuk menunggu giliran di antrean. */
+  antre?: () => Promise<void>
+}
 
 const URL_DASAR_ORS = 'https://api.openrouteservice.org'
 
@@ -29,8 +36,10 @@ export async function matriksDurasi(
   asal: readonly Titik[],
   tujuan: readonly Titik[],
   profil: ProfilRute,
-  { kunci, ambil = fetch, batasMs = 10_000, urlDasar = URL_DASAR_ORS }: OpsiOrs,
+  { kunci, ambil = fetch, batasMs = 10_000, urlDasar = URL_DASAR_ORS, antre }: OpsiOrs,
 ): Promise<(number | null)[][]> {
+  // Antre sebelum jam dinyalakan, jadi waktu menunggu giliran tidak memakan batas waktu permintaan.
+  await antre?.()
   const henti = new AbortController()
   const jam = setTimeout(() => henti.abort(), batasMs)
   try {
