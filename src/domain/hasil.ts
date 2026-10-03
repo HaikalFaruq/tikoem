@@ -52,3 +52,34 @@ export const labelKategori = (kategori: KategoriTempat) => LABEL_KATEGORI[katego
 
 /** Membuka tempat di Google Maps (atau aplikasi peta bawaan HP) untuk melihat foto, ulasan, dan rute. */
 export const linkMaps = ({ lat, lng }: Titik) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+
+type IsiTeksHasil = {
+  namaTempat: string
+  kategori: KategoriTempat
+  alamat: string | null
+  lokasi: Titik
+  baris: readonly { nama: string; menit: number }[]
+  terlamaMenit: number
+  jumlahPemilih: number
+  jumlahPeserta: number
+  linkRoom: string
+}
+
+/**
+ * Pesan kartu hasil untuk grup WhatsApp. Teks biasa dengan tebal ala WhatsApp (*...*), tanpa emoji,
+ * supaya tetap rapi di semua HP. Link room ditaruh terakhir supaya WhatsApp menampilkan pratinjaunya.
+ */
+export function teksHasil(isi: IsiTeksHasil): string {
+  const keterangan = [labelKategori(isi.kategori), isi.alamat].filter(Boolean).join(' · ')
+  const waktu = isi.baris.map((b) => `${b.nama} ${b.menit} mnt`).join(', ')
+  const pilihan =
+    isi.jumlahPemilih > 0
+      ? `Dipilih ${isi.jumlahPemilih} dari ${isi.jumlahPeserta} orang.`
+      : 'Belum ada yang memilih, jadi ini tempat yang paling adil.'
+  return [
+    `Ketemuan di *${isi.namaTempat}* (${keterangan})`,
+    `Maps: ${linkMaps(isi.lokasi)}`,
+    `Waktu tempuh: ${waktu}. Terlama ${isi.terlamaMenit} mnt.`,
+    `${pilihan} Lihat semua pilihan di Tikoem: ${isi.linkRoom}`,
+  ].join('\n')
+}

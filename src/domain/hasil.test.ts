@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barisWaktuTempuh, keadaanCariTempat, labelKategori, linkMaps } from './hasil'
+import { barisWaktuTempuh, keadaanCariTempat, labelKategori, linkMaps, teksHasil } from './hasil'
 
 const room = (status: 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal', tambahan = {}) => ({
   status,
@@ -62,5 +62,37 @@ describe('label dan link', () => {
     const url = new URL(linkMaps({ lat: -6.223, lng: 106.843 }))
     expect(url.origin + url.pathname).toBe('https://www.google.com/maps/search/')
     expect(url.searchParams.get('query')).toBe('-6.223,106.843')
+  })
+})
+
+describe('teksHasil', () => {
+  const isi = {
+    namaTempat: 'Kafe Taman Tebet',
+    kategori: 'kafe' as const,
+    alamat: 'Jl. Tebet Raya',
+    lokasi: { lat: -6.227, lng: 106.854 },
+    baris: [
+      { nama: 'Haikal', menit: 24 },
+      { nama: 'Bintang', menit: 27 },
+    ],
+    terlamaMenit: 27,
+    jumlahPemilih: 2,
+    jumlahPeserta: 3,
+    linkRoom: 'https://tikoem.vercel.app/r/ABC234',
+  }
+
+  it('memuat nama tempat tebal, link Maps, waktu tempuh tiap orang, dan link room di akhir', () => {
+    const teks = teksHasil(isi)
+    expect(teks).toContain('Ketemuan di *Kafe Taman Tebet* (Kafe · Jl. Tebet Raya)')
+    expect(teks).toContain('https://www.google.com/maps/search/?api=1&query=-6.227,106.854')
+    expect(teks).toContain('Haikal 24 mnt, Bintang 27 mnt. Terlama 27 mnt.')
+    expect(teks).toContain('Dipilih 2 dari 3 orang.')
+    expect(teks.endsWith('https://tikoem.vercel.app/r/ABC234')).toBe(true)
+  })
+
+  it('tanpa alamat dan tanpa suara tetap rapi', () => {
+    const teks = teksHasil({ ...isi, alamat: null, jumlahPemilih: 0 })
+    expect(teks).toContain('(Kafe)')
+    expect(teks).toContain('Belum ada yang memilih, jadi ini tempat yang paling adil.')
   })
 })
