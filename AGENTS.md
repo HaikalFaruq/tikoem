@@ -57,9 +57,9 @@ Issue → branch (`feat/…`, `fix/…`, `docs/…`, `chore/…`) → PR → mer
 Setiap mulai sesi, termasuk sesi AI agent:
 
 1. Sinkron dulu: `git switch main && git pull`.
-2. Baca roadmap beserta komentarnya: `gh issue view 1 --comments`. Komentar terakhir berisi langkah berikutnya dari pasangan.
+2. Baca roadmap yang sedang berjalan beserta komentarnya: `gh issue list --label roadmap --state open`, lalu `gh issue view <nomor> --comments`. Komentar terakhir berisi langkah berikutnya dari pasangan. Roadmap v1 (#1) sudah selesai. Kalau belum ada roadmap baru, sepakati dulu isinya berdua.
 3. Ambil satu item yang belum dicentang di bagian peranmu, lalu kerjakan lewat alur di atas.
-4. Setelah PR di-merge, centang itemnya di #1.
+4. Setelah PR di-merge, centang itemnya di roadmap.
 
 Pertanyaan teknis atau desain yang butuh jawaban pasangan ditulis di **Discussions** kategori Q&A. Jawaban yang menyelesaikan masalah ditandai sebagai answer oleh yang bertanya.
 
@@ -67,17 +67,18 @@ Pertanyaan teknis atau desain yang butuh jawaban pasangan ditulis di **Discussio
 
 | Bagian | Pilihan | Catatan |
 | --- | --- | --- |
-| Frontend | Vite, React, TypeScript, Tailwind CSS, Motion | PWA lewat vite-plugin-pwa, sama seperti Tookthel |
-| Backend dan database | Convex | Query realtime, mutation, action untuk API luar, dan cron |
+| Frontend | Vite, React, TypeScript, Tailwind CSS | PWA lewat vite-plugin-pwa, sama seperti Tookthel. Animasi memakai Tailwind dan menghormati reduced motion |
+| Backend dan database | Convex | Query realtime, mutation, action untuk API luar, dan fungsi terjadwal |
 | Peta | MapLibre GL + OpenFreeMap | Gratis dan tanpa API key |
-| Tempat | OpenStreetMap lewat Overpass API | Kafe, resto, mall, stasiun di sekitar titik tengah |
+| Tempat | OpenStreetMap lewat Overpass API | Kafe, resto, dan mal di sekitar titik tengah. Stasiun menyusul kalau transportasi umum didukung |
+| Alamat | Nominatim (OpenStreetMap) | Fitur ketik alamat, dipanggil dari Convex action dengan batas satu permintaan per detik |
 | Waktu tempuh | OpenRouteService Matrix | Dipanggil dari Convex action, key-nya di env Convex |
 | Deploy | Vercel (frontend) + Convex Cloud (backend) | Free tier, tanpa domain sendiri |
 
 Struktur folder:
 
 ```
-convex/      backend: schema.ts, query, mutation, action, cron
+convex/      backend: schema.ts, query, mutation, action, fungsi terjadwal
 src/
   domain/    logika murni: titik tengah, skor keadilan, validasi
   lib/       utilitas umum: format jarak dan waktu, id
@@ -98,6 +99,7 @@ e2e/         skenario Playwright
 
 - `domain` dan `lib` tidak boleh import React atau Convex, supaya bisa dites dengan unit test biasa dan dipakai di frontend maupun backend.
 - `npm run lint` menegakkan tabel di atas lewat aturan `no-restricted-imports` di `.oxlintrc.json`. Kalau tabelnya berubah, ubah aturan lint-nya juga.
+- `npm run knip` menolak file, export, dan dependensi yang tidak terpakai.
 - Logika baru (hitungan, validasi, format) masuk ke `domain` atau `lib` beserta unit test-nya. Test ditaruh di sebelah filenya: `midpoint.ts` → `midpoint.test.ts`.
 - Perilaku baru wajib disertai test: logika di unit test, alur pengguna di E2E.
 
