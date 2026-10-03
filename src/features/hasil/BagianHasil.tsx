@@ -4,9 +4,11 @@ import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { keadaanCariTempat, type GalatHitung } from '../../domain/hasil'
+import { pilihanAkhir } from '../../domain/vote'
 import { warnaPin } from '../../domain/warnaPin'
 import { KartuStiker, Pin, Tombol } from '../../ui'
 import type { IdentitasRoom } from '../room/identitas'
+import { KartuHasil } from './KartuHasil'
 import { KartuTempat } from './KartuTempat'
 import type { Kandidat, Peserta, Room } from './tipe'
 
@@ -76,6 +78,8 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
   const pilihanSaya = kandidat.find((k) => k.pemilih.includes(identitas.pesertaId))?.id ?? null
   const skalaMenit = Math.max(1, ...kandidat.map((k) => k.terlamaMenit))
   const sudahPilih = kandidat.reduce((n, k) => n + k.pemilih.length, 0)
+  const idTerpilih = pilihanAkhir(kandidat)
+  const terpilih = kandidat.find((k) => k.id === idTerpilih) ?? null
 
   return (
     <section aria-labelledby="hasil-judul" className="flex min-w-0 flex-col gap-4">
@@ -155,6 +159,10 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
         <p role="alert" className="text-sm font-semibold">
           {galat}
         </p>
+      )}
+
+      {keadaan.jenis === 'siap' && terpilih && (
+        <KartuHasil room={room} kandidat={terpilih} peserta={peserta} idSaya={identitas.pesertaId} />
       )}
 
       {kandidat.length > 0 && (keadaan.jenis === 'siap' || menghitung) && (

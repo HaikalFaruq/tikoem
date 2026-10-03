@@ -112,6 +112,40 @@ test('orang yang sudah keluar tidak lagi tampil di waktu tempuh kartu tempat', a
   await expect(page.locator('[data-kandidat="1"]')).not.toContainText('Umar')
 })
 
+test('kartu hasil: tempat paling adil dulu, ikut suara terbanyak, siap dikirim ke grup', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  const { kode, haikal, bintang, umar } = await roomBertiga()
+  await masukSebagai(page, kode, haikal)
+  await cariTempat(page)
+
+  const hasil = await convex.query(api.room.lihat, { kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  const [pertama, , ketiga] = hasil.kandidat
+
+  const kartu = page.locator('[data-kartu-hasil]')
+  await expect(kartu).toContainText(pertama.nama)
+  await expect(kartu).toContainText('Belum ada yang memilih, jadi ini yang paling adil')
+  // Momen gabung diputar sekali untuk hasil ini di HP ini.
+  await expect(kartu).toHaveAttribute('data-momen', 'main')
+
+  const wa = kartu.getByRole('link', { name: 'Kirim hasil ke grup WA' })
+  const pesan = new URL((await wa.getAttribute('href'))!).searchParams.get('text')!
+  expect(pesan).toContain(`Ketemuan di *${pertama.nama}*`)
+  expect(pesan).toContain(`Terlama ${pertama.terlamaMenit} mnt.`)
+  expect(pesan.endsWith(`/r/${kode}`)).toBe(true)
+
+  for (const p of [bintang, umar]) await convex.mutation(api.room.vote, { pesertaId: p.pesertaId, kunci: p.kunci, kandidatId: ketiga.id })
+  await expect(kartu).toContainText(ketiga.nama, REALTIME)
+  await expect(kartu).toContainText('Dipilih 2 dari 3 orang')
+
+  await kartu.getByRole('button', { name: 'Salin teks hasil' }).click()
+  await expect(kartu.getByRole('button', { name: 'Tersalin' })).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(`Ketemuan di *${ketiga.nama}*`)
+
+  await page.reload()
+  await expect(page.locator('[data-kartu-hasil]')).toContainText(ketiga.nama)
+  await expect(page.locator('[data-kartu-hasil]')).not.toHaveAttribute('data-momen', 'main')
+})
 for (const [nama, titik, pesan] of [
   ['tidak ada tempat di sekitar titik tengah', LOKASI_TANPA_TEMPAT, 'Tidak ada kafe, resto, atau mal di sekitar titik tengah.'],
   ['layanan peta gagal', LOKASI_LAYANAN_GAGAL, 'Layanan peta sedang gangguan'],
