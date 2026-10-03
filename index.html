@@ -26,8 +26,75 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Tiga pin teman berwajah berkumpul di bawah bintang tempat kumpul" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!--
+      Pembuka: animasi singkat sebelum app tampil, seperti splash di aplikasi HP.
+      Ditulis di sini (bukan di React) supaya langsung tampil sementara JavaScript app masih diunduh.
+      Tiga pin teman meluncur ke tengah dan menyatu jadi pin Tikoem, lalu wordmark muncul (docs/desain/identitas.html).
+      Sekali per sesi, bisa dilewati dengan ketuk, dan tidak diputar kalau HP meminta gerak dikurangi.
+    -->
+    <style>
+      #pembuka {
+        --kertas: #f2f4ff; --teks: #1b1a33; --redup: #545372; --garis: #1b1a33; --merah: #ff5a36;
+        position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; cursor: pointer;
+        background: var(--kertas); color: var(--teks);
+        font-family: 'Bricolage Grotesque Variable', 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+        transition: opacity 380ms ease, transform 380ms ease;
+      }
+      @media (prefers-color-scheme: dark) {
+        #pembuka { --kertas: #16152b; --teks: #eef0ff; --redup: #b4b3d6; --garis: #e4e3ff; }
+      }
+      #pembuka.pembuka-keluar { opacity: 0; transform: scale(1.04); pointer-events: none; }
+      .pembuka-isi { display: grid; justify-items: center; gap: 14px; padding-bottom: 6vh; }
+      .pembuka-logo { width: 132px; height: 132px; overflow: visible; }
+      .pembuka-teman { transform-box: fill-box; transform-origin: 50% 100%; animation: pembuka-kumpul 720ms cubic-bezier(0.6, 0, 0.3, 1) both; }
+      .pembuka-teman.t1 { --dari: -96px, 8px; }
+      .pembuka-teman.t2 { --dari: 96px, 8px; animation-delay: 80ms; }
+      .pembuka-teman.t3 { --dari: 0px, 92px; animation-delay: 160ms; }
+      .pembuka-pin { transform-box: fill-box; transform-origin: 50% 100%; animation: pembuka-pin 820ms 640ms linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1) both; }
+      .pembuka-kata { margin: 0; font-size: 56px; line-height: 1; font-weight: 800; letter-spacing: -0.05em; font-variation-settings: 'opsz' 96; text-shadow: 3px 3px 0 var(--merah); animation: pembuka-naik 520ms 1000ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+      .pembuka-tagline { margin: 0; font-family: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif; font-size: 16px; color: var(--redup); animation: pembuka-naik 520ms 1180ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+      @keyframes pembuka-kumpul {
+        0% { transform: translate(var(--dari)) scale(0.9); opacity: 0; }
+        30% { opacity: 1; }
+        85% { transform: translate(0, -6px) scale(0.75); opacity: 1; }
+        100% { transform: translate(0, -6px) scale(0.2); opacity: 0; }
+      }
+      @keyframes pembuka-pin { from { transform: scale(0, 0.2); } }
+      @keyframes pembuka-naik { from { transform: translateY(14px); opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) { #pembuka { display: none; } }
+    </style>
   </head>
   <body>
+    <div id="pembuka" aria-hidden="true">
+      <div class="pembuka-isi">
+        <svg class="pembuka-logo" viewBox="-66 -122 132 132">
+          <g transform="translate(0 0) scale(1.6)"><g class="pembuka-teman t1"><path d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z" fill="#3d7bff" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1b1a33" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.7" fill="#1b1a33" /><circle cx="5.5" cy="-2" r="1.7" fill="#1b1a33" /><path d="M-6 4 Q0 10 6 4" /></g></g></g>
+          <g transform="translate(0 0) scale(1.6)"><g class="pembuka-teman t2"><path d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z" fill="#4cc9a0" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1b1a33" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.7" fill="#1b1a33" /><circle cx="5.5" cy="-2" r="1.7" fill="#1b1a33" /><path d="M-6 4 Q0 10 6 4" /></g></g></g>
+          <g transform="translate(0 0) scale(1.6)"><g class="pembuka-teman t3"><path d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z" fill="#9b7bff" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1b1a33" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.7" fill="#1b1a33" /><circle cx="5.5" cy="-2" r="1.7" fill="#1b1a33" /><path d="M-6 4 Q0 10 6 4" /></g></g></g>
+          <g transform="scale(2.6)"><g class="pembuka-pin"><path d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z" transform="translate(2.2 2.2)" fill="var(--garis)" /><path d="M0 0 C -5 -9 -17 -15 -17 -27 A17 17 0 1 1 17 -27 C 17 -15 5 -9 0 0 Z" fill="var(--merah)" stroke="var(--garis)" stroke-width="3" stroke-linejoin="round" /><g transform="translate(0 -27)" stroke="#1b1a33" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.7" fill="#1b1a33" /><circle cx="5.5" cy="-2" r="1.7" fill="#1b1a33" /><path d="M-6 4 Q0 10 6 4" /></g></g></g>
+        </svg>
+        <p class="pembuka-kata">tikoem</p>
+        <p class="pembuka-tagline">Titik kumpul yang adil buat semua.</p>
+      </div>
+    </div>
+    <script>
+      ;(function () {
+        var el = document.getElementById('pembuka')
+        var sudah = false
+        try {
+          sudah = sessionStorage.getItem('tikoem:pembuka') === '1'
+          sessionStorage.setItem('tikoem:pembuka', '1')
+        } catch (e) {}
+        if (sudah || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return el.remove()
+        function tutup() {
+          if (!el.isConnected || el.classList.contains('pembuka-keluar')) return
+          el.classList.add('pembuka-keluar')
+          setTimeout(function () { el.remove() }, 400)
+        }
+        el.addEventListener('click', tutup)
+        setTimeout(tutup, 1900)
+      })()
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
