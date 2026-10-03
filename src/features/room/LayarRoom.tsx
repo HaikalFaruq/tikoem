@@ -133,18 +133,19 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             pin={warnaPin(saya.urutanGabung)}
             onIdentitasHilang={lupakanIdentitas}
           />
+          {/* Peta dulu, lalu tombol Cari tempat di bawahnya: orang melihat titik tengahnya, lalu langsung tahu langkah berikutnya. */}
+          <BagianPeta
+            pin={pinPeta}
+            kandidat={hasil.kandidat}
+            titikTengahHasil={room.titikTengah}
+            menghitung={room.status === 'menghitung'}
+          />
           <BagianHasil
             room={room}
             peserta={daftar}
             kandidat={hasil.kandidat}
             identitas={identitas}
             onIdentitasHilang={lupakanIdentitas}
-          />
-          <BagianPeta
-            pin={pinPeta}
-            kandidat={hasil.kandidat}
-            titikTengahHasil={room.titikTengah}
-            menghitung={room.status === 'menghitung'}
           />
           <BagikanRoom kode={room.kode} sendirian={daftar.length === 1} />
         </>

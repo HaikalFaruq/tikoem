@@ -53,6 +53,13 @@ export const labelKategori = (kategori: KategoriTempat) => LABEL_KATEGORI[katego
 /** Membuka tempat di Google Maps (atau aplikasi peta bawaan HP) untuk melihat foto, ulasan, dan rute. */
 export const linkMaps = ({ lat, lng }: Titik) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
 
+/**
+ * Rute di Google Maps dari lokasi HP sendiri ke tempat kumpul. Titik awalnya diambil Google Maps sendiri,
+ * jadi lokasi kita tidak ikut di link. Motor memakai mode mobil, seperti di OpenRouteService.
+ */
+export const linkRute = ({ lat, lng }: Titik, kendaraan: 'motor' | 'mobil' | 'jalan_kaki') =>
+  `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${kendaraan === 'jalan_kaki' ? 'walking' : 'driving'}`
+
 type IsiTeksHasil = {
   namaTempat: string
   kategori: KategoriTempat

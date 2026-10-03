@@ -134,6 +134,12 @@ test('kartu hasil: tempat paling adil dulu, ikut suara terbanyak, siap dikirim k
   expect(pesan).toContain(`Terlama ${pertama.terlamaMenit} mnt.`)
   expect(pesan.endsWith(`/r/${kode}`)).toBe(true)
 
+  // Rute dari lokasi HP sendiri. Haikal naik motor, jadi mode mobil, dan lokasi asalnya tidak ikut di link.
+  const rute = new URL((await kartu.getByRole('link', { name: 'Lihat rute ke sana' }).getAttribute('href'))!)
+  expect(rute.searchParams.get('destination')).toBe(`${pertama.lokasi.lat},${pertama.lokasi.lng}`)
+  expect(rute.searchParams.get('travelmode')).toBe('driving')
+  expect(rute.searchParams.get('origin')).toBeNull()
+
   for (const p of [bintang, umar]) await convex.mutation(api.room.vote, { pesertaId: p.pesertaId, kunci: p.kunci, kandidatId: ketiga.id })
   await expect(kartu).toContainText(ketiga.nama, REALTIME)
   await expect(kartu).toContainText('Dipilih 2 dari 3 orang')

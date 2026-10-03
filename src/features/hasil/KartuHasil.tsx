@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { barisWaktuTempuh, labelKategori, teksHasil } from '../../domain/hasil'
+import { barisWaktuTempuh, labelKategori, linkRute, teksHasil } from '../../domain/hasil'
 import { linkRoom, linkWhatsApp } from '../../domain/undangan'
 import { warnaPin } from '../../domain/warnaPin'
 import { Bintang, KartuStiker, Pin, TautanTombol, Tombol } from '../../ui'
@@ -40,6 +40,7 @@ function useMomenGabung(kode: string, hasilPada: number | null) {
 /** Kartu ringkas tempat dengan suara terbanyak, untuk dikirim ke grup. */
 export function KartuHasil({ room, kandidat, peserta, idSaya }: Props) {
   const baris = barisWaktuTempuh(kandidat.waktuTempuh, peserta)
+  const saya = peserta.find((p) => p.id === idSaya) ?? null
   const mainkan = useMomenGabung(room.kode, room.hasilPada)
   const teks = teksHasil({
     namaTempat: kandidat.nama,
@@ -128,6 +129,11 @@ export function KartuHasil({ room, kandidat, peserta, idSaya }: Props) {
         <TautanTombol href={linkWhatsApp(teks)} className="w-full">
           Kirim hasil ke grup WA
         </TautanTombol>
+        {saya && (
+          <TautanTombol varian="biasa" href={linkRute(kandidat.lokasi, saya.kendaraan)} className="self-center">
+            Lihat rute ke sana
+          </TautanTombol>
+        )}
         <Tombol varian="biasa" onClick={salin} className="self-center">
           {tersalin === 'ya' ? 'Tersalin' : 'Salin teks hasil'}
         </Tombol>
