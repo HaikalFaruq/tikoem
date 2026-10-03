@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../convex/_generated/api'
-import { PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
+import { LOKASI_LAYANAN_GAGAL, LOKASI_TANPA_TEMPAT, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
 
 test.skip(!PAKAI_LAYANAN_TIRUAN, 'Butuh layanan tiruan. Otomatis di CI, atau jalankan dengan E2E_LAYANAN_TIRUAN=1.')
 
@@ -111,3 +111,22 @@ test('orang yang sudah keluar tidak lagi tampil di waktu tempuh kartu tempat', a
   await expect(baris).toHaveCount(2, REALTIME)
   await expect(page.locator('[data-kandidat="1"]')).not.toContainText('Umar')
 })
+
+for (const [nama, titik, pesan] of [
+  ['tidak ada tempat di sekitar titik tengah', LOKASI_TANPA_TEMPAT, 'Tidak ada kafe, resto, atau mal di sekitar titik tengah.'],
+  ['layanan peta gagal', LOKASI_LAYANAN_GAGAL, 'Layanan peta sedang gangguan'],
+] as const) {
+  test(`pencarian gagal karena ${nama}: pin kaget, pesan, dan tombol coba lagi`, async ({ page }) => {
+    const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+    const umar = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Umar', kendaraan: 'motor' })
+    // Dua lokasi yang sama persis membuat titik tengahnya tepat di titik yang membuat layanan tiruan gagal.
+    for (const p of [haikal, umar]) await convex.mutation(api.room.kirimLokasi, { pesertaId: p.pesertaId, kunci: p.kunci, lokasi: titik })
+    await masukSebagai(page, haikal.kode, haikal)
+
+    await page.getByRole('button', { name: 'Cari tempat' }).click()
+    await expect(page.getByText(pesan)).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('main svg[data-ekspresi="kaget"]')).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Coba lagi' })).toBeEnabled()
+    await expect(page.locator('[data-kandidat]')).toHaveCount(0)
+  })
+}
