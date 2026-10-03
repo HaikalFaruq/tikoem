@@ -2,6 +2,8 @@
 
 <div align="center">
 
+<img src="public/pwa-512x512.png" width="112" alt="Logo Tikoem: pin berwajah di kotak merah" />
+
 # Tikoem
 
 **Titik kumpul yang adil buat semua.**
