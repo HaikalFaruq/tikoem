@@ -25,7 +25,7 @@ async function isiNamaDanKendaraan(halaman: Page, nama: string, kendaraan: strin
   await halaman.getByText(kendaraan, { exact: true }).click()
 }
 
-test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, hasil keluar, lalu voting', async ({ browser }) => {
+test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, hasil keluar, voting, lalu kartu hasil', async ({ browser }) => {
   test.setTimeout(120_000)
 
   // 1. Haikal membuat room di beranda.
@@ -81,4 +81,20 @@ test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, hasil ke
   }
   await expect(umar.locator('[data-kandidat="2"]')).toContainText('Pilihanmu')
   await expect(haikal.locator('[data-kandidat="1"]')).toContainText('Pilihanmu')
+
+  // 7. Kartu hasil yang sama di ketiga HP: tempat dengan suara terbanyak, siap dikirim balik ke grup.
+  const namaTerpilih = await haikal.locator('[data-kandidat="2"] h3').innerText()
+  for (const halaman of [haikal, bintang, umar]) {
+    const kartu = halaman.locator('[data-kartu-hasil]')
+    await expect(kartu).toContainText(namaTerpilih, REALTIME)
+    await expect(kartu).toContainText('Dipilih 2 dari 3 orang')
+    await expect(kartu.getByRole('list', { name: 'Waktu tempuh ke tempat ini' }).getByRole('listitem')).toHaveCount(3)
+  }
+  const wa = haikal.locator('[data-kartu-hasil]').getByRole('link', { name: 'Kirim hasil ke grup WA' })
+  const pesan = new URL((await wa.getAttribute('href'))!).searchParams.get('text')!
+  expect(pesan).toContain(`Ketemuan di *${namaTerpilih}*`)
+  expect(pesan).toContain('Haikal')
+  expect(pesan).toContain('Bintang')
+  expect(pesan).toContain('Umar')
+  expect(pesan.endsWith(new URL(link).pathname)).toBe(true)
 })
