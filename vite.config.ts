@@ -31,16 +31,23 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
-        // Warna kertas peta dari identitas terpilih (docs/desain/identitas.html). Ikon PNG menyusul di PR ikon PWA.
+        // Warna kertas peta dari identitas terpilih (docs/desain/identitas.html). Splash Android memakai warna latar, ikon, dan nama ini.
         theme_color: '#F2F4FF',
         background_color: '#F2F4FF',
-        icons: [],
+        // Dibuat oleh `npm run ikon` (scripts/buat-ikon.mjs).
+        icons: [
+          { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        // Peta (~1,5 MB) tidak ikut diunduh di latar belakang saat beranda dibuka, supaya tidak menghabiskan kuota.
+        // Gambar pratinjau link hanya dibaca WhatsApp dan media sosial, bukan oleh app.
+        globIgnores: ['**/og.png', '**/PetaLive-*', '**/maplibre-gl-worker-*'],
+        // Peta (~1,5 MB) juga tidak ikut diunduh di latar belakang saat beranda dibuka, supaya tidak menghabiskan kuota.
         // Peta disimpan saat pertama kali dipakai. Nama filenya ber-hash, jadi aman disajikan dari cache.
-        globIgnores: ['**/PetaLive-*', '**/maplibre-gl-worker-*'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => /\/assets\/(PetaLive|maplibre-gl-worker)-[\w-]+\.(js|css)$/.test(url.pathname),
