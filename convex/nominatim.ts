@@ -3,7 +3,13 @@ import { PENGENAL } from './pengenal'
 
 const URL_CARI = 'https://nominatim.openstreetmap.org/search'
 
-export type OpsiNominatim = { ambil?: typeof fetch; batasMs?: number; url?: string }
+export type OpsiNominatim = {
+  ambil?: typeof fetch
+  batasMs?: number
+  url?: string
+  /** Dipanggil tepat sebelum permintaan dikirim, untuk menunggu giliran di antrean. */
+  antre?: () => Promise<void>
+}
 
 export class NominatimGagal extends Error {
   override name = 'NominatimGagal'
@@ -16,10 +22,12 @@ export class NominatimGagal extends Error {
  */
 export async function cariAlamat(
   teks: string,
-  { ambil = fetch, batasMs = 8000, url: urlCari = URL_CARI }: OpsiNominatim = {},
+  { ambil = fetch, batasMs = 8000, url: urlCari = URL_CARI, antre }: OpsiNominatim = {},
 ): Promise<HasilCariAlamat[]> {
   const q = rapikanTeksCari(teks)
   if (!q) return []
+  // Antre setelah teks dicek, jadi teks yang terlalu pendek tidak memakai jatah.
+  await antre?.()
 
   const url = new URL(urlCari)
   url.search = new URLSearchParams({

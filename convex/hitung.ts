@@ -1,7 +1,8 @@
 import { v, type Infer } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
-import { env, internalAction, internalMutation, internalQuery, type MutationCtx } from './_generated/server'
+import { env, internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from './_generated/server'
+import { tungguGiliran } from './batasLaju'
 import { cariTempatSekitar } from './overpass'
 import { KODE_TITIK_TIDAK_TERJANGKAU, OrsGagal, matriksDurasi, type OpsiOrs } from './ors'
 import { vGalatHitung, vKandidat, vTitik } from './schema'
@@ -102,6 +103,8 @@ export const jalankan = internalAction({
         kunciOrs: env.ORS_API_KEY,
         urlOverpass: env.OVERPASS_URL,
         urlOrs: env.ORS_URL,
+        // Batas per menit hanya untuk ORS asli. Server lain yang diisi lewat ORS_URL, termasuk tiruan E2E, tidak antre.
+        antreOrs: env.ORS_URL ? undefined : () => giliranOrs(ctx),
       })
       if ('galat' in hasil) await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: hasil.galat })
       else await ctx.runMutation(internal.hitung.simpan, { roomId, putaran, versiLokasi: data.versiLokasi, ...hasil })
@@ -113,12 +116,19 @@ export const jalankan = internalAction({
   },
 })
 
+/** Menunggu giliran ke ORS. Kalau antreannya sudah penuh, hitung gagal tanpa memakai kuota ORS. */
+async function giliranOrs(ctx: ActionCtx) {
+  if (!(await tungguGiliran(ctx, 'ors'))) throw new OrsGagal('Antrean ORS penuh')
+}
+
 export type OpsiHitung = {
   kunciOrs: string | undefined
   ambil?: typeof fetch
   /** Kosong berarti server asli. Diisi dari env `OVERPASS_URL` dan `ORS_URL`, misalnya oleh E2E. */
   urlOverpass?: string
   urlOrs?: string
+  /** Dipanggil sebelum tiap permintaan ORS. */
+  antreOrs?: () => Promise<void>
 }
 export type HasilHitung = { titikTengah: Titik; kandidat: Infer<typeof vKandidat>[] } | { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
 
@@ -135,7 +145,7 @@ class TempatTakTerjangkau extends Error {
  */
 export async function hitungHasil(
   peserta: readonly PesertaDihitung[],
-  { kunciOrs, ambil = fetch, urlOverpass, urlOrs }: OpsiHitung,
+  { kunciOrs, ambil = fetch, urlOverpass, urlOrs, antreOrs }: OpsiHitung,
 ): Promise<HasilHitung> {
   const tengah = titikTengah(peserta.map((p) => p.lokasi))
   if (!tengah) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
@@ -149,7 +159,7 @@ export async function hitungHasil(
   // Tempat yang ditolak ORS dibuang, lalu dicoba lagi. Tiga kali sudah lebih dari cukup untuk data kota.
   for (let percobaan = 0; percobaan < 3 && tempat.length > 0; percobaan++) {
     try {
-      const menit = await menitTiapPeserta(peserta, tempat, { kunci: kunciOrs, ambil, urlDasar: urlOrs })
+      const menit = await menitTiapPeserta(peserta, tempat, { kunci: kunciOrs, ambil, urlDasar: urlOrs, antre: antreOrs })
       const terjangkau = tempat.flatMap((t, j) => {
         if (peserta.some((_, i) => menit[i][j] === null)) return []
         return [

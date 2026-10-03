@@ -154,6 +154,9 @@ export const hitung = mutation({
       .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', room._id))
       .take(MAKS_PESERTA)
     if (peserta.filter((p) => p.lokasi).length < 2) throw gagal('LOKASI_BELUM_CUKUP')
+    // Hasil yang masih berlaku tidak dihitung ulang. Lokasinya sama, jadi hasilnya juga sama, sedangkan menghitung lagi
+    // memakai kuota ORS dan mengosongkan vote. Layar memang hanya menawarkan hitung ulang kalau hasilnya usang.
+    if (room.status === 'siap' && room.versiLokasi === room.versiHasil) return
 
     // Kandidat lama tetap ditampilkan sampai hasil baru menggantikannya.
     const putaran = (room.putaranHitung ?? 0) + 1
