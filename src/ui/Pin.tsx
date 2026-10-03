@@ -1,7 +1,7 @@
 // Bentuk sama dengan GayaPin di src/domain/warnaPin.ts, tapi ui tidak boleh import domain, jadi ditulis ulang di sini.
 export type WarnaPin = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 export type AksesoriPin = 'polos' | 'kacamata' | 'pita'
-export type Ekspresi = 'nunggu' | 'senang' | 'kaget' | 'sepakat'
+type Ekspresi = 'nunggu' | 'senang' | 'kaget' | 'sepakat'
 
 type Props = {
   warna: WarnaPin

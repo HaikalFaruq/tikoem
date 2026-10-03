@@ -1,11 +1,11 @@
 import type { Titik } from './lokasi'
 
-export type StatusRoom = 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal'
+type StatusRoom = 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal'
 export type GalatHitung = 'TEMPAT_TIDAK_DITEMUKAN' | 'LAYANAN_GAGAL'
 export type KategoriTempat = 'kafe' | 'resto' | 'mall' | 'stasiun'
 
 /** Sama dengan syarat `room.hitung` di backend (Discussions #8). */
-export const MIN_LOKASI_HITUNG = 2
+const MIN_LOKASI_HITUNG = 2
 
 type RoomHasil = { status: StatusRoom; galatHitung: GalatHitung | null; hasilUsang: boolean }
 

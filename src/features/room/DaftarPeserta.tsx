@@ -6,7 +6,7 @@ import { warnaPin } from '../../domain/warnaPin'
 import { Pin } from '../../ui'
 
 type HasilLihat = FunctionReturnType<typeof api.room.lihat>
-export type Peserta = Extract<HasilLihat, { ok: true }>['peserta'][number]
+type Peserta = Extract<HasilLihat, { ok: true }>['peserta'][number]
 
 type Props = { peserta: Peserta[]; idSaya: string | null }
 

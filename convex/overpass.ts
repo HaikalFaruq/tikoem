@@ -15,13 +15,12 @@ const KETIGA = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
  */
 const PERCOBAAN = [UTAMA, CADANGAN, KETIGA]
 
-
 /** Kalau tempat yang ditemukan kurang dari ini, radius pencarian diperluas sekali. */
 const MIN_TEMPAT = 5
 
 export type OpsiOverpass = {
   ambil?: typeof fetch
-  /** Urutan server yang dicoba. Bawaannya server utama, cadangan, lalu server utama lagi. */
+  /** Urutan server yang dicoba. Bawaannya server utama, cadangan, lalu server ketiga. */
   server?: readonly string[]
   /** Server berikutnya ikut ditanya setelah jeda ini. */
   jedaCadanganMs?: number
