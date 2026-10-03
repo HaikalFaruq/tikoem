@@ -12,3 +12,4 @@ playwright-report
 .agents/
 .claude/skills/
 skills-lock.json
+.archify

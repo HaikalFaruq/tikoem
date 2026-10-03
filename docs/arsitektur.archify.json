@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Arsitektur Tikoem",
+    "locale": "id",
+    "translations": {
+      "legend.title": "Keterangan"
+    },
+    "output": ".archify/arsitektur.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/HaikalFaruq/tikoem.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "24b9609dca95db5aab9005cf8f819d4a4261729a"
+    },
+    "legend": {
+      "entries": {
+        "frontend": {
+          "label": "Aplikasi di HP"
+        },
+        "backend": {
+          "label": "Fungsi Convex"
+        },
+        "database": {
+          "label": "Penyimpanan"
+        },
+        "external": {
+          "label": "Orang dan layanan luar"
+        }
+      }
+    }
+  },
+  "components": [
+    {
+      "id": "whatsapp",
+      "type": "external",
+      "label": "WhatsApp",
+      "sublabel": "link room dan hasil",
+      "pos": [
+        310,
+        40
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/domain/undangan.ts",
+          "line": 10,
+          "end_line": 11,
+          "label": "linkWhatsApp lewat wa.me"
+        },
+        {
+          "path": "src/features/room/BagikanRoom.tsx",
+          "line": 37,
+          "label": "tombol Kirim ke grup WA"
+        },
+        {
+          "path": "src/features/hasil/KartuHasil.tsx",
+          "line": 128,
+          "label": "kartu hasil ke grup WA"
+        }
+      ]
+    },
+    {
+      "id": "teman",
+      "type": "external",
+      "icon": "person",
+      "label": "Teman-teman",
+      "sublabel": "HP masing-masing",
+      "pos": [
+        40,
+        200
+      ],
+      "size": [
+        150,
+        64
+      ]
+    },
+    {
+      "id": "petaubin",
+      "type": "external",
+      "label": "OpenFreeMap",
+      "sublabel": "ubin peta",
+      "pos": [
+        302,
+        536
+      ],
+      "size": [
+        150,
+        64
+      ],
+      "sources": [
+        {
+          "path": "src/features/peta/PetaLive.tsx",
+          "line": 16,
+          "end_line": 17,
+          "label": "gaya peta terang dan gelap"
+        }
+      ]
+    },
+    {
+      "id": "pwa",
+      "type": "frontend",
+      "label": "PWA Tikoem",
+      "sublabel": "React, Vite, MapLibre",
+      "pos": [
+        300,
+        196
+      ],
+      "size": [
+        170,
+        72
+      ],
+      "sources": [
+        {
+          "path": "src/main.tsx",
+          "line": 10,
+          "end_line": 16,
+          "label": "klien Convex realtime"
+        },
+        {
+          "path": "src/features/hasil/BagianHasil.tsx",
+          "line": 42,
+          "end_line": 75,
+          "label": "tombol Cari tempat"
+        },
+        {
+          "path": "src/features/room/LayarRoom.tsx",
+          "line": 50,
+          "label": "useQuery room.lihat"
+        }
+      ]
+    },
+    {
+      "id": "database",
+      "type": "database",
+      "label": "Database Convex",
+      "sublabel": "room, peserta, kandidat, vote",
+      "tag": "hapus otomatis 24 jam",
+      "pos": [
+        610,
+        40
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
+          "path": "convex/schema.ts",
+          "line": 33,
+          "end_line": 74,
+          "label": "empat tabel"
+        },
+        {
+          "path": "convex/room.ts",
+          "line": 72,
+          "end_line": 74,
+          "label": "jadwal kedaluwarsa 24 jam"
+        },
+        {
+          "path": "convex/room.ts",
+          "line": 88,
+          "end_line": 112,
+          "label": "data pribadi dihapus"
+        }
+      ]
+    },
+    {
+      "id": "fungsi",
+      "type": "backend",
+      "label": "Query dan mutation",
+      "sublabel": "room.*, hitung.simpan",
+      "pos": [
+        610,
+        196
+      ],
+      "size": [
+        190,
+        72
+      ],
+      "sources": [
+        {
+          "path": "convex/room.ts",
+          "line": 147,
+          "end_line": 167,
+          "label": "room.hitung"
+        },
+        {
+          "path": "convex/room.ts",
+          "line": 215,
+          "end_line": 270,
+          "label": "room.lihat"
+        },
+        {
+          "path": "convex/hitung.ts",
+          "line": 44,
+          "end_line": 72,
+          "label": "hitung.simpan"
+        }
+      ]
+    },
+    {
+      "id": "action",
+      "type": "backend",
+      "label": "Action Convex",
+      "sublabel": "hitung.jalankan, lokasi.cari",
+      "tag": "antre lewat rate limiter",
+      "pos": [
+        610,
+        360
+      ],
+      "size": [
+        190,
+        80
+      ],
+      "sources": [
+        {
+          "path": "convex/hitung.ts",
+          "line": 96,
+          "end_line": 117,
+          "label": "hitung.jalankan"
+        },
+        {
+          "path": "convex/lokasi.ts",
+          "line": 12,
+          "end_line": 25,
+          "label": "lokasi.cari"
+        },
+        {
+          "path": "convex/batasLaju.ts",
+          "line": 9,
+          "end_line": 30,
+          "label": "batas laju ORS dan Nominatim"
+        }
+      ]
+    },
+    {
+      "id": "overpass",
+      "type": "external",
+      "label": "Overpass API",
+      "sublabel": "kafe, resto, mal",
+      "pos": [
+        950,
+        200
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "convex/overpass.ts",
+          "line": 5,
+          "end_line": 16,
+          "label": "tiga server Overpass"
+        },
+        {
+          "path": "convex/overpass.ts",
+          "line": 40,
+          "end_line": 46,
+          "label": "cariTempatSekitar"
+        }
+      ]
+    },
+    {
+      "id": "ors",
+      "type": "external",
+      "label": "OpenRouteService",
+      "sublabel": "Matrix waktu tempuh",
+      "pos": [
+        950,
+        368
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "convex/ors.ts",
+          "line": 35,
+          "end_line": 68,
+          "label": "matriksDurasi"
+        },
+        {
+          "path": "convex/hitung.ts",
+          "line": 184,
+          "end_line": 200,
+          "label": "satu permintaan per profil"
+        }
+      ]
+    },
+    {
+      "id": "nominatim",
+      "type": "external",
+      "label": "Nominatim",
+      "sublabel": "alamat dari OSMF",
+      "pos": [
+        950,
+        536
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "convex/nominatim.ts",
+          "line": 4,
+          "label": "server Nominatim OSMF"
+        },
+        {
+          "path": "convex/nominatim.ts",
+          "line": 23,
+          "end_line": 57,
+          "label": "cariAlamat"
+        }
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Convex Cloud",
+      "wraps": [
+        "database",
+        "fungsi",
+        "action"
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "buka-link",
+      "from": "whatsapp",
+      "to": "teman",
+      "label": "buka link"
+    },
+    {
+      "id": "cari-tempat",
+      "from": "teman",
+      "to": "pwa",
+      "label": "Cari tempat",
+      "variant": "emphasis"
+    },
+    {
+      "id": "panggil-hitung",
+      "from": "pwa",
+      "to": "fungsi",
+      "label": "room.hitung",
+      "variant": "emphasis"
+    },
+    {
+      "id": "jadwalkan",
+      "from": "fungsi",
+      "to": "action",
+      "label": "jadwalkan",
+      "variant": "emphasis"
+    },
+    {
+      "id": "kandidat",
+      "from": "action",
+      "to": "overpass",
+      "label": "cari tempat",
+      "variant": "emphasis"
+    },
+    {
+      "id": "waktu-tempuh",
+      "from": "action",
+      "to": "ors",
+      "label": "waktu tempuh",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "simpan-hasil",
+      "from": "action",
+      "to": "fungsi",
+      "label": "simpan hasil",
+      "variant": "emphasis"
+    },
+    {
+      "id": "realtime",
+      "from": "fungsi",
+      "to": "pwa",
+      "label": "realtime",
+      "variant": "emphasis",
+      "fromSide": "left",
+      "toSide": "right"
+    },
+    {
+      "id": "baca-tulis",
+      "from": "fungsi",
+      "to": "database",
+      "label": "baca, tulis"
+    },
+    {
+      "id": "ketik-alamat",
+      "from": "pwa",
+      "to": "action",
+      "label": "lokasi.cari",
+      "fromSide": "bottom",
+      "toSide": "left"
+    },
+    {
+      "id": "cari-alamat",
+      "from": "action",
+      "to": "nominatim",
+      "label": "cari alamat"
+    },
+    {
+      "id": "ubin",
+      "from": "pwa",
+      "to": "petaubin",
+      "label": "ubin peta"
+    },
+    {
+      "id": "bagikan",
+      "from": "pwa",
+      "to": "whatsapp",
+      "label": "bagikan"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Jalur Cari tempat",
+      "items": [
+        "room.hitung menjadwalkan hitung.jalankan, dengan batas 50 detik",
+        "Overpass memberi kandidat, OpenRouteService memberi waktu tempuh tiap orang",
+        "Lima tempat dengan waktu tempuh terlama paling pendek disimpan lewat hitung.simpan",
+        "Semua HP di room menerima hasilnya lewat query realtime room.lihat"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Batas dan privasi",
+      "items": [
+        "ORS: 30 per menit plus cadangan 10, paling banyak 5 antre",
+        "Nominatim: satu permintaan tiap 1,1 detik, paling banyak 3 antre",
+        "Lokasi dibulatkan sekitar 100 m dan dihapus 24 jam setelah room dibuat",
+        "Key OpenRouteService hanya ada di env Convex"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Hosting",
+      "items": [
+        "Vercel menyajikan PWA dari branch main",
+        "Build Vercel menjalankan npx convex deploy sebelum vite build"
+      ]
+    }
+  ]
+}
