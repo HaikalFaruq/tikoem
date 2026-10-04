@@ -8,6 +8,7 @@ import { JUMLAH_KANDIDAT_AKHIR } from '../src/domain/keadilan'
 import { MAKS_PESERTA, MASA_ROOM_MS, buatKodeRoom, normalisasiKode, roomPenuh, sudahKedaluwarsa } from '../src/domain/room'
 import { rapikanNama } from '../src/domain/peserta'
 import { samarkan, titikValid } from '../src/domain/lokasi'
+import { pilihanAkhir } from '../src/domain/vote'
 
 /** Frontend membedakan pesan dan ilustrasi galat lewat `error.data.galat` (mutation) atau `hasil.galat` (query). */
 export type Galat =
@@ -21,6 +22,8 @@ export type Galat =
   | 'SEDANG_MENGHITUNG'
   | 'ROOM_BELUM_SIAP'
   | 'KANDIDAT_TIDAK_ADA'
+  | 'ROOM_SUDAH_TETAP'
+  | 'PILIHAN_BERUBAH'
 
 const gagal = (galat: Galat) => new ConvexError({ galat })
 
@@ -41,6 +44,20 @@ async function pesertaDanRoom(ctx: MutationCtx, pesertaId: Id<'peserta'>, kunci:
   if (!room) throw gagal('ROOM_TIDAK_ADA')
   if (roomKedaluwarsa(room)) throw gagal('ROOM_KEDALUWARSA')
   return { peserta, room }
+}
+
+/** Kandidat room urut peringkat, masing-masing dengan pemilihnya urut waktu vote. Dipakai `lihat` dan `tetapkan`. */
+async function kandidatDanPemilih(ctx: QueryCtx, roomId: Id<'room'>) {
+  const kandidat = await ctx.db
+    .query('kandidat')
+    .withIndex('by_roomId_and_peringkat', (q) => q.eq('roomId', roomId))
+    .take(JUMLAH_KANDIDAT_AKHIR)
+  // Urut waktu vote, dari index. Satu orang paling banyak satu vote, jadi paling banyak 24.
+  const semuaVote = await ctx.db
+    .query('vote')
+    .withIndex('by_roomId', (q) => q.eq('roomId', roomId))
+    .take(MAKS_PESERTA)
+  return kandidat.map((k) => ({ ...k, id: k._id, pemilih: semuaVote.filter((x) => x.kandidatId === k._id).map((x) => x.pesertaId) }))
 }
 
 /** Dipakai `buat` dan `gabung`, jadi pembuat room dan teman yang gabung mendapat aturan yang sama. */
@@ -106,7 +123,7 @@ export const tandaiKedaluwarsa = internalMutation({
       .take(MAKS_PESERTA)
     for (const p of peserta) await ctx.db.delete('peserta', p._id)
 
-    await ctx.db.patch('room', roomId, { kedaluwarsa: true, titikTengah: undefined })
+    await ctx.db.patch('room', roomId, { kedaluwarsa: true, titikTengah: undefined, tetap: undefined })
     await ctx.scheduler.runAfter(MASA_SISA_ROOM_MS, internal.room.hapusRoom, { roomId })
   },
 })
@@ -148,6 +165,7 @@ export const hitung = mutation({
   args: { pesertaId: v.id('peserta'), kunci: v.string() },
   handler: async (ctx, { pesertaId, kunci }) => {
     const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    if (room.tetap) throw gagal('ROOM_SUDAH_TETAP')
     if (room.status === 'menghitung') throw gagal('SEDANG_MENGHITUNG')
     const peserta = await ctx.db
       .query('peserta')
@@ -174,6 +192,7 @@ export const vote = mutation({
   args: { pesertaId: v.id('peserta'), kunci: v.string(), kandidatId: v.union(v.id('kandidat'), v.null()) },
   handler: async (ctx, { pesertaId, kunci, kandidatId }) => {
     const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    if (room.tetap) throw gagal('ROOM_SUDAH_TETAP')
     // Selama hitung ulang, kandidatnya akan berganti dan vote dikosongkan, jadi vote baru ditolak.
     if (room.status !== 'siap') throw gagal('ROOM_BELUM_SIAP')
     if (kandidatId) {
@@ -188,6 +207,37 @@ export const vote = mutation({
     if (lama?.kandidatId === kandidatId) return
     if (lama) await ctx.db.delete('vote', lama._id)
     if (kandidatId) await ctx.db.insert('vote', { roomId: room._id, pesertaId, kandidatId })
+  },
+})
+
+/**
+ * Menetapkan tempat untuk semua orang (Discussions #42). Siapa saja di room boleh, tapi hanya untuk suara terbanyak
+ * saat ini, dihitung dengan `pilihanAkhir` yang sama dengan kartu hasil. Selama tetap, vote dan hitung ditolak.
+ */
+export const tetapkan = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string(), kandidatId: v.id('kandidat') },
+  handler: async (ctx, { pesertaId, kunci, kandidatId }) => {
+    const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    if (room.tetap) {
+      // Ketukan ganda atau percobaan ulang untuk tempat yang sama bukan galat.
+      if (room.tetap.kandidatId === kandidatId) return
+      throw gagal('ROOM_SUDAH_TETAP')
+    }
+    if (room.status !== 'siap') throw gagal('ROOM_BELUM_SIAP')
+    const kandidat = await ctx.db.get('kandidat', kandidatId)
+    if (!kandidat || kandidat.roomId !== room._id) throw gagal('KANDIDAT_TIDAK_ADA')
+    // Suara bisa berubah selama dialog konfirmasi terbuka, jadi dihitung ulang di transaksi ini.
+    if (pilihanAkhir(await kandidatDanPemilih(ctx, room._id)) !== kandidatId) throw gagal('PILIHAN_BERUBAH')
+    await ctx.db.patch('room', room._id, { tetap: { kandidatId, olehPesertaId: pesertaId, pada: Date.now() } })
+  },
+})
+
+/** Membuka voting lagi kalau rencananya berubah. Vote yang sudah ada tetap disimpan. */
+export const bukaLagi = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string() },
+  handler: async (ctx, { pesertaId, kunci }) => {
+    const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    if (room.tetap) await ctx.db.patch('room', room._id, { tetap: undefined })
   },
 })
 
@@ -224,15 +274,7 @@ export const lihat = query({
       .query('peserta')
       .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', room._id))
       .take(MAKS_PESERTA)
-    const kandidat = await ctx.db
-      .query('kandidat')
-      .withIndex('by_roomId_and_peringkat', (q) => q.eq('roomId', room._id))
-      .take(JUMLAH_KANDIDAT_AKHIR)
-    // Urut waktu vote, dari index. Satu orang paling banyak satu vote, jadi paling banyak 24.
-    const semuaVote = await ctx.db
-      .query('vote')
-      .withIndex('by_roomId', (q) => q.eq('roomId', room._id))
-      .take(MAKS_PESERTA)
+    const kandidat = await kandidatDanPemilih(ctx, room._id)
     return {
       ok: true as const,
       room: {
@@ -243,6 +285,7 @@ export const lihat = query({
         galatHitung: room.galatHitung ?? null,
         hasilPada: room.hasilPada ?? null,
         hasilUsang: room.hasilPada !== undefined && (room.versiLokasi ?? 0) !== (room.versiHasil ?? 0),
+        tetap: room.tetap ?? null,
       },
       peserta: peserta.map((p) => ({
         id: p._id,
@@ -253,7 +296,7 @@ export const lihat = query({
       })),
       // Urut peringkat, langsung dari index.
       kandidat: kandidat.map((k) => ({
-        id: k._id,
+        id: k.id,
         nama: k.nama,
         kategori: k.kategori,
         lokasi: k.lokasi,
@@ -263,7 +306,7 @@ export const lihat = query({
         terlamaMenit: k.terlamaMenit,
         selisihMenit: k.selisihMenit,
         peringkat: k.peringkat,
-        pemilih: semuaVote.filter((x) => x.kandidatId === k._id).map((x) => x.pesertaId),
+        pemilih: k.pemilih,
       })),
     }
   },

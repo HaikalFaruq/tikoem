@@ -49,6 +49,8 @@ export default defineSchema({
     /** Naik setiap ada lokasi yang berubah. Kalau berbeda dengan `versiHasil`, hasilnya usang (Discussions #8). */
     versiLokasi: v.optional(v.number()),
     versiHasil: v.optional(v.number()),
+    /** Tempat yang sudah ditetapkan untuk semua orang (Discussions #42). Selama terisi, vote dan hitung ditolak. */
+    tetap: v.optional(v.object({ kandidatId: v.id('kandidat'), olehPesertaId: v.id('peserta'), pada: v.number() })),
   }).index('by_kode', ['kode']),
 
   peserta: defineTable({
