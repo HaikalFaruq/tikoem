@@ -3,7 +3,7 @@
 import { convexTest } from 'convex-test'
 import { ConvexError } from 'convex/values'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import schema from './schema'
 import { MASA_ROOM_MS } from '../src/domain/room'
@@ -308,5 +308,120 @@ describe('room lewat link', () => {
     const hasil = JSON.stringify(await t.query(api.room.lihat, { kode: pembuat.kode }))
     expect(hasil).not.toContain(pembuat.kunci)
     expect(hasil).not.toContain(teman.kunci)
+  })
+})
+
+/** `room.tetap` dari `lihat`, atau galatnya kalau room sudah tidak bisa dilihat. */
+async function tetapDari(t: Tes, kode: string) {
+  const hasil = await t.query(api.room.lihat, { kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  return hasil.room.tetap
+}
+
+describe('tetapkan tempat (Discussions #42)', () => {
+  it('siapa saja di room bisa menetapkan suara terbanyak, dan semua HP melihatnya', async () => {
+    const t = siapkan()
+    const { haikal, bintang, kandidat } = await roomSiap(t)
+    for (const p of [haikal, bintang]) await t.mutation(api.room.vote, { pesertaId: p.pesertaId, kunci: p.kunci, kandidatId: kandidat[1] })
+
+    // Bintang bukan pembuat room, tetap boleh.
+    await t.mutation(api.room.tetapkan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[1] })
+    expect(await tetapDari(t, haikal.kode)).toEqual({ kandidatId: kandidat[1], olehPesertaId: bintang.pesertaId, pada: expect.any(Number) })
+  })
+
+  it('hanya untuk suara terbanyak saat ini, kalau seri peringkat keadilan yang menang', async () => {
+    const t = siapkan()
+    const { haikal, kandidat } = await roomSiap(t)
+    // Belum ada vote: seri, jadi peringkat 1 yang jadi suara terbanyak.
+    expect(await galatDari(t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[1] }))).toBe(
+      'PILIHAN_BERUBAH',
+    )
+    expect(await tetapDari(t, haikal.kode)).toBeNull()
+    await t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[0] })
+    expect(await tetapDari(t, haikal.kode)).toMatchObject({ kandidatId: kandidat[0] })
+  })
+
+  it('hanya saat hasil siap, untuk kandidat room itu, dan oleh peserta yang dikenal', async () => {
+    const t = siapkan()
+    const { haikal, kandidat } = await roomSiap(t)
+    const lain = await roomSiap(t)
+    expect(
+      await galatDari(t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: lain.kandidat[0] })),
+    ).toBe('KANDIDAT_TIDAK_ADA')
+    expect(await galatDari(t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: 'tebakan', kandidatId: kandidat[0] }))).toBe(
+      'PESERTA_TIDAK_DIKENAL',
+    )
+    expect(await galatDari(t.mutation(api.room.bukaLagi, { pesertaId: haikal.pesertaId, kunci: 'tebakan' }))).toBe('PESERTA_TIDAK_DIKENAL')
+
+    await t.run(async (ctx) => {
+      const room = await ctx.db
+        .query('room')
+        .withIndex('by_kode', (q) => q.eq('kode', haikal.kode))
+        .unique()
+      await ctx.db.patch('room', room!._id, { status: 'menghitung' })
+    })
+    expect(await galatDari(t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[0] }))).toBe(
+      'ROOM_BELUM_SIAP',
+    )
+  })
+
+  it('selama tetap: vote, hitung, dan tempat lain ditolak, tapi lokasi masih boleh diubah', async () => {
+    const t = siapkan()
+    const { haikal, bintang, kandidat } = await roomSiap(t)
+    await t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[0] })
+    const tetap = await tetapDari(t, haikal.kode)
+
+    expect(await galatDari(t.mutation(api.room.vote, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[1] }))).toBe(
+      'ROOM_SUDAH_TETAP',
+    )
+    expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: bintang.pesertaId, kunci: bintang.kunci }))).toBe('ROOM_SUDAH_TETAP')
+    expect(await galatDari(t.mutation(api.room.tetapkan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[1] }))).toBe(
+      'ROOM_SUDAH_TETAP',
+    )
+    // Ketukan ganda untuk tempat yang sama bukan galat, dan tidak mengubah apa pun.
+    expect(await galatDari(t.mutation(api.room.tetapkan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[0] }))).toBeNull()
+    expect(await tetapDari(t, haikal.kode)).toEqual(tetap)
+
+    await t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: -6.22, lng: 106.85 } })
+    const hasil = await t.query(api.room.lihat, { kode: haikal.kode })
+    expect(hasil).toMatchObject({ ok: true, room: { hasilUsang: true, tetap } })
+  })
+
+  it('buka lagi mengembalikan voting tanpa menghapus vote yang sudah ada', async () => {
+    const t = siapkan()
+    const { haikal, bintang, kandidat } = await roomSiap(t)
+    // Belum tetap: tidak melakukan apa-apa.
+    expect(await galatDari(t.mutation(api.room.bukaLagi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci }))).toBeNull()
+
+    await t.mutation(api.room.vote, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[0] })
+    await t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[0] })
+    await t.mutation(api.room.bukaLagi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci })
+    expect(await tetapDari(t, haikal.kode)).toBeNull()
+    expect(await pemilih(t, haikal.kode)).toEqual([[haikal.pesertaId], []])
+
+    await t.mutation(api.room.vote, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[1] })
+    expect(await pemilih(t, haikal.kode)).toEqual([[haikal.pesertaId], [bintang.pesertaId]])
+  })
+
+  it('kalau yang menetapkan keluar, tempatnya tetap berlaku tanpa nama', async () => {
+    const t = siapkan()
+    const { haikal, bintang, kandidat } = await roomSiap(t)
+    await t.mutation(api.room.tetapkan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: kandidat[0] })
+    await t.mutation(api.room.keluar, { pesertaId: bintang.pesertaId, kunci: bintang.kunci })
+
+    const hasil = await t.query(api.room.lihat, { kode: haikal.kode })
+    if (!hasil.ok) throw new Error(hasil.galat)
+    expect(hasil.room.tetap).toMatchObject({ kandidatId: kandidat[0], olehPesertaId: bintang.pesertaId })
+    expect(hasil.peserta.map((p) => p.id)).toEqual([haikal.pesertaId])
+  })
+
+  it('ikut dihapus bersama data pribadi saat room berakhir', async () => {
+    const t = siapkan()
+    const { haikal, kandidat } = await roomSiap(t)
+    await t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[0] })
+    const roomId = await t.run(async (ctx) => (await ctx.db.query('room').first())!._id)
+    await t.mutation(internal.room.tandaiKedaluwarsa, { roomId })
+    // Dicek di dalam t.run, karena nilai yang dikembalikan t.run mengubah undefined jadi null.
+    expect(await t.run(async (ctx) => (await ctx.db.get('room', roomId))?.tetap === undefined)).toBe(true)
   })
 })
