@@ -110,6 +110,7 @@ Bintang yang memimpin identitas visual Tikoem: logo, warna, huruf, ilustrasi, da
 - Keputusan identitas dibahas berdua dulu, dengan screenshot atau mockup sebelum dan sesudah.
 - Hindari tampilan generik. Tikoem harus punya karakter sendiri, seperti Tookthel punya kartu bento dan ilustrasi berwajah.
 - Cek tampilan di lebar 320 px dan 390 px, mode terang dan gelap, dan hormati reduced motion.
+- Sebelum push perubahan layar, jalankan `npm run cek:layar` dan nilai hasilnya dengan [`docs/desain/cek-ux.md`](docs/desain/cek-ux.md) sampai tidak ada temuan **Harus**.
 
 ## 8. Privasi dan data
 

@@ -37,6 +37,7 @@ Biarkan `npx convex dev` tetap jalan. Selain menyinkronkan `convex/` dan membuat
 | `npm run knip` | Menolak file, export, dan dependensi yang tidak terpakai |
 | `npm test` | Unit test (Vitest). `npm run test:watch` untuk mode pantau |
 | `npm run test:e2e` | E2E di browser HP (Playwright), lihat [E2E](#e2e) |
+| `npm run cek:layar` | Memotret layar-layar penting di 320/390 px, terang dan gelap, ke `test-results/cek-layar/`. Dipakai untuk [cek UI/UX sebelum push](desain/cek-ux.md) |
 | `npm run ikon` | Membuat ulang ikon PWA dan `public/og.png`. Jalankan setelah identitas visual berubah |
 
 ## Env Convex

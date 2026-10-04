@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "cek:layar": "CEK_LAYAR=1 E2E_LAYANAN_TIRUAN=1 playwright test e2e/cek-layar.spec.ts",
     "ikon": "node scripts/buat-ikon.mjs"
   },
   "dependencies": {
