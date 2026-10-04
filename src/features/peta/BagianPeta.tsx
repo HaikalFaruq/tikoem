@@ -61,7 +61,7 @@ export function BagianPeta({ pin, kandidat, titikTengahHasil, menghitung }: Prop
           {adaHasil
             ? 'Bintang adalah tempat dengan suara terbanyak. Angka adalah peringkat keadilan, ketuk untuk melihat kartunya.'
             : perkiraan
-            ? `Cincin kuning adalah perkiraan titik tengah. Orang terjauh ${formatJarak(perkiraan.radiusMeter)} dari situ.`
+            ? `Cincin kuning adalah perkiraan titik tengah. Orang terjauh ${formatJarak(perkiraan.radiusMeter)} dari situ. Tekan Cari tempat di bawah peta untuk melihat tempat paling adil di sekitarnya.`
             : pin.length === 1
               ? 'Titik tengah muncul setelah minimal 2 orang berbagi lokasi.'
               : 'Pin teman muncul di sini setelah mereka berbagi lokasi.'}

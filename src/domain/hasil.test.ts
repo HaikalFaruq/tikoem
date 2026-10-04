@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barisWaktuTempuh, keadaanCariTempat, labelKategori, linkMaps, teksHasil } from './hasil'
+import { barisWaktuTempuh, keadaanCariTempat, labelKategori, linkMaps, linkRute, teksHasil } from './hasil'
 
 const room = (status: 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal', tambahan = {}) => ({
   status,
@@ -56,6 +56,15 @@ describe('label dan link', () => {
   it('memberi label kategori yang mudah dibaca', () => {
     expect(labelKategori('mall')).toBe('Mal')
     expect(labelKategori('kafe')).toBe('Kafe')
+  })
+
+  it('membuka rute ke tempat kumpul tanpa menyertakan lokasi asal, dengan mode sesuai kendaraan', () => {
+    const rute = new URL(linkRute({ lat: -6.223, lng: 106.843 }, 'motor'))
+    expect(rute.origin + rute.pathname).toBe('https://www.google.com/maps/dir/')
+    expect(rute.searchParams.get('destination')).toBe('-6.223,106.843')
+    expect(rute.searchParams.get('origin')).toBeNull()
+    expect(rute.searchParams.get('travelmode')).toBe('driving')
+    expect(new URL(linkRute({ lat: 0, lng: 0 }, 'jalan_kaki')).searchParams.get('travelmode')).toBe('walking')
   })
 
   it('membuka koordinat tempat di Google Maps', () => {

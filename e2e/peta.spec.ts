@@ -44,6 +44,10 @@ test('peta menampilkan pin teman dan perkiraan titik tengah, lalu ikut bertambah
   await expect(peta.locator(`[data-pin-peta="${umar.pesertaId}"]`)).toContainText('Umar')
   await expect(peta.locator('[data-titik-tengah]')).toHaveCount(1)
   await expect(page.getByText(/Orang terjauh 4(,\d)? km dari situ\./)).toBeVisible()
+  // Urutan baca: peta dengan titik tengah dulu, lalu tombol Cari tempat tepat di bawahnya.
+  await expect(page.getByText('Tekan Cari tempat di bawah peta', { exact: false })).toBeVisible()
+  const judul = await page.locator('main h2').allInnerTexts()
+  expect(judul.indexOf('Peta teman')).toBeLessThan(judul.indexOf('Cari tempat'))
 })
 
 test('pin yang berdekatan di layar disebar supaya semuanya terlihat', async ({ page }) => {
