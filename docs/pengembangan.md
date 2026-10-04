@@ -113,7 +113,11 @@ Penyiapan sekali saja:
 
 ## Gambar di README
 
-- **Diagram arsitektur** dibuat dengan [Archify](https://github.com/tt-a1i/archify) dari [`arsitektur.archify.json`](arsitektur.archify.json). Tiap node merujuk ke baris kode di commit yang tertulis di `meta.repository.revision`. Setelah arsitektur berubah, perbarui JSON-nya, jalankan `archify finalize architecture docs/arsitektur.archify.json .archify/arsitektur.html --repo-root . --quality showcase`, lalu ekspor PNG terang dan gelap dari tombol Export ke `docs/gambar/arsitektur-terang.png` dan `arsitektur-gelap.png`.
+- **Diagram arsitektur** dibuat dengan [Archify](https://github.com/tt-a1i/archify) dari [`arsitektur.archify.json`](arsitektur.archify.json). Versi interaktifnya (`docs/arsitektur.html`) dipublikasikan lewat GitHub Pages di https://haikalfaruq.github.io/tikoem/arsitektur.html, dan tiap node menaut ke baris kode di commit yang tertulis di `meta.repository.revision`. Setelah arsitektur berubah:
+  1. Perbarui JSON-nya, termasuk revisi dan nomor baris rujukan.
+  2. Jalankan `archify finalize architecture docs/arsitektur.archify.json .archify/arsitektur.html --repo-root . --quality showcase`.
+  3. Salin `.archify/arsitektur.html` ke `docs/arsitektur.html`.
+  4. Ekspor PNG terang dan gelap dari tombol Export ke `docs/gambar/arsitektur-terang.png` dan `arsitektur-gelap.png`.
 - **Gambar promo** (`docs/gambar/promo-*.png`, 1320×2868 seperti screenshot App Store) memakai layar production asli dengan bingkai iPhone 17 dari Simulator Xcode. Ganti kalau tampilan layarnya berubah.
 
 ## Kalau ada masalah

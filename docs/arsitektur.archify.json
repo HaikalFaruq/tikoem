@@ -13,7 +13,7 @@
       "url": "https://github.com/HaikalFaruq/tikoem.git",
       "provider": "github",
       "link_mode": "web",
-      "revision": "24b9609dca95db5aab9005cf8f819d4a4261729a"
+      "revision": "4712eac9ae71255050671a1cd8ff221d3d2eb3f4"
     },
     "legend": {
       "entries": {
@@ -60,7 +60,7 @@
         },
         {
           "path": "src/features/hasil/KartuHasil.tsx",
-          "line": 128,
+          "line": 129,
           "label": "kartu hasil ke grup WA"
         }
       ]
@@ -86,8 +86,8 @@
       "label": "OpenFreeMap",
       "sublabel": "ubin peta",
       "pos": [
-        302,
-        536
+        40,
+        368
       ],
       "size": [
         150,
@@ -153,19 +153,19 @@
         {
           "path": "convex/schema.ts",
           "line": 33,
-          "end_line": 74,
+          "end_line": 76,
           "label": "empat tabel"
         },
         {
           "path": "convex/room.ts",
-          "line": 72,
-          "end_line": 74,
+          "line": 89,
+          "end_line": 91,
           "label": "jadwal kedaluwarsa 24 jam"
         },
         {
           "path": "convex/room.ts",
-          "line": 88,
-          "end_line": 112,
+          "line": 105,
+          "end_line": 129,
           "label": "data pribadi dihapus"
         }
       ]
@@ -186,14 +186,14 @@
       "sources": [
         {
           "path": "convex/room.ts",
-          "line": 147,
-          "end_line": 167,
+          "line": 164,
+          "end_line": 185,
           "label": "room.hitung"
         },
         {
           "path": "convex/room.ts",
-          "line": 215,
-          "end_line": 270,
+          "line": 265,
+          "end_line": 313,
           "label": "room.lihat"
         },
         {
@@ -205,10 +205,10 @@
       ]
     },
     {
-      "id": "action",
+      "id": "jalankan",
       "type": "backend",
-      "label": "Action Convex",
-      "sublabel": "hitung.jalankan, lokasi.cari",
+      "label": "Action hitung.jalankan",
+      "sublabel": "terjadwal, batas 50 detik",
       "tag": "antre lewat rate limiter",
       "pos": [
         610,
@@ -226,6 +226,35 @@
           "label": "hitung.jalankan"
         },
         {
+          "path": "convex/hitung.ts",
+          "line": 184,
+          "end_line": 200,
+          "label": "satu permintaan ORS per profil"
+        },
+        {
+          "path": "convex/batasLaju.ts",
+          "line": 9,
+          "end_line": 30,
+          "label": "batas laju ORS"
+        }
+      ]
+    },
+    {
+      "id": "cari",
+      "type": "backend",
+      "label": "Action lokasi.cari",
+      "sublabel": "ketik alamat",
+      "tag": "antre lewat rate limiter",
+      "pos": [
+        610,
+        536
+      ],
+      "size": [
+        190,
+        64
+      ],
+      "sources": [
+        {
           "path": "convex/lokasi.ts",
           "line": 12,
           "end_line": 25,
@@ -235,7 +264,7 @@
           "path": "convex/batasLaju.ts",
           "line": 9,
           "end_line": 30,
-          "label": "batas laju ORS dan Nominatim"
+          "label": "batas laju Nominatim"
         }
       ]
     },
@@ -330,7 +359,8 @@
       "wraps": [
         "database",
         "fungsi",
-        "action"
+        "jalankan",
+        "cari"
       ]
     }
   ],
@@ -358,20 +388,20 @@
     {
       "id": "jadwalkan",
       "from": "fungsi",
-      "to": "action",
+      "to": "jalankan",
       "label": "jadwalkan",
       "variant": "emphasis"
     },
     {
       "id": "kandidat",
-      "from": "action",
+      "from": "jalankan",
       "to": "overpass",
       "label": "cari tempat",
       "variant": "emphasis"
     },
     {
       "id": "waktu-tempuh",
-      "from": "action",
+      "from": "jalankan",
       "to": "ors",
       "label": "waktu tempuh",
       "variant": "emphasis",
@@ -380,7 +410,7 @@
     },
     {
       "id": "simpan-hasil",
-      "from": "action",
+      "from": "jalankan",
       "to": "fungsi",
       "label": "simpan hasil",
       "variant": "emphasis"
@@ -403,14 +433,14 @@
     {
       "id": "ketik-alamat",
       "from": "pwa",
-      "to": "action",
+      "to": "cari",
       "label": "lokasi.cari",
       "fromSide": "bottom",
       "toSide": "left"
     },
     {
       "id": "cari-alamat",
-      "from": "action",
+      "from": "cari",
       "to": "nominatim",
       "label": "cari alamat"
     },
@@ -418,7 +448,9 @@
       "id": "ubin",
       "from": "pwa",
       "to": "petaubin",
-      "label": "ubin peta"
+      "label": "ubin peta",
+      "fromSide": "bottom",
+      "toSide": "right"
     },
     {
       "id": "bagikan",
