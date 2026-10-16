@@ -134,13 +134,15 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             pin={warnaPin(saya.urutanGabung)}
             onIdentitasHilang={lupakanIdentitas}
           />
-          {/* Peta dulu, lalu tombol Cari tempat di bawahnya: orang melihat titik tengahnya, lalu langsung tahu langkah berikutnya. */}
+          {/* Peta dulu, lalu tombol Cari tempat di bawahnya (diselingi kartu traktir): orang melihat titik tengahnya, lalu tahu langkah berikutnya. */}
           <BagianPeta
             pin={pinPeta}
             kandidat={hasil.kandidat}
             titikTengahHasil={room.titikTengah}
             menghitung={room.status === 'menghitung'}
           />
+          {/* Pop up traktir-nya muncul di HP yang sudah gabung saat tempat mulai dicari. */}
+          <TraktirTikoem room={room} peserta={daftar} />
           <BagianHasil
             room={room}
             peserta={daftar}
@@ -175,9 +177,6 @@ export function LayarRoom({ kode, keBeranda }: Props) {
       )}
 
       <DaftarPeserta peserta={daftar} idSaya={saya?.id ?? null} />
-
-      {/* Hanya untuk yang sudah gabung: pop up traktir muncul di HP mereka saat tempat mulai dicari. */}
-      {saya && identitas && <TraktirTikoem room={room} peserta={daftar} />}
     </main>
   )
 }
