@@ -93,6 +93,7 @@ test('setelah hasil keluar, peta menampilkan kandidat dan bintang suara terbanya
 
   await masukSebagai(page, haikal.kode, haikal)
   await page.getByRole('button', { name: 'Cari tempat' }).click()
+  await page.getByRole('dialog', { name: 'Traktir Tikoem kopi?' }).getByRole('button', { name: 'Tutup' }).click()
   const peta = page.locator('[data-peta-live]')
   await expect(peta.locator('[data-kandidat-peta]')).toHaveCount(5, { timeout: 30_000 })
   // Belum ada suara: bintang di kandidat paling adil.

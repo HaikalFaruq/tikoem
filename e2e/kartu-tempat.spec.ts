@@ -35,6 +35,8 @@ async function roomBertiga() {
 
 async function cariTempat(page: Page) {
   await page.getByRole('button', { name: 'Cari tempat' }).click()
+  // Pop up traktir muncul sekali per room saat tempat mulai dicari (e2e/traktir.spec.ts).
+  await page.getByRole('dialog', { name: 'Traktir Tikoem kopi?' }).getByRole('button', { name: 'Tutup' }).click()
   await expect(page.getByRole('heading', { name: 'Tempat paling adil' })).toBeVisible({ timeout: 30_000 })
   await expect(page.locator('[data-kandidat]')).toHaveCount(5)
 }

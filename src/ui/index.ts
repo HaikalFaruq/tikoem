@@ -1,5 +1,7 @@
 export { Bintang } from './Bintang'
+export { DialogStiker } from './DialogStiker'
 export { IlustrasiKumpul } from './IlustrasiKumpul'
+export { IlustrasiTraktir } from './IlustrasiTraktir'
 export { IsianTeks } from './IsianTeks'
 export { KartuStiker } from './KartuStiker'
 export { PilihanChip } from './PilihanChip'
