@@ -285,6 +285,8 @@ export const lihat = query({
         galatHitung: room.galatHitung ?? null,
         hasilPada: room.hasilPada ?? null,
         hasilUsang: room.hasilPada !== undefined && (room.versiLokasi ?? 0) !== (room.versiHasil ?? 0),
+        /** Naik setiap tombol "Cari tempat" ditekan. Layar memakainya untuk tahu ada pencarian baru walau status `menghitung` terlewat. */
+        putaranHitung: room.putaranHitung ?? 0,
         tetap: room.tetap ?? null,
       },
       peserta: peserta.map((p) => ({

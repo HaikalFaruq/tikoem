@@ -9,6 +9,7 @@ import { BagianHasil } from '../hasil/BagianHasil'
 import { BagianPeta } from '../peta/BagianPeta'
 import type { PinPeta } from '../peta/PetaLive'
 import { FormPeserta } from '../peserta/FormPeserta'
+import { TraktirTikoem } from '../traktir/TraktirTikoem'
 import { BagikanLokasi } from './BagikanLokasi'
 import { BagikanRoom } from './BagikanRoom'
 import { DaftarPeserta } from './DaftarPeserta'
@@ -174,6 +175,9 @@ export function LayarRoom({ kode, keBeranda }: Props) {
       )}
 
       <DaftarPeserta peserta={daftar} idSaya={saya?.id ?? null} />
+
+      {/* Hanya untuk yang sudah gabung: pop up traktir muncul di HP mereka saat tempat mulai dicari. */}
+      {saya && identitas && <TraktirTikoem room={room} peserta={daftar} />}
     </main>
   )
 }

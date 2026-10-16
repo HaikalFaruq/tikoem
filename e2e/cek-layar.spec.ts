@@ -35,9 +35,11 @@ type Opsi = {
   tunggu?: (halaman: Page) => Promise<void>
 }
 
-async function potret(browser: Browser, keadaan: string, judul: string, opsi: Opsi) {
+/** `opsi` berupa fungsi kalau tiap potretan butuh room baru, misalnya keadaan yang hanya muncul sekali per room. */
+async function potret(browser: Browser, keadaan: string, judul: string, opsiAtauBuat: Opsi | (() => Promise<Opsi>)) {
   const berkas: string[] = []
   for (const { lebar, tema } of VARIAN) {
+    const opsi = typeof opsiAtauBuat === 'function' ? await opsiAtauBuat() : opsiAtauBuat
     const konteks = await browser.newContext({
       viewport: { width: lebar, height: 760 },
       deviceScaleFactor: 2,
@@ -137,6 +139,40 @@ test('room dengan hasil', async ({ browser }) => {
     url: `/r/${kode}`,
     sebagai: { kode, identitas: haikal },
     tunggu: petaSiap,
+  })
+})
+
+test('pop up traktir setelah Cari tempat', async ({ browser }) => {
+  // Pop up muncul sekali per room saat tempat mulai dicari, jadi tiap potretan memakai room baru.
+  await potret(browser, 'traktir-pencarian', 'Pop up traktir: muncul saat Cari tempat ditekan, hasilnya sudah keluar', async () => {
+    const { kode, haikal } = await roomBertiga()
+    return {
+      url: `/r/${kode}`,
+      sebagai: { kode, identitas: haikal },
+      halamanPenuh: false,
+      tunggu: async (halaman) => {
+        await petaSiap(halaman)
+        await halaman.getByRole('button', { name: 'Cari tempat' }).click()
+        await halaman.getByRole('dialog').getByText('Tempatnya sudah ketemu!').waitFor({ timeout: 30_000 })
+        await halaman.waitForTimeout(800)
+      },
+    }
+  })
+})
+
+test('pop up traktir dari tombol', async ({ browser }) => {
+  const { kode, haikal } = await roomBertiga()
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await tungguStatus(kode, 'siap')
+  await potret(browser, 'traktir-tombol', 'Pop up traktir: dibuka lewat tombol Traktir Tikoem di bawah layar room', {
+    url: `/r/${kode}`,
+    sebagai: { kode, identitas: haikal },
+    halamanPenuh: false,
+    tunggu: async (halaman) => {
+      await petaSiap(halaman)
+      await halaman.getByRole('button', { name: 'Traktir Tikoem' }).click()
+      await halaman.waitForTimeout(800)
+    },
   })
 })
 

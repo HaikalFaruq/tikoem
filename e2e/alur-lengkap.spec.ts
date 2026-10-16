@@ -25,7 +25,7 @@ async function isiNamaDanKendaraan(halaman: Page, nama: string, kendaraan: strin
   await halaman.getByText(kendaraan, { exact: true }).click()
 }
 
-test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, hasil keluar, voting, lalu kartu hasil', async ({ browser }) => {
+test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, pop up traktir, hasil keluar, voting, lalu kartu hasil', async ({ browser }) => {
   test.setTimeout(120_000)
 
   // 1. Haikal membuat room di beranda.
@@ -61,7 +61,16 @@ test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, hasil ke
   await expect(haikal.getByText('Semua sudah siap.')).toBeVisible()
   await haikal.getByRole('button', { name: 'Cari tempat' }).click()
 
-  // 5. Hasil yang sama muncul di ketiga HP, dengan waktu tempuh ketiga orang.
+  // 5. Selama tempat dicari, pop up traktir muncul di ketiga HP. Masing-masing menutupnya.
+  for (const halaman of [haikal, bintang, umar]) {
+    const traktir = halaman.getByRole('dialog', { name: 'Traktir Tikoem kopi?' })
+    await expect(traktir).toBeVisible(REALTIME)
+    await expect(traktir.getByRole('link', { name: 'Traktir lewat Sociabuzz' })).toHaveAttribute('href', 'https://sociabuzz.com/byhund/tribe')
+    await traktir.getByRole('button', { name: 'Tutup' }).click()
+    await expect(traktir).toBeHidden()
+  }
+
+  // 6. Hasil yang sama muncul di ketiga HP, dengan waktu tempuh ketiga orang.
   for (const halaman of [haikal, bintang, umar]) {
     await expect(halaman.getByRole('heading', { name: 'Tempat paling adil' })).toBeVisible({ timeout: 30_000 })
     await expect(halaman.locator('[data-kandidat]')).toHaveCount(5)
@@ -70,7 +79,7 @@ test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, hasil ke
   const namaTeradil = await haikal.locator('[data-kandidat="1"] h3').innerText()
   await expect(umar.locator('[data-kandidat="1"] h3')).toHaveText(namaTeradil)
 
-  // 6. Voting dari tiap HP, dan semua HP melihat hitungan yang sama.
+  // 7. Voting dari tiap HP, dan semua HP melihat hitungan yang sama.
   await bintang.locator('[data-kandidat="2"]').getByRole('button', { name: 'Pilih tempat ini' }).click()
   await umar.locator('[data-kandidat="2"]').getByRole('button', { name: 'Pilih tempat ini' }).click()
   await haikal.locator('[data-kandidat="1"]').getByRole('button', { name: 'Pilih tempat ini' }).click()
@@ -82,7 +91,7 @@ test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, hasil ke
   await expect(umar.locator('[data-kandidat="2"]')).toContainText('Pilihanmu')
   await expect(haikal.locator('[data-kandidat="1"]')).toContainText('Pilihanmu')
 
-  // 7. Kartu hasil yang sama di ketiga HP: tempat dengan suara terbanyak, siap dikirim balik ke grup.
+  // 8. Kartu hasil yang sama di ketiga HP: tempat dengan suara terbanyak, siap dikirim balik ke grup.
   const namaTerpilih = await haikal.locator('[data-kandidat="2"] h3').innerText()
   for (const halaman of [haikal, bintang, umar]) {
     const kartu = halaman.locator('[data-kartu-hasil]')

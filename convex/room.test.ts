@@ -201,7 +201,7 @@ describe('room lewat link', () => {
     const t = siapkan()
     const { kode } = await roomBaru(t)
     expect(await t.query(api.room.lihat, { kode })).toMatchObject({
-      room: { status: 'menunggu_peserta', galatHitung: null, hasilPada: null, hasilUsang: false },
+      room: { status: 'menunggu_peserta', galatHitung: null, hasilPada: null, hasilUsang: false, putaranHitung: 0 },
       kandidat: [],
     })
   })
@@ -221,6 +221,8 @@ describe('room lewat link', () => {
     await t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: -6.22, lng: 106.85 } })
     expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: bintang.pesertaId, kunci: 'tebakan' }))).toBe('PESERTA_TIDAK_DIKENAL')
     expect(await galatDari(t.mutation(api.room.hitung, { pesertaId: bintang.pesertaId, kunci: bintang.kunci }))).toBeNull()
+    // Semua HP melihat putaran baru, termasuk yang terlambat menerima status menghitung (pop up traktir).
+    expect(await t.query(api.room.lihat, { kode: haikal.kode })).toMatchObject({ room: { status: 'menghitung', putaranHitung: 1 } })
   })
 
   it('vote ditolak sebelum hasil keluar', async () => {

@@ -55,6 +55,18 @@
     50% { transform: scale(1.12); opacity: 0.6; }
   }
 
+  /* Pop up: kartu naik dari bawah dengan pegas, latarnya memudar. Diputar setiap kali dibuka. */
+  --animate-naik: naik 400ms var(--ease-pegas) both;
+  --animate-pudar: pudar 200ms ease-out both;
+
+  @keyframes naik {
+    from { transform: translateY(40px) scale(0.96); opacity: 0; }
+  }
+
+  @keyframes pudar {
+    from { opacity: 0; }
+  }
+
   @keyframes jatuh {
     0% { transform: translateY(-48px) scale(0.9, 1.15); opacity: 0; }
     40% { opacity: 1; }

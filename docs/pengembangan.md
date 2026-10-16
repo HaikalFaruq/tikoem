@@ -85,7 +85,7 @@ Frontend hanya bicara dengan backend lewat fungsi Convex ini. Perubahan bentukny
 | `room.tetapkan({ pesertaId, kunci, kandidatId })` | mutation | Tetapkan tempat untuk semua orang. Siapa saja di room boleh, tapi hanya untuk suara terbanyak saat ini ([Discussions #42](https://github.com/HaikalFaruq/tikoem/discussions/42)) |
 | `room.bukaLagi({ pesertaId, kunci })` | mutation | Buka voting lagi. Vote yang sudah ada tetap disimpan |
 | `room.keluar({ pesertaId, kunci })` | mutation | Hapus nama, lokasi, dan pilihan orang itu dari room |
-| `room.lihat({ kode })` | query | Room (termasuk `tetap`: `{ kandidatId, olehPesertaId, pada }` atau `null`), peserta, dan kandidat secara realtime, atau `{ ok: false, galat }` |
+| `room.lihat({ kode })` | query | Room (termasuk `tetap`: `{ kandidatId, olehPesertaId, pada }` atau `null`, dan `putaranHitung` yang naik setiap tombol Cari tempat ditekan), peserta, dan kandidat secara realtime, atau `{ ok: false, galat }` |
 | `lokasi.cari({ teks })` | action | Cari alamat lewat Nominatim |
 
 `pesertaId` dan `kunci` adalah identitas "ini aku" di sebuah room, disimpan di `localStorage` HP itu saja. Galat dikirim sebagai kode di `error.data.galat` (mutation dan action) atau `galat` (query). Daftarnya ada di tipe `Galat` di [`convex/room.ts`](../convex/room.ts), ditambah `galatHitung`: `TEMPAT_TIDAK_DITEMUKAN` atau `LAYANAN_GAGAL`. Selama tempat sudah ditetapkan, `vote`, `hitung`, dan menetapkan tempat lain ditolak dengan `ROOM_SUDAH_TETAP`. `tetapkan` untuk tempat yang sudah bukan suara terbanyak ditolak dengan `PILIHAN_BERUBAH`.
