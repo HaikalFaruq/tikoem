@@ -100,7 +100,8 @@ export function KartuTempat({ kandidat, peserta, idSaya, skalaMenit, pilihanSaya
             Batalkan pilihan
           </Tombol>
         ) : (
-          <Tombol onClick={onPilih} disabled={redup || sibuk} className="min-w-44 flex-1 whitespace-nowrap">
+          // Tombol biasa: aksi utama keadaan ini adalah Tetapkan tempat ini di kartu hasil.
+          <Tombol varian="biasa" onClick={onPilih} disabled={redup || sibuk} className="min-h-11 min-w-44 flex-1 whitespace-nowrap">
             Pilih tempat ini
           </Tombol>
         )}
