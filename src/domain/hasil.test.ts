@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { barisWaktuTempuh, keadaanCariTempat, labelKategori, linkMaps, linkRute, pesanLokasiTidakTerjangkau, teksHasil } from './hasil'
+import {
+  barisWaktuTempuh,
+  keadaanCariTempat,
+  labelKategori,
+  linkMaps,
+  linkRute,
+  pesanLokasiTidakTerjangkau,
+  teksHasil,
+  teksPenetap,
+} from './hasil'
 
 const room = (status: 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal', tambahan = {}) => ({
   status,
@@ -22,6 +31,11 @@ describe('keadaanCariTempat', () => {
       galat: 'LAYANAN_GAGAL',
       bisaDicobaLagi: true,
     })
+  })
+
+  it('room yang sudah ditetapkan tidak menawarkan hitung ulang walau hasilnya usang', () => {
+    expect(keadaanCariTempat(room('siap', { hasilUsang: true, tetap: { kandidatId: 'k1' } }), 3, 3)).toEqual({ jenis: 'tetap' })
+    expect(keadaanCariTempat(room('siap', { tetap: null }), 3, 3)).toMatchObject({ jenis: 'siap' })
   })
 
   it('tidak menawarkan hitung ulang atau coba lagi kalau lokasinya tinggal kurang dari 2', () => {
@@ -95,6 +109,22 @@ describe('label dan link', () => {
   })
 })
 
+describe('teksPenetap', () => {
+  const peserta = [
+    { id: 'h', nama: 'Haikal' },
+    { id: 'b', nama: 'Bintang' },
+  ]
+
+  it('menyebut nama orang yang menetapkan, atau "olehmu" di HP-nya sendiri', () => {
+    expect(teksPenetap('b', peserta, 'h')).toBe('Ditetapkan oleh Bintang')
+    expect(teksPenetap('h', peserta, 'h')).toBe('Ditetapkan olehmu')
+  })
+
+  it('tanpa nama kalau orangnya sudah keluar room', () => {
+    expect(teksPenetap('u', peserta, 'h')).toBe('Ditetapkan')
+  })
+})
+
 describe('teksHasil', () => {
   const isi = {
     namaTempat: 'Kafe Taman Tebet',
@@ -124,5 +154,13 @@ describe('teksHasil', () => {
     const teks = teksHasil({ ...isi, alamat: null, jumlahPemilih: 0 })
     expect(teks).toContain('(Kafe)')
     expect(teks).toContain('Belum ada yang memilih, jadi ini tempat yang paling adil.')
+  })
+
+  it('versi final setelah ditetapkan, tetap diakhiri link room', () => {
+    const teks = teksHasil({ ...isi, tetap: true })
+    expect(teks.startsWith('Fix! Ketemuan di *Kafe Taman Tebet*')).toBe(true)
+    expect(teks).toContain('Sudah fix, sampai ketemu di sana!')
+    expect(teks).not.toContain('Dipilih 2 dari 3 orang.')
+    expect(teks.endsWith('https://tikoem.vercel.app/r/ABC234')).toBe(true)
   })
 })

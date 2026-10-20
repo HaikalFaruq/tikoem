@@ -137,9 +137,10 @@ export function LayarRoom({ kode, keBeranda }: Props) {
           {/* Peta dulu, lalu tombol Cari tempat di bawahnya (diselingi kartu traktir): orang melihat titik tengahnya, lalu tahu langkah berikutnya. */}
           <BagianPeta
             pin={pinPeta}
-            kandidat={hasil.kandidat}
+            kandidat={room.tetap ? hasil.kandidat.filter((k) => k.id === room.tetap?.kandidatId) : hasil.kandidat}
             titikTengahHasil={room.titikTengah}
             menghitung={room.status === 'menghitung'}
+            tetap={room.tetap !== null}
           />
           {/* Pop up traktir-nya muncul di HP yang sudah gabung saat tempat mulai dicari. */}
           <TraktirTikoem room={room} peserta={daftar} />

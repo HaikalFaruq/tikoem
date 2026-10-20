@@ -154,6 +154,85 @@ test('kartu hasil: tempat paling adil dulu, ikut suara terbanyak, siap dikirim k
   await expect(page.locator('[data-kartu-hasil]')).toContainText(ketiga.nama)
   await expect(page.locator('[data-kartu-hasil]')).not.toHaveAttribute('data-momen', 'main')
 })
+test('tetapkan tempat: konfirmasi, keadaan Fix! untuk semua, lalu Ubah lagi membuka voting', async ({ page }) => {
+  const { kode, haikal, bintang, umar } = await roomBertiga()
+  await masukSebagai(page, kode, haikal)
+  await cariTempat(page)
+  const namaPertama = await page.locator('[data-kandidat="1"] h3').innerText()
+  const kartu = page.locator('[data-kartu-hasil]')
+
+  // Batal tidak mengubah apa pun.
+  await kartu.getByRole('button', { name: 'Tetapkan tempat ini' }).click()
+  const dialog = page.getByRole('dialog', { name: `Tetapkan ${namaPertama} untuk semua orang?` })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Batal' }).click()
+  await expect(dialog).toBeHidden()
+  await expect(kartu).not.toHaveAttribute('data-tetap')
+
+  await kartu.getByRole('button', { name: 'Tetapkan tempat ini' }).click()
+  await dialog.getByRole('button', { name: 'Tetapkan', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Tempatnya sudah fix' })).toBeVisible(REALTIME)
+  await expect(kartu).toHaveAttribute('data-tetap', '')
+  await expect(kartu).toContainText('Fix! Ketemuan di')
+  await expect(kartu).toContainText(namaPertama)
+  await expect(kartu).toContainText('Ditetapkan olehmu')
+  // Momen gabung diputar lagi untuk "Fix!".
+  await expect(kartu).toHaveAttribute('data-momen', 'main')
+  // Kartu tempat lain, voting, dan tombol Tetapkan disembunyikan.
+  await expect(page.locator('[data-kandidat]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Tetapkan tempat ini' })).toHaveCount(0)
+  const pesan = new URL((await kartu.getByRole('link', { name: 'Kirim hasil ke grup WA' }).getAttribute('href'))!).searchParams.get('text')!
+  expect(pesan.startsWith(`Fix! Ketemuan di *${namaPertama}*`)).toBe(true)
+  expect(pesan.endsWith(`/r/${kode}`)).toBe(true)
+
+  // Lokasi yang berubah tidak memunculkan Hitung ulang selama tempatnya tetap.
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: { lat: -6.17, lng: 106.89 } })
+  await page.waitForTimeout(1000)
+  await expect(page.getByText('Ada lokasi yang berubah')).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Ubah lagi' }).click()
+  await expect(page.getByRole('heading', { name: 'Tempat paling adil' })).toBeVisible(REALTIME)
+  await expect(page.locator('[data-kandidat]')).toHaveCount(5)
+  await expect(kartu).not.toHaveAttribute('data-tetap')
+
+  // Ditetapkan dari HP lain: langsung berubah di sini, dengan nama orangnya.
+  const hasil = await convex.query(api.room.lihat, { kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  await convex.mutation(api.room.tetapkan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: hasil.kandidat[0].id })
+  await expect(kartu).toContainText('Ditetapkan oleh Bintang', REALTIME)
+
+  // Kalau Bintang keluar, tempatnya tetap berlaku tanpa nama.
+  await convex.mutation(api.room.keluar, { pesertaId: bintang.pesertaId, kunci: bintang.kunci })
+  await expect(kartu).not.toContainText('Bintang', REALTIME)
+  await expect(kartu).toContainText('Ditetapkan')
+
+  await page.setViewportSize({ width: 320, height: 800 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false)
+})
+
+test('tetapkan ditolak kalau suara terbanyak berubah saat dialog konfirmasi terbuka', async ({ page }) => {
+  const { kode, haikal, bintang, umar } = await roomBertiga()
+  await masukSebagai(page, kode, haikal)
+  await cariTempat(page)
+  const hasil = await convex.query(api.room.lihat, { kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  const [pertama, , ketiga] = hasil.kandidat
+
+  const kartu = page.locator('[data-kartu-hasil]')
+  await kartu.getByRole('button', { name: 'Tetapkan tempat ini' }).click()
+  const dialog = page.getByRole('dialog', { name: `Tetapkan ${pertama.nama} untuk semua orang?` })
+  await expect(dialog).toBeVisible()
+
+  for (const p of [bintang, umar]) await convex.mutation(api.room.vote, { pesertaId: p.pesertaId, kunci: p.kunci, kandidatId: ketiga.id })
+  await expect(kartu).toContainText(ketiga.nama, REALTIME)
+  // Dialognya tetap menanyakan tempat yang tadi.
+  await expect(dialog).toBeVisible()
+
+  await dialog.getByRole('button', { name: 'Tetapkan', exact: true }).click()
+  await expect(page.getByRole('alert')).toHaveText('Suara terbanyak baru saja berubah. Cek lagi kartunya.')
+  await expect(kartu).not.toHaveAttribute('data-tetap')
+})
+
 for (const [nama, titik, pesan] of [
   ['tidak ada tempat di sekitar titik tengah', LOKASI_TANPA_TEMPAT, 'Tidak ada kafe, resto, atau mal di sekitar titik tengah.'],
   ['layanan peta gagal', LOKASI_LAYANAN_GAGAL, 'Layanan peta sedang gangguan'],

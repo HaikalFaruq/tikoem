@@ -7,7 +7,7 @@ export type KategoriTempat = 'kafe' | 'resto' | 'mall' | 'stasiun'
 /** Sama dengan syarat `room.hitung` di backend (Discussions #8). */
 const MIN_LOKASI_HITUNG = 2
 
-type RoomHasil = { status: StatusRoom; galatHitung: GalatHitung | null; hasilUsang: boolean }
+type RoomHasil = { status: StatusRoom; galatHitung: GalatHitung | null; hasilUsang: boolean; tetap?: object | null }
 
 export type KeadaanCariTempat =
   | { jenis: 'kurang_lokasi'; berbagi: number; total: number }
@@ -15,6 +15,7 @@ export type KeadaanCariTempat =
   | { jenis: 'menghitung' }
   | { jenis: 'gagal'; galat: GalatHitung | null; bisaDicobaLagi: boolean }
   | { jenis: 'siap'; usang: boolean; bisaHitungUlang: boolean }
+  | { jenis: 'tetap' }
 
 /** Apa yang ditampilkan bagian "Cari tempat", dari status room dan berapa orang yang sudah berbagi lokasi. */
 export function keadaanCariTempat(room: RoomHasil, berbagi: number, total: number): KeadaanCariTempat {
@@ -23,6 +24,8 @@ export function keadaanCariTempat(room: RoomHasil, berbagi: number, total: numbe
     case 'menghitung':
       return { jenis: 'menghitung' }
     case 'siap':
+      // Selama tetap, voting dan hitung ditolak backend, jadi lokasi yang berubah tidak memunculkan Hitung ulang (Discussions #42).
+      if (room.tetap) return { jenis: 'tetap' }
       return { jenis: 'siap', usang: room.hasilUsang, bisaHitungUlang: cukup }
     case 'gagal':
       return { jenis: 'gagal', galat: room.galatHitung, bisaDicobaLagi: cukup }
@@ -60,6 +63,15 @@ export function pesanLokasiTidakTerjangkau<Id>(idTakTerjangkau: Id | null, peser
   return `Lokasi ${orang.nama} terlalu jauh dari jalan, jadi waktu tempuhnya tidak bisa dihitung. Minta ${orang.nama} memperbarui lokasinya ke titik yang dekat jalan, lalu coba lagi.`
 }
 
+/**
+ * Siapa yang menetapkan tempat (Discussions #42). Kalau orangnya sudah keluar room, tanpa nama.
+ */
+export function teksPenetap<Id>(olehPesertaId: Id, peserta: readonly { id: Id; nama: string }[], idSaya: Id) {
+  if (olehPesertaId === idSaya) return 'Ditetapkan olehmu'
+  const orang = peserta.find((p) => p.id === olehPesertaId)
+  return orang ? `Ditetapkan oleh ${orang.nama}` : 'Ditetapkan'
+}
+
 const LABEL_KATEGORI: Record<KategoriTempat, string> = { kafe: 'Kafe', resto: 'Resto', mall: 'Mal', stasiun: 'Stasiun' }
 export const labelKategori = (kategori: KategoriTempat) => LABEL_KATEGORI[kategori]
 
@@ -83,6 +95,8 @@ type IsiTeksHasil = {
   jumlahPemilih: number
   jumlahPeserta: number
   linkRoom: string
+  /** Sudah ditetapkan (Discussions #42): pesannya jadi versi final. */
+  tetap?: boolean
 }
 
 /**
@@ -92,14 +106,15 @@ type IsiTeksHasil = {
 export function teksHasil(isi: IsiTeksHasil): string {
   const keterangan = [labelKategori(isi.kategori), isi.alamat].filter(Boolean).join(' · ')
   const waktu = isi.baris.map((b) => `${b.nama} ${b.menit} mnt`).join(', ')
-  const pilihan =
-    isi.jumlahPemilih > 0
+  const pilihan = isi.tetap
+    ? 'Sudah fix, sampai ketemu di sana!'
+    : isi.jumlahPemilih > 0
       ? `Dipilih ${isi.jumlahPemilih} dari ${isi.jumlahPeserta} orang.`
       : 'Belum ada yang memilih, jadi ini tempat yang paling adil.'
   return [
-    `Ketemuan di *${isi.namaTempat}* (${keterangan})`,
+    `${isi.tetap ? 'Fix! ' : ''}Ketemuan di *${isi.namaTempat}* (${keterangan})`,
     `Maps: ${linkMaps(isi.lokasi)}`,
     `Waktu tempuh: ${waktu}. Terlama ${isi.terlamaMenit} mnt.`,
-    `${pilihan} Lihat semua pilihan di Tikoem: ${isi.linkRoom}`,
+    `${pilihan} ${isi.tetap ? 'Detailnya di Tikoem' : 'Lihat semua pilihan di Tikoem'}: ${isi.linkRoom}`,
   ].join('\n')
 }

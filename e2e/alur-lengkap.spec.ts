@@ -25,7 +25,7 @@ async function isiNamaDanKendaraan(halaman: Page, nama: string, kendaraan: strin
   await halaman.getByText(kendaraan, { exact: true }).click()
 }
 
-test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, pop up traktir, hasil keluar, voting, lalu kartu hasil', async ({ browser }) => {
+test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, pop up traktir, hasil keluar, voting, kartu hasil, lalu Fix!', async ({ browser }) => {
   test.setTimeout(120_000)
 
   // 1. Haikal membuat room di beranda.
@@ -106,4 +106,20 @@ test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, pop up t
   expect(pesan).toContain('Bintang')
   expect(pesan).toContain('Umar')
   expect(pesan.endsWith(new URL(link).pathname)).toBe(true)
+
+  // 9. Bintang menetapkan tempatnya. Ketiga HP berubah ke keadaan Fix! dengan nama Bintang.
+  await bintang.locator('[data-kartu-hasil]').getByRole('button', { name: 'Tetapkan tempat ini' }).click()
+  await bintang.getByRole('dialog', { name: `Tetapkan ${namaTerpilih} untuk semua orang?` }).getByRole('button', { name: 'Tetapkan', exact: true }).click()
+  for (const [halaman, penetap] of [
+    [haikal, 'Ditetapkan oleh Bintang'],
+    [bintang, 'Ditetapkan olehmu'],
+    [umar, 'Ditetapkan oleh Bintang'],
+  ] as const) {
+    await expect(halaman.getByRole('heading', { name: 'Tempatnya sudah fix' })).toBeVisible(REALTIME)
+    const kartu = halaman.locator('[data-kartu-hasil]')
+    await expect(kartu).toContainText('Fix! Ketemuan di')
+    await expect(kartu.getByRole('heading', { name: namaTerpilih })).toBeVisible()
+    await expect(kartu).toContainText(penetap)
+    await expect(halaman.locator('[data-kandidat]')).toHaveCount(0)
+  }
 })
