@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { jarakMeter } from './lokasi'
-import { batasPeta, lingkaranGeo, sebarPinBerdekatan } from './peta'
+import { batasPeta, lingkaranGeo, sebarPinBerdekatan, titikAwalPilih } from './peta'
 
 const TEBET = { lat: -6.227, lng: 106.854 }
 
@@ -51,5 +51,23 @@ describe('batasPeta', () => {
 
   it('kosong kalau belum ada titik', () => {
     expect(batasPeta([])).toBeNull()
+  })
+})
+
+describe('titikAwalPilih', () => {
+  const KOKAS = { lat: -6.224, lng: 106.843 }
+
+  it('mulai dari lokasiku kalau sudah ada', () => {
+    expect(titikAwalPilih(TEBET, [KOKAS])).toEqual(TEBET)
+  })
+
+  it('kalau belum, dari titik tengah lokasi teman', () => {
+    expect(titikAwalPilih(null, [TEBET])).toEqual(TEBET)
+    const tengah = titikAwalPilih(null, [TEBET, KOKAS])!
+    expect(jarakMeter(tengah, TEBET)).toBeCloseTo(jarakMeter(tengah, KOKAS), 0)
+  })
+
+  it('null kalau belum ada lokasi siapa pun', () => {
+    expect(titikAwalPilih(null, [])).toBeNull()
   })
 })

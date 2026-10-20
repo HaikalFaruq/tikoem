@@ -30,7 +30,7 @@ PWA, tanpa akun.
 ## Cara pakai
 
 1. Buat room, lalu bagikan link-nya ke grup WhatsApp.
-2. Tiap teman mengisi nama dan kendaraan, lalu berbagi lokasi lewat GPS atau ketik alamat.
+2. Tiap teman mengisi nama dan kendaraan, lalu berbagi lokasi lewat GPS, ketik alamat, atau pilih titik di peta.
 3. Ketuk **Cari tempat**. Tikoem menampilkan 5 tempat dengan waktu tempuh terlama paling pendek, jadi tidak ada yang jauh sendiri.
 4. Pilih bareng, lalu kirim kartu hasilnya ke grup.
 

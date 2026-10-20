@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sisaWaktu } from './waktu'
+import { jedaPermintaan, sisaWaktu } from './waktu'
 
 const MENIT = 60_000
 
@@ -19,5 +19,16 @@ describe('sisaWaktu', () => {
   it('menyebut sudah berakhir kalau waktunya habis', () => {
     expect(sisaWaktu(0)).toBe('sudah berakhir')
     expect(sisaWaktu(-5 * MENIT)).toBe('sudah berakhir')
+  })
+})
+
+describe('jedaPermintaan', () => {
+  it('menunggu tundaan biasa kalau belum pernah meminta atau permintaan terakhir sudah lama', () => {
+    expect(jedaPermintaan(10_000, null, 1100, 600)).toBe(600)
+    expect(jedaPermintaan(10_000, 5_000, 1100, 600)).toBe(600)
+  })
+
+  it('menunggu lebih lama supaya jarak dari permintaan terakhir paling sedikit jarakMin', () => {
+    expect(jedaPermintaan(10_000, 9_800, 1100, 600)).toBe(900)
   })
 })

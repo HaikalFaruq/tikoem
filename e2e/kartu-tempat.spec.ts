@@ -266,5 +266,7 @@ test('pencarian gagal karena lokasi seseorang di laut: pesannya menyebut orang i
 
   // Di HP Umar, pesannya ditujukan ke dia sendiri.
   await masukSebagai(page, haikal.kode, umar)
-  await expect(page.getByText('Lokasimu terlalu jauh dari jalan')).toBeVisible(REALTIME)
+  await expect(page.getByText('Lokasimu terlalu jauh dari jalan, jadi waktu tempuhnya')).toBeVisible(REALTIME)
+  // Kartu lokasinya juga memberi tahu, dengan jalan keluar lewat peta (#53).
+  await expect(page.getByRole('heading', { name: 'Lokasimu terlalu jauh dari jalan' })).toBeVisible()
 })

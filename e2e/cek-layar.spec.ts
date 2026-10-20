@@ -241,6 +241,36 @@ test('room gagal karena lokasi di laut', async ({ browser }) => {
   })
 })
 
+test('pilih titik di peta', async ({ browser }) => {
+  const { kode } = await roomBertiga()
+  const gita = await convex.mutation(api.room.gabung, { kode, nama: 'Gita', kendaraan: 'motor' })
+  await potret(browser, 'pilih-di-peta', 'Pilih titik di peta: pin di tengah, alamat di bawahnya (#53)', {
+    url: `/r/${kode}`,
+    sebagai: { kode, identitas: gita },
+    halamanPenuh: false,
+    tunggu: async (halaman) => {
+      await halaman.getByRole('button', { name: 'Pilih titik di peta' }).click()
+      await halaman.locator('[data-label-titik] b').waitFor({ timeout: 15_000 })
+      await petaSiap(halaman)
+      await halaman.locator('[data-pilih-di-peta]').evaluate((el) => el.scrollIntoView({ block: 'center' }))
+    },
+  })
+})
+
+test('kartu lokasi terlalu jauh dari jalan', async ({ browser }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const umar = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Umar', kendaraan: 'motor' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.226, lng: 106.858 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: LOKASI_TIDAK_TERJANGKAU })
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await tungguStatus(haikal.kode, 'gagal')
+  await potret(browser, 'lokasi-jauh-saya', 'Di HP Umar: kartu lokasinya memberi tahu titiknya terlalu jauh dari jalan (#54)', {
+    url: `/r/${haikal.kode}`,
+    sebagai: { kode: haikal.kode, identitas: umar },
+    halamanPenuh: false,
+  })
+})
+
 test('room tidak ada', async ({ browser }) => {
   await potret(browser, 'room-tidak-ada', 'Link room yang salah atau sudah lama', { url: '/r/ZZZZZZ' })
 })

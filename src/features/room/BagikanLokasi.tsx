@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
+import type { Titik } from '../../domain/lokasi'
 import { pesanGalatGeolokasi } from '../../lib/geolokasi'
 import { KartuStiker, Pin, Tombol, type AksesoriPin, type WarnaPin } from '../../ui'
+import { PilihDiPeta } from '../peta/PilihDiPeta'
 import { CariAlamat } from './CariAlamat'
 import type { IdentitasRoom } from './identitas'
 
@@ -11,11 +13,20 @@ type Props = {
   identitas: IdentitasRoom
   sudahAda: boolean
   pin: { warna: WarnaPin; aksesori: AksesoriPin }
+  /** Titik awal peta "pilih di peta" (`titikAwalPilih`). */
+  awalPeta: Titik | null
+  /** Pencarian terakhir gagal karena lokasiku terlalu jauh dari jalan (LOKASI_TIDAK_TERJANGKAU). */
+  tidakTerjangkau: boolean
+  /** `room.putaranHitung`, supaya peringatan lokasi jauh hilang setelah lokasinya diperbarui dan muncul lagi kalau masih gagal. */
+  putaranHitung: number
   /** Dipanggil kalau backend tidak mengenali identitas ini lagi, misalnya orangnya sudah keluar room. */
   onIdentitasHilang: () => void
 }
 
-type Posisi = { lat: number; lng: number }
+type Posisi = Titik
+
+/** Cara lain selain GPS yang sedang dibuka. */
+type Cara = 'alamat' | 'peta' | null
 
 /** Koordinat dari GPS HP. Tidak pernah ditulis ke log atau localStorage: langsung dikirim, lalu disamarkan backend. */
 function ambilPosisi(): Promise<Posisi> {
@@ -33,19 +44,22 @@ function ambilPosisi(): Promise<Posisi> {
   })
 }
 
-export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: Props) {
+export function BagikanLokasi({ identitas, sudahAda, pin, awalPeta, tidakTerjangkau, putaranHitung, onIdentitasHilang }: Props) {
   const kirimLokasi = useMutation(api.room.kirimLokasi)
   const [status, setStatus] = useState<'diam' | 'mencari' | 'menyimpan'>('diam')
   const [galat, setGalat] = useState<string | null>(null)
-  const [pakaiAlamat, setPakaiAlamat] = useState(false)
+  const [cara, setCara] = useState<Cara>(null)
+  const [putaranDiperbarui, setPutaranDiperbarui] = useState<number | null>(null)
+  const lokasiJauh = tidakTerjangkau && putaranDiperbarui !== putaranHitung
 
-  /** Dipakai GPS maupun alamat. Backend yang menyamarkan lokasinya. */
+  /** Dipakai GPS, alamat, maupun peta. Backend yang menyamarkan lokasinya. */
   async function simpan(posisi: Posisi) {
     setGalat(null)
     setStatus('menyimpan')
     try {
       await kirimLokasi({ ...identitas, lokasi: posisi })
-      setPakaiAlamat(false)
+      setCara(null)
+      setPutaranDiperbarui(putaranHitung)
     } catch (e) {
       const kode = e instanceof ConvexError ? (e.data as { galat?: string } | undefined)?.galat : undefined
       if (kode === 'PESERTA_TIDAK_DIKENAL') return onIdentitasHilang()
@@ -68,7 +82,7 @@ export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: P
     } catch (e) {
       setStatus('diam')
       setGalat(`${pesanGalatGeolokasi((e as { code?: number }).code ?? -1)} Bisa juga ketik alamat di bawah.`)
-      setPakaiAlamat(true)
+      setCara('alamat')
       return
     }
     await simpan(posisi)
@@ -76,35 +90,53 @@ export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: P
 
   const sibuk = status !== 'diam'
   const labelTombol = status === 'mencari' ? 'Mencari lokasimu…' : status === 'menyimpan' ? 'Menyimpan…' : null
+  const peta = <PilihDiPeta awal={awalPeta} pin={pin} sibuk={sibuk} onPakai={simpan} onBatal={() => setCara(null)} />
 
   if (sudahAda) {
     return (
       <KartuStiker as="section" aria-labelledby="lokasi-judul" className="flex min-w-0 flex-col gap-3 p-4">
         <div className="flex items-center gap-3">
-          <Pin {...pin} ekspresi="senang" ukuran={32} />
+          <Pin {...pin} ekspresi={lokasiJauh ? 'kaget' : 'senang'} ukuran={32} />
           <div className="flex min-w-0 flex-1 flex-col">
             <h2 id="lokasi-judul" className="font-bold">
-              Lokasimu sudah masuk
+              {lokasiJauh ? 'Lokasimu terlalu jauh dari jalan' : 'Lokasimu sudah masuk'}
             </h2>
-            <p className="text-sm text-teks-redup">Disamarkan sekitar 100 m, jadi rumahmu tidak terlihat persis.</p>
+            <p className="text-sm text-teks-redup">
+              {lokasiJauh
+                ? 'Waktu tempuhnya tidak bisa dihitung. Pilih titik yang dekat jalan, lalu tekan Coba lagi di bagian Cari tempat.'
+                : 'Disamarkan sekitar 100 m, jadi rumahmu tidak terlihat persis.'}
+            </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Tombol varian="biasa" onClick={pakaiGps} disabled={sibuk}>
-            {labelTombol ?? 'Perbarui lewat GPS'}
-          </Tombol>
-          {!pakaiAlamat && (
-            <Tombol varian="biasa" onClick={() => setPakaiAlamat(true)} disabled={sibuk}>
-              Pakai alamat
+        {cara !== 'peta' && (
+          <div className="flex flex-wrap gap-2">
+            {lokasiJauh && (
+              <Tombol onClick={() => setCara('peta')} disabled={sibuk} className="w-full">
+                Pilih titik di peta
+              </Tombol>
+            )}
+            <Tombol varian="biasa" onClick={pakaiGps} disabled={sibuk}>
+              {labelTombol ?? 'Perbarui lewat GPS'}
             </Tombol>
-          )}
-        </div>
+            {cara !== 'alamat' && (
+              <Tombol varian="biasa" onClick={() => setCara('alamat')} disabled={sibuk}>
+                Pakai alamat
+              </Tombol>
+            )}
+            {!lokasiJauh && (
+              <Tombol varian="biasa" onClick={() => setCara('peta')} disabled={sibuk}>
+                Pilih di peta
+              </Tombol>
+            )}
+          </div>
+        )}
         {galat && (
           <p role="alert" className="text-sm font-semibold">
             {galat}
           </p>
         )}
-        {pakaiAlamat && <CariAlamat onPilih={simpan} sibuk={sibuk} />}
+        {cara === 'alamat' && <CariAlamat onPilih={simpan} sibuk={sibuk} />}
+        {cara === 'peta' && peta}
       </KartuStiker>
     )
   }
@@ -136,7 +168,16 @@ export function BagikanLokasi({ identitas, sudahAda, pin, onIdentitasHilang }: P
         atau
         <span className="h-0.5 flex-1 rounded-full bg-garis/20" />
       </div>
-      <CariAlamat onPilih={simpan} sibuk={sibuk} />
+      {cara === 'peta' ? (
+        peta
+      ) : (
+        <>
+          <CariAlamat onPilih={simpan} sibuk={sibuk} />
+          <Tombol varian="biasa" onClick={() => setCara('peta')} disabled={sibuk} className="self-start">
+            Pilih titik di peta
+          </Tombol>
+        </>
+      )}
     </KartuStiker>
   )
 }
