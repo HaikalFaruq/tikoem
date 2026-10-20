@@ -141,7 +141,6 @@ export function LayarRoom({ kode, keBeranda }: Props) {
               daftar.flatMap((p) => (p.lokasi && p.id !== saya.id ? [p.lokasi] : [])),
             )}
             tidakTerjangkau={lokasiJauh}
-            putaranHitung={room.putaranHitung}
             onIdentitasHilang={lupakanIdentitas}
           />
           {/* Peta dulu, lalu tombol Cari tempat di bawahnya (diselingi kartu traktir): orang melihat titik tengahnya, lalu tahu langkah berikutnya. */}

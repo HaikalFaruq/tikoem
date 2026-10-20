@@ -15,10 +15,11 @@ type Props = {
   pin: { warna: WarnaPin; aksesori: AksesoriPin }
   /** Titik awal peta "pilih di peta" (`titikAwalPilih`). */
   awalPeta: Titik | null
-  /** Pencarian terakhir gagal karena lokasiku terlalu jauh dari jalan (LOKASI_TIDAK_TERJANGKAU). */
+  /**
+   * Pencarian terakhir gagal karena lokasiku terlalu jauh dari jalan (LOKASI_TIDAK_TERJANGKAU). Backend mengosongkannya
+   * begitu aku mengirim lokasi baru (#59).
+   */
   tidakTerjangkau: boolean
-  /** `room.putaranHitung`, supaya peringatan lokasi jauh hilang setelah lokasinya diperbarui dan muncul lagi kalau masih gagal. */
-  putaranHitung: number
   /** Dipanggil kalau backend tidak mengenali identitas ini lagi, misalnya orangnya sudah keluar room. */
   onIdentitasHilang: () => void
 }
@@ -44,13 +45,11 @@ function ambilPosisi(): Promise<Posisi> {
   })
 }
 
-export function BagikanLokasi({ identitas, sudahAda, pin, awalPeta, tidakTerjangkau, putaranHitung, onIdentitasHilang }: Props) {
+export function BagikanLokasi({ identitas, sudahAda, pin, awalPeta, tidakTerjangkau: lokasiJauh, onIdentitasHilang }: Props) {
   const kirimLokasi = useMutation(api.room.kirimLokasi)
   const [status, setStatus] = useState<'diam' | 'mencari' | 'menyimpan'>('diam')
   const [galat, setGalat] = useState<string | null>(null)
   const [cara, setCara] = useState<Cara>(null)
-  const [putaranDiperbarui, setPutaranDiperbarui] = useState<number | null>(null)
-  const lokasiJauh = tidakTerjangkau && putaranDiperbarui !== putaranHitung
 
   /** Dipakai GPS, alamat, maupun peta. Backend yang menyamarkan lokasinya. */
   async function simpan(posisi: Posisi) {
@@ -59,7 +58,6 @@ export function BagikanLokasi({ identitas, sudahAda, pin, awalPeta, tidakTerjang
     try {
       await kirimLokasi({ ...identitas, lokasi: posisi })
       setCara(null)
-      setPutaranDiperbarui(putaranHitung)
     } catch (e) {
       const kode = e instanceof ConvexError ? (e.data as { galat?: string } | undefined)?.galat : undefined
       if (kode === 'PESERTA_TIDAK_DIKENAL') return onIdentitasHilang()
@@ -155,7 +153,8 @@ export function BagikanLokasi({ identitas, sudahAda, pin, awalPeta, tidakTerjang
           rumahmu tidak terlihat persis.
         </p>
       </div>
-      <Tombol onClick={pakaiGps} disabled={sibuk} className="w-full">
+      {/* Saat peta pilih terbuka, Pakai titik ini yang jadi aksi utama. */}
+      <Tombol onClick={pakaiGps} disabled={sibuk} varian={cara === 'peta' ? 'biasa' : 'utama'} className={cara === 'peta' ? 'min-h-11 self-start' : 'w-full'}>
         {labelTombol ?? 'Pakai lokasiku sekarang'}
       </Tombol>
       {galat && (

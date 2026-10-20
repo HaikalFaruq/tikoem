@@ -4,7 +4,10 @@ import { KartuStiker, TautanTombol, Tombol } from '../../ui'
 
 type Props = { kode: string; sendirian: boolean }
 
-/** Undangan ke grup: kirim lewat WhatsApp, atau salin link-nya untuk aplikasi lain. */
+/**
+ * Undangan ke grup: kirim lewat WhatsApp, atau salin link-nya untuk aplikasi lain. Tombol WA jadi aksi utama (merah)
+ * hanya selagi masih sendirian. Setelah ada teman, aksi utamanya ada di bagian lain layar (docs/desain/cek-ux.md §1).
+ */
 export function BagikanRoom({ kode, sendirian }: Props) {
   const link = linkRoom(window.location.origin, kode)
   const [status, setStatus] = useState<'diam' | 'tersalin' | 'gagal'>('diam')
@@ -34,7 +37,11 @@ export function BagikanRoom({ kode, sendirian }: Props) {
         </h2>
         <p className="text-sm text-teks-redup">Siapa pun yang punya link ini bisa gabung ke room, cukup dengan nama.</p>
       </div>
-      <TautanTombol href={linkWhatsApp(teksUndangan(link))} className="w-full">
+      <TautanTombol
+        href={linkWhatsApp(teksUndangan(link))}
+        varian={sendirian ? 'utama' : 'biasa'}
+        className={sendirian ? 'w-full' : 'min-h-11 self-start'}
+      >
         Kirim ke grup WA
       </TautanTombol>
       <div className="flex min-w-0 items-center gap-2">
