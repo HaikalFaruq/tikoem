@@ -142,6 +142,38 @@ test('room dengan hasil', async ({ browser }) => {
   })
 })
 
+test('konfirmasi tetapkan tempat', async ({ browser }) => {
+  const { kode, haikal } = await roomBertiga()
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await tungguStatus(kode, 'siap')
+  await potret(browser, 'tetapkan-konfirmasi', 'Konfirmasi sebelum tempat ditetapkan untuk semua orang (Discussions #42)', {
+    url: `/r/${kode}`,
+    sebagai: { kode, identitas: haikal },
+    halamanPenuh: false,
+    tunggu: async (halaman) => {
+      await petaSiap(halaman)
+      await halaman.getByRole('button', { name: 'Tetapkan tempat ini' }).click()
+      await halaman.waitForTimeout(800)
+    },
+  })
+})
+
+test('room sudah fix', async ({ browser }) => {
+  const { kode, haikal, bintang } = await roomBertiga()
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  const hasil = await tungguStatus(kode, 'siap')
+  await convex.mutation(api.room.tetapkan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kandidatId: hasil.kandidat[0].id })
+  await potret(browser, 'room-tetap', 'Tempat sudah ditetapkan Bintang: kartu Fix!, peta hanya tempat itu, Ubah lagi', {
+    url: `/r/${kode}`,
+    sebagai: { kode, identitas: haikal },
+    tunggu: async (halaman) => {
+      await petaSiap(halaman)
+      // Momen gabung selesai diputar.
+      await halaman.waitForTimeout(1500)
+    },
+  })
+})
+
 test('pop up traktir setelah Cari tempat', async ({ browser }) => {
   // Pop up muncul sekali per room saat tempat mulai dicari, jadi tiap potretan memakai room baru.
   await potret(browser, 'traktir-pencarian', 'Pop up traktir: muncul saat Cari tempat ditekan, hasilnya sudah keluar', async () => {

@@ -35,16 +35,19 @@ type Props = {
   /** Titik tengah yang dipakai backend untuk mencari tempat. Ada setelah tombol Cari tempat ditekan. */
   titikTengahHasil: Titik | null
   menghitung: boolean
+  /** Tempat sudah ditetapkan (Discussions #42). `kandidat` sudah berisi tempat itu saja. */
+  tetap: boolean
 }
 
-/** Menggulir ke kartu tempat saat penanda kandidat di peta diketuk. */
+/** Menggulir ke kartu tempat saat penanda kandidat di peta diketuk. Setelah ditetapkan, kartu tempat lain disembunyikan, jadi ke kartu hasil. */
 function gulirKeKartu(peringkat: number) {
-  const kartu = document.querySelector<HTMLElement>(`[data-kandidat="${peringkat}"]`)
+  const kartu =
+    document.querySelector<HTMLElement>(`[data-kandidat="${peringkat}"]`) ?? document.querySelector<HTMLElement>('[data-kartu-hasil]')
   const dikurangi = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   kartu?.scrollIntoView({ behavior: dikurangi ? 'auto' : 'smooth', block: 'center' })
 }
 
-export function BagianPeta({ pin, kandidat, titikTengahHasil, menghitung }: Props) {
+export function BagianPeta({ pin, kandidat, titikTengahHasil, menghitung, tetap }: Props) {
   const perkiraan = pin.length >= 2 ? titikTengah(pin.map((p) => p.lokasi)) : null
   const idTerpilih = pilihanAkhir(kandidat)
   const kandidatPeta = kandidat.map(({ pemilih: _pemilih, ...k }) => ({ ...k, terpilih: k.id === idTerpilih }))
@@ -58,13 +61,15 @@ export function BagianPeta({ pin, kandidat, titikTengahHasil, menghitung }: Prop
           Peta teman
         </h2>
         <p className="text-sm text-teks-redup">
-          {adaHasil
-            ? 'Bintang adalah tempat dengan suara terbanyak. Angka adalah peringkat keadilan, ketuk untuk melihat kartunya.'
-            : perkiraan
-            ? `Cincin kuning adalah perkiraan titik tengah. Orang terjauh ${formatJarak(perkiraan.radiusMeter)} dari situ. Tekan Cari tempat di bawah peta untuk melihat tempat paling adil di sekitarnya.`
-            : pin.length === 1
-              ? 'Titik tengah muncul setelah minimal 2 orang berbagi lokasi.'
-              : 'Pin teman muncul di sini setelah mereka berbagi lokasi.'}
+          {tetap
+            ? 'Bintang adalah tempat yang sudah ditetapkan.'
+            : adaHasil
+              ? 'Bintang adalah tempat dengan suara terbanyak. Angka adalah peringkat keadilan, ketuk untuk melihat kartunya.'
+              : perkiraan
+                ? `Cincin kuning adalah perkiraan titik tengah. Orang terjauh ${formatJarak(perkiraan.radiusMeter)} dari situ. Tekan Cari tempat di bawah peta untuk melihat tempat paling adil di sekitarnya.`
+                : pin.length === 1
+                  ? 'Titik tengah muncul setelah minimal 2 orang berbagi lokasi.'
+                  : 'Pin teman muncul di sini setelah mereka berbagi lokasi.'}
         </p>
       </div>
       <KartuStiker className="overflow-hidden p-0">

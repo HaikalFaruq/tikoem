@@ -34,14 +34,18 @@ const PESAN_GALAT_AKSI: Record<string, string> = {
   SEDANG_MENGHITUNG: 'Tempatnya sedang dicari. Tunggu sebentar.',
   ROOM_BELUM_SIAP: 'Tempatnya sedang dicari ulang, jadi pilihanmu belum bisa disimpan. Coba lagi setelah hasilnya keluar.',
   KANDIDAT_TIDAK_ADA: 'Tempat ini sudah tidak ada di daftar. Pilih tempat lain.',
+  PILIHAN_BERUBAH: 'Suara terbanyak baru saja berubah. Cek lagi kartunya.',
+  ROOM_SUDAH_TETAP: 'Tempatnya sudah ditetapkan, jadi voting ditutup. Tekan Ubah lagi kalau rencananya berubah.',
 }
 
 const kodeGalat = (e: unknown) => (e instanceof ConvexError ? (e.data as { galat?: string } | undefined)?.galat : undefined)
 
-/** Tombol "Cari tempat", status pencarian, lalu kartu tempat dengan voting. */
+/** Tombol "Cari tempat", status pencarian, lalu kartu tempat dengan voting, sampai tempatnya ditetapkan. */
 export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHilang }: Props) {
   const hitung = useMutation(api.room.hitung)
   const vote = useMutation(api.room.vote)
+  const tetapkan = useMutation(api.room.tetapkan)
+  const bukaLagi = useMutation(api.room.bukaLagi)
   const [sibuk, setSibuk] = useState(false)
   const [galat, setGalat] = useState<string | null>(null)
   const [lama, setLama] = useState(false)
@@ -79,15 +83,19 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
   const pilihanSaya = kandidat.find((k) => k.pemilih.includes(identitas.pesertaId))?.id ?? null
   const skalaMenit = Math.max(1, ...kandidat.map((k) => k.terlamaMenit))
   const sudahPilih = kandidat.reduce((n, k) => n + k.pemilih.length, 0)
-  const idTerpilih = pilihanAkhir(kandidat)
+  // Setelah ditetapkan, ikut `tetap`, bukan suara: orang yang keluar ikut menghapus suaranya.
+  const idTerpilih = room.tetap?.kandidatId ?? pilihanAkhir(kandidat)
   const terpilih = kandidat.find((k) => k.id === idTerpilih) ?? null
 
   return (
     <section aria-labelledby="hasil-judul" className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-col gap-1">
         <h2 id="hasil-judul" className="font-display text-2xl font-extrabold tracking-[-0.03em]">
-          {keadaan.jenis === 'siap' ? 'Tempat paling adil' : 'Cari tempat'}
+          {keadaan.jenis === 'siap' ? 'Tempat paling adil' : keadaan.jenis === 'tetap' ? 'Tempatnya sudah fix' : 'Cari tempat'}
         </h2>
+        {keadaan.jenis === 'tetap' && (
+          <p className="text-sm text-teks-redup">Voting sudah ditutup. Kirim hasilnya ke grup, lalu sampai ketemu di sana.</p>
+        )}
         {keadaan.jenis === 'siap' && (
           <p className="text-sm text-teks-redup">
             Diurutkan dari waktu tempuh terlama yang paling pendek. {sudahPilih} dari {peserta.length} orang sudah memilih.
@@ -168,8 +176,29 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
         </p>
       )}
 
-      {keadaan.jenis === 'siap' && terpilih && (
-        <KartuHasil room={room} kandidat={terpilih} peserta={peserta} idSaya={identitas.pesertaId} />
+      {/* Diumumkan ke pembaca layar di semua HP saat tempat ditetapkan atau voting dibuka lagi. */}
+      <p aria-live="polite" className="sr-only">
+        {keadaan.jenis === 'tetap' && terpilih ? `Tempat sudah ditetapkan: ${terpilih.nama}.` : ''}
+      </p>
+
+      {(keadaan.jenis === 'siap' || keadaan.jenis === 'tetap') && terpilih && (
+        <KartuHasil
+          room={room}
+          kandidat={terpilih}
+          peserta={peserta}
+          idSaya={identitas.pesertaId}
+          sibuk={sibuk}
+          onTetapkan={(kandidatId) => jalankan(() => tetapkan({ ...identitas, kandidatId }))}
+        />
+      )}
+
+      {keadaan.jenis === 'tetap' && (
+        <div className="flex flex-col items-center gap-1 text-center">
+          <p className="text-sm text-teks-redup">Rencananya berubah?</p>
+          <Tombol varian="biasa" onClick={() => jalankan(() => bukaLagi(identitas))} disabled={sibuk} className="min-h-11">
+            Ubah lagi
+          </Tombol>
+        </div>
       )}
 
       {kandidat.length > 0 && (keadaan.jenis === 'siap' || menghitung) && (
