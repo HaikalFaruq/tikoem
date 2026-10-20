@@ -201,7 +201,7 @@ describe('room lewat link', () => {
     const t = siapkan()
     const { kode } = await roomBaru(t)
     expect(await t.query(api.room.lihat, { kode })).toMatchObject({
-      room: { status: 'menunggu_peserta', galatHitung: null, hasilPada: null, hasilUsang: false, putaranHitung: 0 },
+      room: { status: 'menunggu_peserta', galatHitung: null, pesertaTidakTerjangkau: null, hasilPada: null, hasilUsang: false, putaranHitung: 0 },
       kandidat: [],
     })
   })

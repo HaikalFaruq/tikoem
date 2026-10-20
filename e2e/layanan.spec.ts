@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { ConvexHttpClient } from 'convex/browser'
 import { ConvexError } from 'convex/values'
 import { api } from '../convex/_generated/api'
-import { LOKASI_LAYANAN_GAGAL, LOKASI_TANPA_TEMPAT, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
+import { LOKASI_LAYANAN_GAGAL, LOKASI_TANPA_TEMPAT, LOKASI_TIDAK_TERJANGKAU, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
 
 test.skip(!PAKAI_LAYANAN_TIRUAN, 'Butuh layanan tiruan. Otomatis di CI, atau jalankan dengan E2E_LAYANAN_TIRUAN=1.')
 
@@ -53,6 +53,21 @@ for (const [lokasi, galat] of [
     await expect.poll(keadaan, { timeout: 30_000 }).toBe(`gagal ${galat}`)
   })
 }
+
+test('alur hitung berakhir dengan LOKASI_TIDAK_TERJANGKAU untuk orang yang lokasinya di laut', async () => {
+  const convex = new ConvexHttpClient(URL_BACKEND)
+  const satu = await convex.mutation(api.room.buat, { nama: 'Satu', kendaraan: 'motor' })
+  const dua = await convex.mutation(api.room.gabung, { kode: satu.kode, nama: 'Dua', kendaraan: 'motor' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: satu.pesertaId, kunci: satu.kunci, lokasi: { lat: -6.226, lng: 106.858 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: dua.pesertaId, kunci: dua.kunci, lokasi: LOKASI_TIDAK_TERJANGKAU })
+
+  await convex.mutation(api.room.hitung, { pesertaId: satu.pesertaId, kunci: satu.kunci })
+  const keadaan = async () => {
+    const hasil = await convex.query(api.room.lihat, { kode: satu.kode })
+    return hasil.ok ? `${hasil.room.status} ${hasil.room.galatHitung} ${hasil.room.pesertaTidakTerjangkau}` : hasil.galat
+  }
+  await expect.poll(keadaan, { timeout: 30_000 }).toBe(`gagal LOKASI_TIDAK_TERJANGKAU ${dua.pesertaId}`)
+})
 
 test('cari alamat lewat Nominatim tiruan, termasuk LAYANAN_GAGAL', async () => {
   const convex = new ConvexHttpClient(URL_BACKEND)

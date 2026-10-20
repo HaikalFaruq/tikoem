@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { ConvexHttpClient } from 'convex/browser'
 import { api } from '../convex/_generated/api'
-import { LOKASI_LAYANAN_GAGAL, LOKASI_TANPA_TEMPAT, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
+import { LOKASI_LAYANAN_GAGAL, LOKASI_TANPA_TEMPAT, LOKASI_TIDAK_TERJANGKAU, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
 
 test.skip(!PAKAI_LAYANAN_TIRUAN, 'Butuh layanan tiruan. Otomatis di CI, atau jalankan dengan E2E_LAYANAN_TIRUAN=1.')
 
@@ -172,3 +172,20 @@ for (const [nama, titik, pesan] of [
     await expect(page.locator('[data-kandidat]')).toHaveCount(0)
   })
 }
+
+test('pencarian gagal karena lokasi seseorang di laut: pesannya menyebut orang itu', async ({ page }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const umar = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Umar', kendaraan: 'motor' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.226, lng: 106.858 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: LOKASI_TIDAK_TERJANGKAU })
+  await masukSebagai(page, haikal.kode, haikal)
+
+  await page.getByRole('button', { name: 'Cari tempat' }).click()
+  await expect(page.getByText('Lokasi Umar terlalu jauh dari jalan')).toBeVisible({ timeout: 30_000 })
+  await expect(page.getByText('Minta Umar memperbarui lokasinya')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Coba lagi' })).toBeEnabled()
+
+  // Di HP Umar, pesannya ditujukan ke dia sendiri.
+  await masukSebagai(page, haikal.kode, umar)
+  await expect(page.getByText('Lokasimu terlalu jauh dari jalan')).toBeVisible(REALTIME)
+})

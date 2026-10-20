@@ -13,7 +13,10 @@ export type OpsiOrs = {
 
 const URL_DASAR_ORS = 'https://api.openrouteservice.org'
 
-/** Kode galat ORS saat salah satu titik terlalu jauh dari jalan yang bisa dilewati. */
+/**
+ * Kode galat ORS saat salah satu titik terlalu jauh dari jalan yang bisa dilewati. ORS 9 tidak lagi menolak titik asal
+ * seperti itu: jawabannya 200 dengan titik itu `null` di `sources`. `matriksDurasi` menyamakannya dengan galat ini.
+ */
 export const KODE_TITIK_TIDAK_TERJANGKAU = 6010
 
 export class OrsGagal extends Error {
@@ -59,6 +62,11 @@ export async function matriksDurasi(
       const { kode, indeksTitik } = bacaGalat(isi)
       throw new OrsGagal(`ORS menjawab HTTP ${jawaban.status}${kode ? `, kode ${kode}` : ''}`, kode, indeksTitik)
     }
+    // Asal ada di depan `locations`, jadi urutannya di `sources` sama dengan urutannya di `locations`.
+    const asalHilang = indeksAsalHilang(isi)
+    if (asalHilang !== undefined) {
+      throw new OrsGagal('ORS tidak menemukan jalan di dekat salah satu asal', KODE_TITIK_TIDAK_TERJANGKAU, asalHilang)
+    }
     return bacaDurasi(isi, asal.length, tujuan.length)
   } catch (galat) {
     throw galat instanceof OrsGagal ? galat : new OrsGagal(`ORS gagal: ${galat instanceof Error ? galat.name : 'galat tidak dikenal'}`)
@@ -74,6 +82,16 @@ function bacaGalat(isi: unknown): { kode?: number; indeksTitik?: number } {
   const pesan = 'message' in galat && typeof galat.message === 'string' ? galat.message : ''
   const indeks = /coordinate (\d+)/.exec(pesan)?.[1]
   return { kode, indeksTitik: indeks === undefined ? undefined : Number(indeks) }
+}
+
+/**
+ * Urutan asal yang tidak bisa ditempatkan ORS di jalan mana pun: `null` di `sources`, dan seluruh barisnya `null`.
+ * Tujuan seperti itu tidak dicari di sini, karena kolomnya yang `null` sudah membuat tempatnya terbuang.
+ */
+function indeksAsalHilang(isi: unknown): number | undefined {
+  const sumber = typeof isi === 'object' && isi !== null && 'sources' in isi ? isi.sources : null
+  const indeks = Array.isArray(sumber) ? sumber.indexOf(null) : -1
+  return indeks === -1 ? undefined : indeks
 }
 
 function bacaDurasi(isi: unknown, jumlahAsal: number, jumlahTujuan: number): (number | null)[][] {

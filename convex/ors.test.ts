@@ -53,6 +53,26 @@ describe('matriksDurasi', () => {
     expect((galat as Error).message).not.toMatch(/106|6\.22/)
   })
 
+  it('menyamakan asal yang null di `sources` (ORS 9) dengan kode 6010, tanpa membawa koordinat', async () => {
+    // Bentuk jawaban ORS 9.10 asli untuk titik di Teluk Jakarta, koordinatnya diganti.
+    const { ambil } = tiruanFetch(() =>
+      Response.json({ durations: [[600, 720], [null, null]], sources: [{ location: [106.813, -6.262], snapped_distance: 16.3 }, null] }),
+    )
+    const galat = await matriksDurasi([KEMANG, TEBET], [KAFE, RESTO], 'driving-car', { kunci: 'k', ambil }).catch((e: unknown) => e)
+
+    expect(galat).toBeInstanceOf(OrsGagal)
+    expect(galat).toMatchObject({ kode: KODE_TITIK_TIDAK_TERJANGKAU, indeksTitik: 1 })
+    expect((galat as Error).message).not.toMatch(/106|6\.2/)
+  })
+
+  it('tujuan yang null di `destinations` tetap jadi durasi null, tanpa galat', async () => {
+    const { ambil } = tiruanFetch(() => Response.json({ durations: [[600, null], [300, null]], sources: [{}, {}], destinations: [{}, null] }))
+    expect(await matriksDurasi([KEMANG, TEBET], [KAFE, RESTO], 'driving-car', { kunci: 'k', ambil })).toEqual([
+      [600, null],
+      [300, null],
+    ])
+  })
+
   it('memakai alamat dasar dari opsi kalau diisi', async () => {
     const { ambil, panggilan } = tiruanFetch(() => Response.json({ durations: [[60]] }))
     await matriksDurasi([KEMANG], [KAFE], 'foot-walking', { kunci: 'k', ambil, urlDasar: 'http://127.0.0.1:4319/ors' })

@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { keadaanCariTempat, type GalatHitung } from '../../domain/hasil'
+import { keadaanCariTempat, pesanLokasiTidakTerjangkau, type GalatHitung } from '../../domain/hasil'
 import { pilihanAkhir } from '../../domain/vote'
 import { warnaPin } from '../../domain/warnaPin'
 import { KartuStiker, Pin, Tombol } from '../../ui'
@@ -23,7 +23,8 @@ type Props = {
 /** Overpass dan OpenRouteService bisa makan puluhan detik, jadi setelah ini layar memberi tahu bahwa pencarian masih jalan. */
 const LAMA_MENGHITUNG_MS = 10_000
 
-const PESAN_GAGAL: Record<GalatHitung, string> = {
+/** LOKASI_TIDAK_TERJANGKAU menyebut nama orangnya, jadi pesannya dari `pesanLokasiTidakTerjangkau`. */
+const PESAN_GAGAL: Record<Exclude<GalatHitung, 'LOKASI_TIDAK_TERJANGKAU'>, string> = {
   TEMPAT_TIDAK_DITEMUKAN: 'Tidak ada kafe, resto, atau mal di sekitar titik tengah. Coba lagi setelah ada lokasi yang berubah.',
   LAYANAN_GAGAL: 'Layanan peta sedang gangguan, jadi tempatnya belum bisa dicari. Coba lagi sebentar lagi.',
 }
@@ -136,7 +137,13 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
       {keadaan.jenis === 'gagal' && (
         <KartuStiker className="flex flex-col items-start gap-3 p-5">
           <Pin warna={5} ekspresi="kaget" ukuran={40} />
-          <p className="font-semibold">{keadaan.galat ? PESAN_GAGAL[keadaan.galat] : 'Tempatnya belum berhasil dicari.'}</p>
+          <p className="font-semibold">
+            {keadaan.galat === 'LOKASI_TIDAK_TERJANGKAU'
+              ? pesanLokasiTidakTerjangkau(room.pesertaTidakTerjangkau, peserta, identitas.pesertaId)
+              : keadaan.galat
+                ? PESAN_GAGAL[keadaan.galat]
+                : 'Tempatnya belum berhasil dicari.'}
+          </p>
           <Tombol onClick={cari} disabled={!keadaan.bisaDicobaLagi || sibuk}>
             Coba lagi
           </Tombol>

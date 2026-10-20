@@ -69,7 +69,7 @@ Pertama kali di mesin baru: `npx playwright install --only-shell chromium`.
 
 E2E memakai backend Convex lokal di `127.0.0.1:3210`. Kalau `npx convex dev` sudah jalan, backend itu yang dipakai. Kalau belum, E2E menyalakannya sendiri. Di CI, backend-nya dibuat baru tanpa akun setiap kali jalan.
 
-Overpass, OpenRouteService, dan Nominatim tidak dipanggil sungguhan. Di CI, ketiganya diganti server tiruan (`e2e/layanan-tiruan.ts`). Di laptop, E2E yang butuh layanan itu dilewati, kecuali dijalankan dengan `E2E_LAYANAN_TIRUAN=1 npm run test:e2e`. Selama itu, env `OVERPASS_URL`, `ORS_URL`, dan `NOMINATIM_URL` di deployment lokalmu diarahkan ke server tiruan, lalu dikembalikan. Untuk menguji keadaan gagal, taruh peserta di `LOKASI_TANPA_TEMPAT` atau `LOKASI_LAYANAN_GAGAL` dari `e2e/backend.ts`.
+Overpass, OpenRouteService, dan Nominatim tidak dipanggil sungguhan. Di CI, ketiganya diganti server tiruan (`e2e/layanan-tiruan.ts`). Di laptop, E2E yang butuh layanan itu dilewati, kecuali dijalankan dengan `E2E_LAYANAN_TIRUAN=1 npm run test:e2e`. Selama itu, env `OVERPASS_URL`, `ORS_URL`, dan `NOMINATIM_URL` di deployment lokalmu diarahkan ke server tiruan, lalu dikembalikan. Untuk menguji keadaan gagal, taruh peserta di `LOKASI_TANPA_TEMPAT` atau `LOKASI_LAYANAN_GAGAL` dari `e2e/backend.ts`. Untuk `LOKASI_TIDAK_TERJANGKAU`, taruh satu peserta di `LOKASI_TIDAK_TERJANGKAU` (Teluk Jakarta) dan yang lain di darat.
 
 ## Kontrak data
 
@@ -85,10 +85,10 @@ Frontend hanya bicara dengan backend lewat fungsi Convex ini. Perubahan bentukny
 | `room.tetapkan({ pesertaId, kunci, kandidatId })` | mutation | Tetapkan tempat untuk semua orang. Siapa saja di room boleh, tapi hanya untuk suara terbanyak saat ini ([Discussions #42](https://github.com/HaikalFaruq/tikoem/discussions/42)) |
 | `room.bukaLagi({ pesertaId, kunci })` | mutation | Buka voting lagi. Vote yang sudah ada tetap disimpan |
 | `room.keluar({ pesertaId, kunci })` | mutation | Hapus nama, lokasi, dan pilihan orang itu dari room |
-| `room.lihat({ kode })` | query | Room (termasuk `tetap`: `{ kandidatId, olehPesertaId, pada }` atau `null`, dan `putaranHitung` yang naik setiap tombol Cari tempat ditekan), peserta, dan kandidat secara realtime, atau `{ ok: false, galat }` |
+| `room.lihat({ kode })` | query | Room (termasuk `tetap`: `{ kandidatId, olehPesertaId, pada }` atau `null`, `putaranHitung` yang naik setiap tombol Cari tempat ditekan, dan `pesertaTidakTerjangkau`), peserta, dan kandidat secara realtime, atau `{ ok: false, galat }` |
 | `lokasi.cari({ teks })` | action | Cari alamat lewat Nominatim |
 
-`pesertaId` dan `kunci` adalah identitas "ini aku" di sebuah room, disimpan di `localStorage` HP itu saja. Galat dikirim sebagai kode di `error.data.galat` (mutation dan action) atau `galat` (query). Daftarnya ada di tipe `Galat` di [`convex/room.ts`](../convex/room.ts), ditambah `galatHitung`: `TEMPAT_TIDAK_DITEMUKAN` atau `LAYANAN_GAGAL`. Selama tempat sudah ditetapkan, `vote`, `hitung`, dan menetapkan tempat lain ditolak dengan `ROOM_SUDAH_TETAP`. `tetapkan` untuk tempat yang sudah bukan suara terbanyak ditolak dengan `PILIHAN_BERUBAH`.
+`pesertaId` dan `kunci` adalah identitas "ini aku" di sebuah room, disimpan di `localStorage` HP itu saja. Galat dikirim sebagai kode di `error.data.galat` (mutation dan action) atau `galat` (query). Daftarnya ada di tipe `Galat` di [`convex/room.ts`](../convex/room.ts), ditambah `galatHitung`: `TEMPAT_TIDAK_DITEMUKAN`, `LAYANAN_GAGAL`, atau `LOKASI_TIDAK_TERJANGKAU`. Yang terakhir berarti lokasi satu orang terlalu jauh dari jalan, misalnya pin di laut, dan `room.pesertaTidakTerjangkau` berisi id orang itu, atau `null` kalau dia sudah keluar ([#53](https://github.com/HaikalFaruq/tikoem/issues/53)). Selama tempat sudah ditetapkan, `vote`, `hitung`, dan menetapkan tempat lain ditolak dengan `ROOM_SUDAH_TETAP`. `tetapkan` untuk tempat yang sudah bukan suara terbanyak ditolak dengan `PILIHAN_BERUBAH`.
 
 ## Gerbang mutu
 

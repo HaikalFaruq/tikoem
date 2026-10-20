@@ -2,7 +2,7 @@ import { test, type Browser, type Page } from '@playwright/test'
 import { ConvexHttpClient } from 'convex/browser'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { api } from '../convex/_generated/api'
-import { LOKASI_LAYANAN_GAGAL, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
+import { LOKASI_LAYANAN_GAGAL, LOKASI_TIDAK_TERJANGKAU, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
 
 /**
  * Bukan test biasa: memotret layar-layar penting supaya bisa dicek sebelum push (docs/desain/cek-ux.md).
@@ -189,6 +189,20 @@ test('room gagal', async ({ browser }) => {
   await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
   await tungguStatus(haikal.kode, 'gagal')
   await potret(browser, 'room-gagal', 'Pencarian gagal: layanan sedang bermasalah', {
+    url: `/r/${haikal.kode}`,
+    sebagai: { kode: haikal.kode, identitas: haikal },
+    tunggu: petaSiap,
+  })
+})
+
+test('room gagal karena lokasi di laut', async ({ browser }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const umar = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Umar', kendaraan: 'motor' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.226, lng: 106.858 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: LOKASI_TIDAK_TERJANGKAU })
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await tungguStatus(haikal.kode, 'gagal')
+  await potret(browser, 'room-lokasi-jauh', 'Pencarian gagal: lokasi Umar terlalu jauh dari jalan (#53)', {
     url: `/r/${haikal.kode}`,
     sebagai: { kode: haikal.kode, identitas: haikal },
     tunggu: petaSiap,
