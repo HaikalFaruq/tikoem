@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NominatimGagal, cariAlamat } from './nominatim'
+import { NominatimGagal, alamatDariTitik, cariAlamat } from './nominatim'
 
 const JAWABAN = [
   {
@@ -69,5 +69,50 @@ describe('cariAlamat', () => {
     const { ambil, panggilan } = tiruanFetch(() => 'gantung')
     await expect(cariAlamat('Tebet', { ambil, batasMs: 50 })).rejects.toThrow(NominatimGagal)
     expect(panggilan[0].init.signal?.aborted).toBe(true)
+  })
+})
+
+describe('alamatDariTitik', () => {
+  const GEDUNG = {
+    name: 'Plaza Marein',
+    category: 'building',
+    address: { road: 'Jalan Jenderal Sudirman', village: 'Setiabudi', city_district: 'Jakarta Selatan' },
+  }
+  const SUDIRMAN = { lat: -6.2088, lng: 106.8227 }
+
+  it('memanggil reverse di tingkat bangunan, dalam bahasa Indonesia, dan memperkenalkan diri', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => Response.json(GEDUNG))
+    expect(await alamatDariTitik(SUDIRMAN, { ambil })).toBe('Plaza Marein, Jl. Jenderal Sudirman, Setiabudi, Jakarta Selatan')
+
+    const { url, init } = panggilan[0]
+    expect(url.origin + url.pathname).toBe('https://nominatim.openstreetmap.org/reverse')
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      lat: '-6.2088',
+      lon: '106.8227',
+      format: 'jsonv2',
+      addressdetails: '1',
+      zoom: '18',
+      'accept-language': 'id',
+    })
+    expect((init.headers as Record<string, string>)['User-Agent']).toMatch(/^Tikoem\//)
+  })
+
+  it('mengambil endpoint reverse dari folder yang sama dengan alamat search di opsi', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => Response.json(GEDUNG))
+    await alamatDariTitik(SUDIRMAN, { ambil, url: 'http://127.0.0.1:4319/nominatim/search' })
+    expect(panggilan[0].url.origin + panggilan[0].url.pathname).toBe('http://127.0.0.1:4319/nominatim/reverse')
+  })
+
+  it('null untuk titik yang tidak dekat jalan, misalnya di laut', async () => {
+    const { ambil } = tiruanFetch(() => Response.json({ error: 'Unable to geocode' }))
+    expect(await alamatDariTitik({ lat: -6.05, lng: 106.85 }, { ambil })).toBeNull()
+  })
+
+  it('melempar NominatimGagal tanpa membawa koordinat di pesannya', async () => {
+    for (const jawab of [() => new Response('', { status: 503 }), () => new TypeError(`fetch failed: ${SUDIRMAN.lat},${SUDIRMAN.lng}`)]) {
+      const galat = await alamatDariTitik(SUDIRMAN, { ambil: tiruanFetch(jawab).ambil }).catch((e: unknown) => e)
+      expect(galat).toBeInstanceOf(NominatimGagal)
+      expect((galat as Error).message).not.toMatch(/6\.2088|106\.8227/)
+    }
   })
 })

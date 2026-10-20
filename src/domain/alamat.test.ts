@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bacaHasilNominatim, rapikanTeksCari } from './alamat'
+import { bacaAlamatTitik, bacaHasilNominatim, rapikanTeksCari } from './alamat'
 
 const kasablanka = (type: string, extra: Record<string, string>) => ({
   lat: '-6.2232551',
@@ -74,5 +74,60 @@ describe('bacaHasilNominatim', () => {
   it('melewati koordinat yang tidak masuk akal dan jawaban yang rusak', () => {
     expect(bacaHasilNominatim([{ ...tebetRaya('', 'Tebet Timur') }, { ...tebetRaya('95', 'Tebet Barat') }, null, 'teks'])).toEqual([])
     expect(bacaHasilNominatim({ error: 'Bad request' })).toEqual([])
+  })
+})
+
+/** Jawaban Nominatim reverse asli (zoom 18), dipangkas ke bagian yang dibaca. */
+const BALIK = {
+  restoTebet: {
+    name: 'Bebek Kaleyo',
+    category: 'amenity',
+    address: {
+      amenity: 'Bebek Kaleyo',
+      road: "Jalan K. Haji Abdul Syafi'ie",
+      city_block: 'RW 01',
+      village: 'Tebet Timur',
+      suburb: 'Tebet',
+      city_district: 'Jakarta Selatan',
+      city: 'Daerah Khusus Ibukota Jakarta',
+    },
+  },
+  gedungSudirman: {
+    name: 'Plaza Marein',
+    category: 'building',
+    address: {
+      building: 'Plaza Marein',
+      house_number: 'Kav 76-78',
+      road: 'Jalan Jenderal Sudirman',
+      village: 'Setiabudi',
+      city_district: 'Jakarta Selatan',
+      city: 'Daerah Khusus Ibukota Jakarta',
+    },
+  },
+  lautJakarta: {
+    name: 'Daerah Khusus Ibukota Jakarta',
+    category: 'boundary',
+    address: { city: 'Daerah Khusus Ibukota Jakarta', country: 'Indonesia' },
+  },
+}
+
+describe('bacaAlamatTitik', () => {
+  it('memakai nama tempat terdekat, jalan yang diringkas, kelurahan, dan kota', () => {
+    expect(bacaAlamatTitik(BALIK.restoTebet)).toBe("Bebek Kaleyo, Jl. K. Haji Abdul Syafi'ie, Tebet Timur, Jakarta Selatan")
+    expect(bacaAlamatTitik(BALIK.gedungSudirman)).toBe('Plaza Marein, Jl. Jenderal Sudirman, Setiabudi, Jakarta Selatan')
+  })
+
+  it('tidak mengulang nama jalan, dan tidak memakai nama batas wilayah sebagai nama tempat', () => {
+    const jalan = { name: 'Jalan Tebet Raya', category: 'highway', address: { road: 'Jalan Tebet Raya', village: 'Tebet Barat', city_district: 'Jakarta Selatan' } }
+    expect(bacaAlamatTitik(jalan)).toBe('Jl. Tebet Raya, Tebet Barat, Jakarta Selatan')
+    const batas = { name: 'Tebet Barat', category: 'boundary', address: { village: 'Tebet Barat', city_district: 'Jakarta Selatan' } }
+    expect(bacaAlamatTitik(batas)).toBe('Tebet Barat, Jakarta Selatan')
+  })
+
+  it('null kalau titiknya tidak dekat jalan atau kelurahan, misalnya di laut, atau jawabannya rusak', () => {
+    expect(bacaAlamatTitik(BALIK.lautJakarta)).toBeNull()
+    expect(bacaAlamatTitik({ error: 'Unable to geocode' })).toBeNull()
+    expect(bacaAlamatTitik(null)).toBeNull()
+    expect(bacaAlamatTitik('teks')).toBeNull()
   })
 })

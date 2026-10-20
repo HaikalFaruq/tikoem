@@ -1,4 +1,5 @@
-import { bacaHasilNominatim, rapikanTeksCari, type HasilCariAlamat } from '../src/domain/alamat'
+import { bacaAlamatTitik, bacaHasilNominatim, rapikanTeksCari, type HasilCariAlamat } from '../src/domain/alamat'
+import type { Titik } from '../src/domain/lokasi'
 import { PENGENAL } from './pengenal'
 
 const URL_CARI = 'https://nominatim.openstreetmap.org/search'
@@ -6,6 +7,7 @@ const URL_CARI = 'https://nominatim.openstreetmap.org/search'
 export type OpsiNominatim = {
   ambil?: typeof fetch
   batasMs?: number
+  /** Alamat endpoint search. Endpoint reverse diambil dari folder yang sama. */
   url?: string
   /** Dipanggil tepat sebelum permintaan dikirim, untuk menunggu giliran di antrean. */
   antre?: () => Promise<void>
@@ -39,7 +41,36 @@ export async function cariAlamat(
     // Lebih dari lima, karena potongan jalan yang labelnya kembar nanti disatukan.
     limit: '10',
   }).toString()
+  return bacaHasilNominatim(await ambilJson(url, ambil, batasMs))
+}
 
+/**
+ * Label alamat untuk titik yang dipilih di peta (#53), lewat Nominatim reverse. `null` kalau titiknya tidak dekat jalan
+ * atau tempat apa pun, misalnya di laut.
+ */
+export async function alamatDariTitik(
+  titik: Titik,
+  { ambil = fetch, batasMs = 8000, url: urlCari = URL_CARI, antre }: OpsiNominatim = {},
+): Promise<string | null> {
+  await antre?.()
+  const url = new URL('reverse', urlCari)
+  url.search = new URLSearchParams({
+    lat: String(titik.lat),
+    lon: String(titik.lng),
+    format: 'jsonv2',
+    addressdetails: '1',
+    // Tingkat bangunan, supaya nama tempat terdekat ikut terbaca.
+    zoom: '18',
+    'accept-language': 'id',
+  }).toString()
+  return bacaAlamatTitik(await ambilJson(url, ambil, batasMs))
+}
+
+/**
+ * GET ke Nominatim dengan batas waktu. Alamat permintaannya bisa memuat koordinat atau teks alamat, jadi pesan galatnya
+ * hanya membawa status HTTP atau jenis galatnya (AGENTS.md §8).
+ */
+async function ambilJson(url: URL, ambil: typeof fetch, batasMs: number): Promise<unknown> {
   const henti = new AbortController()
   const jam = setTimeout(() => henti.abort(), batasMs)
   try {
@@ -48,9 +79,9 @@ export async function cariAlamat(
       await jawaban.body?.cancel()
       throw new NominatimGagal(`Nominatim menjawab HTTP ${jawaban.status}`)
     }
-    return bacaHasilNominatim(await jawaban.json())
+    return await jawaban.json()
   } catch (galat) {
-    throw galat instanceof NominatimGagal ? galat : new NominatimGagal(`Nominatim gagal: ${String(galat)}`)
+    throw galat instanceof NominatimGagal ? galat : new NominatimGagal(`Nominatim gagal: ${galat instanceof Error ? galat.name : 'galat tidak dikenal'}`)
   } finally {
     clearTimeout(jam)
   }

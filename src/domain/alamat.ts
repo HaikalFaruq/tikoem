@@ -1,4 +1,5 @@
 import { titikValid, type Titik } from './lokasi'
+import { ringkasAlamat } from './tempat'
 
 export type HasilCariAlamat = { label: string; lokasi: Titik }
 
@@ -30,12 +31,33 @@ export function bacaHasilNominatim(jawaban: unknown): HasilCariAlamat[] {
   return hasil
 }
 
+/**
+ * Label untuk titik yang dipilih di peta (#53), dari jawaban Nominatim reverse (`format=jsonv2&addressdetails=1`).
+ * Isinya nama tempat terdekat, jalan, kelurahan, dan kota, misalnya "Plaza Marein, Jl. Jenderal Sudirman, Setiabudi,
+ * Jakarta Selatan". `null` kalau titiknya tidak dekat jalan atau kelurahan mana pun, misalnya di laut.
+ */
+export function bacaAlamatTitik(jawaban: unknown): string | null {
+  const item = objek(jawaban)
+  const alamat = objek(item?.address)
+  const jalan = teks(alamat?.road)
+  const kelurahan = teks(alamat?.village) ?? teks(alamat?.suburb)
+  if (!item || (!jalan && !kelurahan)) return null
+  // Batas wilayah (misalnya nama provinsi untuk titik di pinggir laut) bukan nama tempat, dan nama jalan tidak perlu diulang.
+  const nama = item.category === 'boundary' || teks(item.name) === jalan ? undefined : teks(item.name)
+  return gabungUnik([nama, jalan && (ringkasAlamat(jalan) ?? jalan), kelurahan, kotaDari(alamat)])
+}
+
 function labelAlamat(item: Record<string, unknown>): string | null {
   // Di Indonesia, Nominatim memakai `village` untuk kelurahan, `suburb` untuk kecamatan, dan `city_district` untuk kota.
   const alamat = objek(item.address)
   const nama = teks(item.name) ?? teks(item.display_name)?.split(',')[0].trim()
-  const kota = teks(alamat?.city_district) ?? teks(alamat?.county) ?? teks(alamat?.city)
-  const bagian = [nama, teks(alamat?.village), teks(alamat?.suburb), kota]
+  return gabungUnik([nama, teks(alamat?.village), teks(alamat?.suburb), kotaDari(alamat)])
+}
+
+const kotaDari = (alamat: Record<string, unknown> | null) => teks(alamat?.city_district) ?? teks(alamat?.county) ?? teks(alamat?.city)
+
+/** Bagian yang terisi, tanpa yang kembar, dipisah koma. `null` kalau tidak ada yang terisi. */
+function gabungUnik(bagian: readonly (string | undefined)[]): string | null {
   const unik = bagian.filter((b, i): b is string => !!b && bagian.indexOf(b) === i)
   return unik.length ? unik.join(', ') : null
 }
