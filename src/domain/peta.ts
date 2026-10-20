@@ -1,4 +1,5 @@
 import { JARI_JARI_BUMI_METER, type Titik } from './lokasi'
+import { titikTengah } from './titikTengah'
 
 /** Pasangan [bujur, lintang], urutan yang dipakai GeoJSON dan MapLibre. */
 export type Koordinat = [number, number]
@@ -58,4 +59,12 @@ export function batasPeta(titik: readonly Titik[]): [Koordinat, Koordinat] | nul
     [Math.min(...lng), Math.min(...lat)],
     [Math.max(...lng), Math.max(...lat)],
   ]
+}
+
+/**
+ * Titik awal peta "pilih di peta" (#53): lokasiku yang sudah masuk, kalau belum ada titik tengah lokasi teman,
+ * kalau belum ada juga `null` (peta mulai dari Jakarta).
+ */
+export function titikAwalPilih(lokasiSaya: Titik | null, lokasiTeman: readonly Titik[]): Titik | null {
+  return lokasiSaya ?? titikTengah(lokasiTeman)?.titik ?? null
 }

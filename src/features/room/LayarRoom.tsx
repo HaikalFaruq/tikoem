@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
+import { titikAwalPilih } from '../../domain/peta'
 import { MAKS_PESERTA } from '../../domain/room'
 import { warnaPin } from '../../domain/warnaPin'
 import { sisaWaktu } from '../../lib/waktu'
@@ -98,6 +99,8 @@ export function LayarRoom({ kode, keBeranda }: Props) {
   const { room } = hasil
   const daftar = hasil.peserta
   const saya = daftar.find((p) => p.id === identitas?.pesertaId) ?? null
+  const lokasiJauh =
+    saya !== null && room.status === 'gagal' && room.galatHitung === 'LOKASI_TIDAK_TERJANGKAU' && room.pesertaTidakTerjangkau === saya.id
   const lupakanIdentitas = () => {
     hapusIdentitas(room.kode)
     setIdentitas(null)
@@ -132,6 +135,13 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             identitas={identitas}
             sudahAda={saya.lokasi !== null}
             pin={warnaPin(saya.urutanGabung)}
+            awalPeta={titikAwalPilih(
+              // Lokasi yang terlalu jauh dari jalan (misalnya di laut) bukan titik awal yang berguna.
+              lokasiJauh ? null : saya.lokasi,
+              daftar.flatMap((p) => (p.lokasi && p.id !== saya.id ? [p.lokasi] : [])),
+            )}
+            tidakTerjangkau={lokasiJauh}
+            putaranHitung={room.putaranHitung}
             onIdentitasHilang={lupakanIdentitas}
           />
           {/* Peta dulu, lalu tombol Cari tempat di bawahnya (diselingi kartu traktir): orang melihat titik tengahnya, lalu tahu langkah berikutnya. */}

@@ -1,22 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { Map as PetaMapLibre, Marker, NavigationControl, setWorkerUrl, type GeoJSONSource } from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
-// Vite mem-bundle worker MapLibre beserta modul bersamanya jadi satu file. Tanpa ini worker-nya hilang setelah build.
-import urlWorker from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
+import { Map as PetaMapLibre, Marker, NavigationControl, type GeoJSONSource } from 'maplibre-gl'
 import { batasPeta, lingkaranGeo, sebarPinBerdekatan } from '../../domain/peta'
 import type { Titik } from '../../domain/lokasi'
 import { namaPendek } from '../../lib/teks'
 import { Bintang, Pin, type AksesoriPin, type WarnaPin } from '../../ui'
+import { GAYA_PETA, JAKARTA } from './maplibre'
 
-setWorkerUrl(urlWorker)
-
-/** Peta dasar OpenFreeMap: gratis, tanpa API key. Positron tenang supaya pin stiker yang menonjol. */
-const GAYA_PETA = {
-  terang: 'https://tiles.openfreemap.org/styles/positron',
-  gelap: 'https://tiles.openfreemap.org/styles/dark',
-}
-const JAKARTA: [number, number] = [106.8456, -6.2088]
 /** Sama dengan presisi penyamaran di src/domain/lokasi.ts. */
 const RADIUS_SAMAR_METER = 110
 

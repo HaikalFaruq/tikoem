@@ -8,3 +8,11 @@ export function sisaWaktu(sisaMs: number): string {
   if (sisaMs < JAM) return `${Math.floor(sisaMs / MENIT)} menit lagi`
   return `${Math.floor(sisaMs / JAM)} jam lagi`
 }
+
+/**
+ * Berapa lama menunggu sebelum permintaan berikutnya: paling sedikit `tundaMs` sejak pemicu terakhir, dan paling sedikit
+ * `jarakMinMs` sejak permintaan sebelumnya. Dipakai untuk Nominatim yang hanya boleh satu permintaan per detik.
+ */
+export function jedaPermintaan(sekarang: number, terakhir: number | null, jarakMinMs: number, tundaMs: number): number {
+  return Math.max(tundaMs, terakhir === null ? 0 : terakhir + jarakMinMs - sekarang)
+}
