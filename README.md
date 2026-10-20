@@ -77,3 +77,5 @@ Perintah lain, env, batas layanan luar, kontrak data, E2E, dan deploy ada di [`d
 </table>
 
 Alur kerjanya ada di [`AGENTS.md`](AGENTS.md). Pertanyaan dan ide dibahas di [Discussions](https://github.com/HaikalFaruq/tikoem/discussions).
+
+Kode Tikoem berlisensi [MIT](LICENSE).
