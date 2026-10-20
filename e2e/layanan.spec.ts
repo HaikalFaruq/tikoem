@@ -78,3 +78,15 @@ test('cari alamat lewat Nominatim tiruan, termasuk LAYANAN_GAGAL', async () => {
   expect(galat).toBeInstanceOf(ConvexError)
   expect((galat as ConvexError<{ galat: string }>).data.galat).toBe('LAYANAN_GAGAL')
 })
+
+test('alamat dari titik lewat Nominatim tiruan, termasuk titik di laut dan LAYANAN_GAGAL', async () => {
+  const convex = new ConvexHttpClient(URL_BACKEND)
+  expect(await convex.action(api.lokasi.alamat, { lokasi: { lat: -6.226, lng: 106.858 } })).toEqual({
+    label: 'Tempat Tiruan, Jl. Tiruan Raya, Tebet Timur, Jakarta Selatan',
+  })
+  expect(await convex.action(api.lokasi.alamat, { lokasi: LOKASI_TIDAK_TERJANGKAU })).toBeNull()
+
+  const galat = await convex.action(api.lokasi.alamat, { lokasi: LOKASI_LAYANAN_GAGAL }).catch((e: unknown) => e)
+  expect(galat).toBeInstanceOf(ConvexError)
+  expect((galat as ConvexError<{ galat: string }>).data.galat).toBe('LAYANAN_GAGAL')
+})

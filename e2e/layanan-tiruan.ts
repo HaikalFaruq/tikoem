@@ -82,6 +82,17 @@ function nominatim(q: string) {
   ]
 }
 
+/**
+ * Alamat dari titik (reverse). Di utara lintang 60 (`LOKASI_LAYANAN_GAGAL`) layanan menjawab 503, dan di Teluk Jakarta
+ * (`LOKASI_TIDAK_TERJANGKAU`) tidak ada alamat, seperti Nominatim asli untuk titik di laut.
+ */
+function nominatimBalik(lat: number, lng: number): { status: number; isi: unknown } {
+  if (lat > 60) return { status: 503, isi: { error: 'layanan tiruan sengaja gagal' } }
+  if (diLaut([lng, lat])) return { status: 200, isi: { error: 'Unable to geocode' } }
+  const address = { road: 'Jalan Tiruan Raya', village: 'Tebet Timur', suburb: 'Tebet', city_district: 'Jakarta Selatan' }
+  return { status: 200, isi: { name: 'Tempat Tiruan', category: 'amenity', address } }
+}
+
 createServer(async (permintaan, jawaban) => {
   const url = new URL(permintaan.url ?? '/', `http://127.0.0.1:${port}`)
   try {
@@ -98,6 +109,11 @@ createServer(async (permintaan, jawaban) => {
     if (permintaan.method === 'GET' && url.pathname === '/nominatim/search') {
       const hasil = nominatim(url.searchParams.get('q') ?? '')
       return hasil ? kirim(jawaban, 200, hasil) : kirim(jawaban, 503, { error: 'layanan tiruan sengaja gagal' })
+    }
+
+    if (permintaan.method === 'GET' && url.pathname === '/nominatim/reverse') {
+      const { status, isi } = nominatimBalik(Number(url.searchParams.get('lat')), Number(url.searchParams.get('lon')))
+      return kirim(jawaban, status, isi)
     }
 
     kirim(jawaban, 404, { error: 'tidak ada di layanan tiruan' })

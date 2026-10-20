@@ -63,6 +63,36 @@ describe('lokasi.cari', () => {
   })
 })
 
+describe('lokasi.alamat', () => {
+  const SUDIRMAN = { lat: -6.2088, lng: 106.8227 }
+
+  it('mengembalikan label untuk titik di peta', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        Response.json({ name: 'Plaza Marein', category: 'building', address: { road: 'Jalan Jenderal Sudirman', village: 'Setiabudi', city_district: 'Jakarta Selatan' } }),
+      ),
+    )
+    const t = siapkan()
+    expect(await t.action(api.lokasi.alamat, { lokasi: SUDIRMAN })).toEqual({ label: 'Plaza Marein, Jl. Jenderal Sudirman, Setiabudi, Jakarta Selatan' })
+  })
+
+  it('null kalau titiknya tidak dekat jalan, misalnya di laut', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ error: 'Unable to geocode' })))
+    const t = siapkan()
+    expect(await t.action(api.lokasi.alamat, { lokasi: { lat: -6.05, lng: 106.85 } })).toBeNull()
+  })
+
+  it('LAYANAN_GAGAL kalau Nominatim gagal, dan LOKASI_TIDAK_VALID tanpa memanggil Nominatim', async () => {
+    const ambil = vi.fn<typeof fetch>(async () => new Response('', { status: 503 }))
+    vi.stubGlobal('fetch', ambil)
+    const t = siapkan()
+    expect(await galatDari(t.action(api.lokasi.alamat, { lokasi: SUDIRMAN }))).toBe('LAYANAN_GAGAL')
+    expect(await galatDari(t.action(api.lokasi.alamat, { lokasi: { lat: 95, lng: 0 } }))).toBe('LOKASI_TIDAK_VALID')
+    expect(ambil).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('antrean Nominatim OSMF', () => {
   beforeEach(() => {
     // Jam palsu supaya jeda antrean bisa dimajukan tanpa menunggu sungguhan.
@@ -96,6 +126,18 @@ describe('antrean Nominatim OSMF', () => {
     expect(galat.filter((g) => g === null)).toHaveLength(4)
     expect(galat.filter((g) => g === 'LAYANAN_GAGAL')).toHaveLength(1)
     expect(ambil).toHaveBeenCalledTimes(4)
+  })
+
+  it('alamat dari titik memakai antrean yang sama dengan pencarian alamat', async () => {
+    const ambil = nominatimKosong()
+    const t = siapkan()
+    await t.action(api.lokasi.cari, { teks: 'Tebet' })
+    const alamat = t.action(api.lokasi.alamat, { lokasi: { lat: -6.2088, lng: 106.8227 } })
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(ambil).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(200)
+    await alamat
+    expect(ambil).toHaveBeenCalledTimes(2)
   })
 
   it('server lain yang diisi lewat NOMINATIM_URL tidak memakai antrean', async () => {
