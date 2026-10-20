@@ -72,9 +72,9 @@ export const simpan = internalMutation({
 })
 
 export const gagal = internalMutation({
-  args: { roomId: v.id('room'), putaran: v.number(), galat: vGalatHitung },
-  handler: async (ctx, { roomId, putaran, galat }) => {
-    await tandaiGagal(ctx, roomId, putaran, galat)
+  args: { roomId: v.id('room'), putaran: v.number(), galat: vGalatHitung, pesertaTidakTerjangkau: v.optional(v.id('peserta')) },
+  handler: async (ctx, { roomId, putaran, galat, pesertaTidakTerjangkau }) => {
+    await tandaiGagal(ctx, roomId, putaran, galat, pesertaTidakTerjangkau)
   },
 })
 
@@ -86,10 +86,16 @@ export const batasWaktu = internalMutation({
   },
 })
 
-async function tandaiGagal(ctx: MutationCtx, roomId: Id<'room'>, putaran: number, galat: GalatHitung) {
+async function tandaiGagal(
+  ctx: MutationCtx,
+  roomId: Id<'room'>,
+  putaran: number,
+  galat: GalatHitung,
+  pesertaTidakTerjangkau?: Id<'peserta'>,
+) {
   const room = await ctx.db.get('room', roomId)
   if (room?.status === 'menghitung' && room.putaranHitung === putaran) {
-    await ctx.db.patch('room', roomId, { status: 'gagal', galatHitung: galat })
+    await ctx.db.patch('room', roomId, { status: 'gagal', galatHitung: galat, pesertaTidakTerjangkau })
   }
 }
 
@@ -106,7 +112,7 @@ export const jalankan = internalAction({
         // Batas per menit hanya untuk ORS asli. Server lain yang diisi lewat ORS_URL, termasuk tiruan E2E, tidak antre.
         antreOrs: env.ORS_URL ? undefined : () => giliranOrs(ctx),
       })
-      if ('galat' in hasil) await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: hasil.galat })
+      if ('galat' in hasil) await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, ...hasil })
       else await ctx.runMutation(internal.hitung.simpan, { roomId, putaran, versiLokasi: data.versiLokasi, ...hasil })
     } catch (galat) {
       // Pesan galat Overpass dan ORS sengaja tidak memuat koordinat, jadi aman ditulis ke log (AGENTS.md §8).
@@ -130,12 +136,25 @@ export type OpsiHitung = {
   /** Dipanggil sebelum tiap permintaan ORS. */
   antreOrs?: () => Promise<void>
 }
-export type HasilHitung = { titikTengah: Titik; kandidat: Infer<typeof vKandidat>[] } | { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
+export type HasilHitung =
+  | { titikTengah: Titik; kandidat: Infer<typeof vKandidat>[] }
+  | { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
+  | { galat: 'LOKASI_TIDAK_TERJANGKAU'; pesertaTidakTerjangkau: Id<'peserta'> }
 
 /** Tempat yang terlalu jauh dari jalan, sehingga ORS menolak seluruh matriks. */
 class TempatTakTerjangkau extends Error {
   constructor(readonly indeksTempat: number) {
     super('Tempat tidak terjangkau rute')
+  }
+}
+
+/**
+ * Lokasi peserta yang terlalu jauh dari jalan, misalnya pin yang jatuh di laut. Tidak ada tempat yang bisa dihitung
+ * untuk orang ini, jadi hitung berhenti dan orangnya diminta menggeser lokasi (#53).
+ */
+class PesertaTakTerjangkau extends Error {
+  constructor(readonly pesertaId: Id<'peserta'>) {
+    super('Lokasi peserta tidak terjangkau rute')
   }
 }
 
@@ -173,6 +192,7 @@ export async function hitungHasil(
       const kandidat = peringkatKandidat(terjangkau)
       return kandidat.length > 0 ? { titikTengah: tengah.titik, kandidat } : { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
     } catch (galat) {
+      if (galat instanceof PesertaTakTerjangkau) return { galat: 'LOKASI_TIDAK_TERJANGKAU', pesertaTidakTerjangkau: galat.pesertaId }
       if (!(galat instanceof TempatTakTerjangkau)) throw galat
       tempat = tempat.filter((_, j) => j !== galat.indeksTempat)
     }
@@ -201,6 +221,7 @@ async function menitTiapPeserta(
       const indeks = galat instanceof OrsGagal && galat.kode === KODE_TITIK_TIDAK_TERJANGKAU ? galat.indeksTitik : undefined
       // Di `locations`, peserta ada di depan dan tempat di belakang.
       if (indeks !== undefined && indeks >= anggota.length) throw new TempatTakTerjangkau(indeks - anggota.length)
+      if (indeks !== undefined) throw new PesertaTakTerjangkau(peserta[anggota[indeks]].id)
       throw galat
     }
     anggota.forEach((i, baris) => {

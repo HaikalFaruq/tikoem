@@ -56,11 +56,20 @@ function overpass(kueri: string): { status: number; isi: unknown } {
   return { status: 200, isi }
 }
 
-/** Durasi dari jarak garis lurus dibagi kecepatan profilnya. */
+/** Teluk Jakarta, tempat `LOKASI_TIDAK_TERJANGKAU` di e2e/backend.ts. Tidak ada jalan di sana. */
+const diLaut = ([lng, lat]: number[]) => lat > -6.09 && lat < -6 && lng > 106.7 && lng < 107
+
+/**
+ * Durasi dari jarak garis lurus dibagi kecepatan profilnya. Seperti ORS 9 asli, asal yang jauh dari jalan jadi `null`
+ * di `sources`, dan seluruh barisnya `null`.
+ */
 function matriks(profil: string, isi: { locations: number[][]; sources: number[]; destinations: number[] }) {
   const kecepatan = KECEPATAN[profil] ?? 8
   return {
-    durations: isi.sources.map((i) => isi.destinations.map((j) => Math.round(jarakMeter(isi.locations[i], isi.locations[j]) / kecepatan))),
+    durations: isi.sources.map((i) =>
+      isi.destinations.map((j) => (diLaut(isi.locations[i]) ? null : Math.round(jarakMeter(isi.locations[i], isi.locations[j]) / kecepatan))),
+    ),
+    sources: isi.sources.map((i) => (diLaut(isi.locations[i]) ? null : { location: isi.locations[i] })),
   }
 }
 

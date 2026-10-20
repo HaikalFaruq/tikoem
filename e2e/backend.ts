@@ -18,3 +18,9 @@ export const PAKAI_LAYANAN_TIRUAN = Boolean(process.env.CI || process.env.E2E_LA
  */
 export const LOKASI_TANPA_TEMPAT = { lat: -70, lng: 0 }
 export const LOKASI_LAYANAN_GAGAL = { lat: 70, lng: 0 }
+
+/**
+ * Titik di Teluk Jakarta, jauh dari jalan. Taruh satu peserta di sini dan yang lain di darat: ORS tiruan menjawab seperti
+ * ORS 9 asli (titiknya `null` di `sources`), jadi hitung berakhir dengan LOKASI_TIDAK_TERJANGKAU untuk orang itu.
+ */
+export const LOKASI_TIDAK_TERJANGKAU = { lat: -6.05, lng: 106.85 }

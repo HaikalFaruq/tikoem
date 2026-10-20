@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { barisWaktuTempuh, keadaanCariTempat, labelKategori, linkMaps, linkRute, teksHasil } from './hasil'
+import { barisWaktuTempuh, keadaanCariTempat, labelKategori, linkMaps, linkRute, pesanLokasiTidakTerjangkau, teksHasil } from './hasil'
 
 const room = (status: 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal', tambahan = {}) => ({
   status,
@@ -27,6 +27,27 @@ describe('keadaanCariTempat', () => {
   it('tidak menawarkan hitung ulang atau coba lagi kalau lokasinya tinggal kurang dari 2', () => {
     expect(keadaanCariTempat(room('siap', { hasilUsang: true }), 1, 2)).toMatchObject({ bisaHitungUlang: false })
     expect(keadaanCariTempat(room('gagal'), 1, 2)).toMatchObject({ bisaDicobaLagi: false })
+  })
+})
+
+describe('pesanLokasiTidakTerjangkau', () => {
+  const peserta = [
+    { id: 'h', nama: 'Haikal' },
+    { id: 'u', nama: 'Umar' },
+  ]
+
+  it('menyebut nama orang yang perlu memperbarui lokasinya', () => {
+    const pesan = pesanLokasiTidakTerjangkau('u', peserta, 'h')
+    expect(pesan).toMatch(/^Lokasi Umar terlalu jauh dari jalan/)
+    expect(pesan).toContain('Minta Umar memperbarui lokasinya')
+  })
+
+  it('memakai "Lokasimu" untuk orang itu sendiri', () => {
+    expect(pesanLokasiTidakTerjangkau('u', peserta, 'u')).toMatch(/^Lokasimu terlalu jauh dari jalan.*Perbarui lokasimu/)
+  })
+
+  it('pesan umum kalau orangnya sudah keluar room', () => {
+    for (const id of [null, 'b']) expect(pesanLokasiTidakTerjangkau(id, peserta, 'h')).toMatch(/^Ada lokasi yang terlalu jauh dari jalan/)
   })
 })
 

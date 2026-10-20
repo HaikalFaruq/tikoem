@@ -1,7 +1,7 @@
 import type { Titik } from './lokasi'
 
 type StatusRoom = 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal'
-export type GalatHitung = 'TEMPAT_TIDAK_DITEMUKAN' | 'LAYANAN_GAGAL'
+export type GalatHitung = 'TEMPAT_TIDAK_DITEMUKAN' | 'LAYANAN_GAGAL' | 'LOKASI_TIDAK_TERJANGKAU'
 export type KategoriTempat = 'kafe' | 'resto' | 'mall' | 'stasiun'
 
 /** Sama dengan syarat `room.hitung` di backend (Discussions #8). */
@@ -45,6 +45,19 @@ export function barisWaktuTempuh<Id, P extends { id: Id; urutanGabung: number }>
       return p ? [{ peserta: p, menit }] : []
     })
     .toSorted((a, b) => a.peserta.urutanGabung - b.peserta.urutanGabung)
+}
+
+/**
+ * Pesan galat LOKASI_TIDAK_TERJANGKAU (#53): siapa yang perlu memperbarui lokasinya ke titik yang dekat jalan.
+ * Kalau orangnya sudah keluar room, pesannya umum, karena mencari lagi tanpa dia bisa berhasil.
+ */
+export function pesanLokasiTidakTerjangkau<Id>(idTakTerjangkau: Id | null, peserta: readonly { id: Id; nama: string }[], idSaya: Id) {
+  const orang = peserta.find((p) => p.id === idTakTerjangkau)
+  if (!orang) return 'Ada lokasi yang terlalu jauh dari jalan, jadi waktu tempuhnya belum bisa dihitung. Coba lagi.'
+  if (orang.id === idSaya) {
+    return 'Lokasimu terlalu jauh dari jalan, jadi waktu tempuhnya tidak bisa dihitung. Perbarui lokasimu ke titik yang dekat jalan, lalu coba lagi.'
+  }
+  return `Lokasi ${orang.nama} terlalu jauh dari jalan, jadi waktu tempuhnya tidak bisa dihitung. Minta ${orang.nama} memperbarui lokasinya ke titik yang dekat jalan, lalu coba lagi.`
 }
 
 const LABEL_KATEGORI: Record<KategoriTempat, string> = { kafe: 'Kafe', resto: 'Resto', mall: 'Mal', stasiun: 'Stasiun' }

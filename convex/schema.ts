@@ -7,7 +7,11 @@ export const vStatusRoom = v.union(
   v.literal('siap'),
   v.literal('gagal'),
 )
-export const vGalatHitung = v.union(v.literal('TEMPAT_TIDAK_DITEMUKAN'), v.literal('LAYANAN_GAGAL'))
+export const vGalatHitung = v.union(
+  v.literal('TEMPAT_TIDAK_DITEMUKAN'),
+  v.literal('LAYANAN_GAGAL'),
+  v.literal('LOKASI_TIDAK_TERJANGKAU'),
+)
 export const vKendaraan = v.union(v.literal('motor'), v.literal('mobil'), v.literal('jalan_kaki'))
 export const vTitik = v.object({ lat: v.number(), lng: v.number() })
 /** Sama dengan `KategoriTempat` di src/domain/tempat.ts. Stasiun belum dicari (Discussions #8). */
@@ -42,6 +46,8 @@ export default defineSchema({
     titikTengah: v.optional(vTitik),
     /** Terisi saat status `gagal`. */
     galatHitung: v.optional(vGalatHitung),
+    /** Terisi bersama galat LOKASI_TIDAK_TERJANGKAU: orang yang lokasinya terlalu jauh dari jalan (#53). */
+    pesertaTidakTerjangkau: v.optional(v.id('peserta')),
     /** Waktu hasil terakhir keluar. */
     hasilPada: v.optional(v.number()),
     /** Naik setiap tombol "Cari tempat" ditekan. Hasil dari putaran yang sudah lewat diabaikan. */

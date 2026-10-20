@@ -107,6 +107,32 @@ describe('hitungHasil', () => {
     expect(await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil })).toEqual({ galat: 'TEMPAT_TIDAK_DITEMUKAN' })
   })
 
+  it('LOKASI_TIDAK_TERJANGKAU dengan orangnya kalau ORS tidak menemukan jalan di dekat lokasi peserta', async () => {
+    // Motor dan mobil satu permintaan (dua sumber). ORS 9 menjawab 200 dengan Bintang null di `sources`.
+    const { ambil } = tiruanFetch({
+      ors: (jumlahSumber) =>
+        jumlahSumber === 2 ? Response.json({ durations: [Array(6).fill(600), Array(6).fill(null)], sources: [{}, null] }) : undefined,
+    })
+    expect(await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil })).toEqual({
+      galat: 'LOKASI_TIDAK_TERJANGKAU',
+      pesertaTidakTerjangkau: 'bintang',
+    })
+  })
+
+  it('LOKASI_TIDAK_TERJANGKAU juga kalau ORS menolak lokasi peserta dengan kode 6010', async () => {
+    // Jalan kaki punya permintaan sendiri dengan satu sumber, jadi titik ke-0 di sana adalah Umar.
+    const { ambil } = tiruanFetch({
+      ors: (jumlahSumber) =>
+        jumlahSumber === 1
+          ? Response.json({ error: { code: 6010, message: 'Could not find routable point ... coordinate 0: 1 2.' } }, { status: 404 })
+          : undefined,
+    })
+    expect(await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil })).toEqual({
+      galat: 'LOKASI_TIDAK_TERJANGKAU',
+      pesertaTidakTerjangkau: 'umar',
+    })
+  })
+
   it('menunggu antrean sebelum tiap permintaan ORS, dan berhenti tanpa memanggil ORS kalau antrean penuh', async () => {
     const { ambil, panggilanOrs } = tiruanFetch()
     // Mencatat berapa permintaan ORS yang sudah terkirim saat antrean dipanggil.
@@ -146,6 +172,10 @@ async function roomTigaOrang() {
   const roomId = await t.run(async (ctx) => (await ctx.db.query('room').first())!._id)
   return { t, kode: haikal.kode, roomId, haikal, umar }
 }
+
+/** ORS 9 tidak menemukan jalan di dekat lokasi Umar, yang punya permintaan jalan kaki sendiri. */
+const umarDiLaut = () =>
+  tiruanFetch({ ors: (jumlahSumber) => (jumlahSumber === 1 ? Response.json({ durations: [Array(6).fill(null)], sources: [null] }) : undefined) })
 
 async function lihat(t: ReturnType<typeof convexTest>, kode: string) {
   const hasil = await t.query(api.room.lihat, { kode })
@@ -287,7 +317,31 @@ describe('alur hitung di Convex', () => {
     const { t, kode, roomId, haikal } = await roomTigaOrang()
     await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
     await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
-    expect((await lihat(t, kode)).room).toMatchObject({ status: 'gagal', galatHitung: 'TEMPAT_TIDAK_DITEMUKAN' })
+    expect((await lihat(t, kode)).room).toMatchObject({ status: 'gagal', galatHitung: 'TEMPAT_TIDAK_DITEMUKAN', pesertaTidakTerjangkau: null })
+  })
+
+  it('LOKASI_TIDAK_TERJANGKAU menyebut orangnya, lalu dikosongkan saat dicari lagi', async () => {
+    vi.stubGlobal('fetch', umarDiLaut().ambil)
+    const { t, kode, roomId, haikal, umar } = await roomTigaOrang()
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+    expect((await lihat(t, kode)).room).toMatchObject({
+      status: 'gagal',
+      galatHitung: 'LOKASI_TIDAK_TERJANGKAU',
+      pesertaTidakTerjangkau: umar.pesertaId,
+    })
+
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    expect((await lihat(t, kode)).room).toMatchObject({ status: 'menghitung', galatHitung: null, pesertaTidakTerjangkau: null })
+  })
+
+  it('pesertaTidakTerjangkau jadi null kalau orangnya sudah keluar room', async () => {
+    vi.stubGlobal('fetch', umarDiLaut().ambil)
+    const { t, kode, roomId, haikal, umar } = await roomTigaOrang()
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+    await t.mutation(api.room.keluar, { pesertaId: umar.pesertaId, kunci: umar.kunci })
+    expect((await lihat(t, kode)).room).toMatchObject({ galatHitung: 'LOKASI_TIDAK_TERJANGKAU', pesertaTidakTerjangkau: null })
   })
 
   it('batas waktu menggagalkan hitung yang tergantung, dan hasil dari putaran lama diabaikan', async () => {

@@ -178,7 +178,12 @@ export const hitung = mutation({
 
     // Kandidat lama tetap ditampilkan sampai hasil baru menggantikannya.
     const putaran = (room.putaranHitung ?? 0) + 1
-    await ctx.db.patch('room', room._id, { status: 'menghitung', galatHitung: undefined, putaranHitung: putaran })
+    await ctx.db.patch('room', room._id, {
+      status: 'menghitung',
+      galatHitung: undefined,
+      pesertaTidakTerjangkau: undefined,
+      putaranHitung: putaran,
+    })
     await ctx.scheduler.runAfter(0, internal.hitung.jalankan, { roomId: room._id, putaran })
     await ctx.scheduler.runAfter(BATAS_HITUNG_MS, internal.hitung.batasWaktu, { roomId: room._id, putaran })
   },
@@ -283,6 +288,8 @@ export const lihat = query({
         kedaluwarsaPada: room.kedaluwarsaPada,
         titikTengah: room.titikTengah ?? null,
         galatHitung: room.galatHitung ?? null,
+        /** Orang yang lokasinya perlu digeser ke dekat jalan saat galat LOKASI_TIDAK_TERJANGKAU, selama masih di room (#53). */
+        pesertaTidakTerjangkau: peserta.find((p) => p._id === room.pesertaTidakTerjangkau)?._id ?? null,
         hasilPada: room.hasilPada ?? null,
         hasilUsang: room.hasilPada !== undefined && (room.versiLokasi ?? 0) !== (room.versiHasil ?? 0),
         /** Naik setiap tombol "Cari tempat" ditekan. Layar memakainya untuk tahu ada pencarian baru walau status `menghitung` terlewat. */
