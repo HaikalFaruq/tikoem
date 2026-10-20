@@ -46,7 +46,10 @@ export default defineSchema({
     titikTengah: v.optional(vTitik),
     /** Terisi saat status `gagal`. */
     galatHitung: v.optional(vGalatHitung),
-    /** Terisi bersama galat LOKASI_TIDAK_TERJANGKAU: orang yang lokasinya terlalu jauh dari jalan (#53). */
+    /**
+     * Terisi bersama galat LOKASI_TIDAK_TERJANGKAU: orang yang lokasinya terlalu jauh dari jalan (#53). Dikosongkan saat orang itu
+     * mengirim lokasi baru, atau saat Cari tempat ditekan lagi.
+     */
     pesertaTidakTerjangkau: v.optional(v.id('peserta')),
     /** Waktu hasil terakhir keluar. */
     hasilPada: v.optional(v.number()),

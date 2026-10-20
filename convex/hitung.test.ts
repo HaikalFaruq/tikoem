@@ -344,6 +344,20 @@ describe('alur hitung di Convex', () => {
     expect((await lihat(t, kode)).room).toMatchObject({ galatHitung: 'LOKASI_TIDAK_TERJANGKAU', pesertaTidakTerjangkau: null })
   })
 
+  it('pesertaTidakTerjangkau dikosongkan saat orang itu mengirim lokasi baru, tidak saat orang lain', async () => {
+    vi.stubGlobal('fetch', umarDiLaut().ambil)
+    const { t, kode, roomId, haikal, umar } = await roomTigaOrang()
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+
+    await t.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: TEBET })
+    expect((await lihat(t, kode)).room).toMatchObject({ pesertaTidakTerjangkau: umar.pesertaId })
+
+    await t.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: TEBET })
+    // Galatnya tetap sampai dicari lagi, tapi Umar tidak lagi disebut.
+    expect((await lihat(t, kode)).room).toMatchObject({ status: 'gagal', galatHitung: 'LOKASI_TIDAK_TERJANGKAU', pesertaTidakTerjangkau: null })
+  })
+
   it('batas waktu menggagalkan hitung yang tergantung, dan hasil dari putaran lama diabaikan', async () => {
     vi.stubGlobal('fetch', tiruanFetch().ambil)
     const { t, kode, roomId, haikal } = await roomTigaOrang()

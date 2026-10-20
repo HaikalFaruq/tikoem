@@ -60,8 +60,8 @@ describe('pesanLokasiTidakTerjangkau', () => {
     expect(pesanLokasiTidakTerjangkau('u', peserta, 'u')).toMatch(/^Lokasimu terlalu jauh dari jalan.*Perbarui lokasimu/)
   })
 
-  it('pesan umum kalau orangnya sudah keluar room', () => {
-    for (const id of [null, 'b']) expect(pesanLokasiTidakTerjangkau(id, peserta, 'h')).toMatch(/^Ada lokasi yang terlalu jauh dari jalan/)
+  it('mengajak mencari lagi kalau orangnya sudah memperbarui lokasinya atau keluar room', () => {
+    for (const id of [null, 'b']) expect(pesanLokasiTidakTerjangkau(id, peserta, 'h')).toMatch(/^Lokasi yang tadi terlalu jauh dari jalan sudah berubah/)
   })
 })
 
