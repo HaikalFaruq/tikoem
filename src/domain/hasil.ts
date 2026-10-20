@@ -52,11 +52,11 @@ export function barisWaktuTempuh<Id, P extends { id: Id; urutanGabung: number }>
 
 /**
  * Pesan galat LOKASI_TIDAK_TERJANGKAU (#53): siapa yang perlu memperbarui lokasinya ke titik yang dekat jalan.
- * Kalau orangnya sudah keluar room, pesannya umum, karena mencari lagi tanpa dia bisa berhasil.
+ * Kalau orangnya sudah memperbarui lokasinya atau keluar room, backend tidak lagi menyebutnya, jadi tinggal mencari lagi.
  */
 export function pesanLokasiTidakTerjangkau<Id>(idTakTerjangkau: Id | null, peserta: readonly { id: Id; nama: string }[], idSaya: Id) {
   const orang = peserta.find((p) => p.id === idTakTerjangkau)
-  if (!orang) return 'Ada lokasi yang terlalu jauh dari jalan, jadi waktu tempuhnya belum bisa dihitung. Coba lagi.'
+  if (!orang) return 'Lokasi yang tadi terlalu jauh dari jalan sudah berubah. Tekan Coba lagi untuk mencari tempat.'
   if (orang.id === idSaya) {
     return 'Lokasimu terlalu jauh dari jalan, jadi waktu tempuhnya tidak bisa dihitung. Perbarui lokasimu ke titik yang dekat jalan, lalu coba lagi.'
   }

@@ -105,4 +105,9 @@ test('lokasi yang terlalu jauh dari jalan diberi tahu di kartu lokasi orang itu,
   await page.getByRole('button', { name: /^Kota Kasablanka, Menteng Dalam/ }).click()
   await expect(page.getByRole('heading', { name: 'Lokasimu sudah masuk' })).toBeVisible(REALTIME)
   await expect(page.getByRole('button', { name: 'Coba lagi' })).toBeEnabled()
+
+  // Backend tidak lagi menyebut Umar, jadi peringatannya tidak muncul lagi setelah halaman dimuat ulang.
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Lokasimu sudah masuk' })).toBeVisible(REALTIME)
+  await expect(page.getByText('Lokasi yang tadi terlalu jauh dari jalan sudah berubah')).toBeVisible()
 })

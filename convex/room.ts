@@ -155,8 +155,12 @@ export const kirimLokasi = mutation({
     const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
     if (!titikValid(lokasi)) throw gagal('LOKASI_TIDAK_VALID')
     await ctx.db.patch('peserta', pesertaId, { lokasi: samarkan(lokasi) })
-    // Hasil yang sudah keluar jadi usang kalau ada lokasi yang berubah (Discussions #8).
-    await ctx.db.patch('room', room._id, { versiLokasi: (room.versiLokasi ?? 0) + 1 })
+    await ctx.db.patch('room', room._id, {
+      // Hasil yang sudah keluar jadi usang kalau ada lokasi yang berubah (Discussions #8).
+      versiLokasi: (room.versiLokasi ?? 0) + 1,
+      // Orang yang lokasinya terlalu jauh dari jalan sudah memperbaruinya, jadi tidak disebut lagi, juga setelah halaman dimuat ulang (#53).
+      ...(room.pesertaTidakTerjangkau === pesertaId ? { pesertaTidakTerjangkau: undefined } : {}),
+    })
   },
 })
 
@@ -288,7 +292,10 @@ export const lihat = query({
         kedaluwarsaPada: room.kedaluwarsaPada,
         titikTengah: room.titikTengah ?? null,
         galatHitung: room.galatHitung ?? null,
-        /** Orang yang lokasinya perlu digeser ke dekat jalan saat galat LOKASI_TIDAK_TERJANGKAU, selama masih di room (#53). */
+        /**
+         * Orang yang lokasinya perlu digeser ke dekat jalan saat galat LOKASI_TIDAK_TERJANGKAU (#53). `null` lagi setelah orang itu
+         * memperbarui lokasinya atau keluar room.
+         */
         pesertaTidakTerjangkau: peserta.find((p) => p._id === room.pesertaTidakTerjangkau)?._id ?? null,
         hasilPada: room.hasilPada ?? null,
         hasilUsang: room.hasilPada !== undefined && (room.versiLokasi ?? 0) !== (room.versiHasil ?? 0),
