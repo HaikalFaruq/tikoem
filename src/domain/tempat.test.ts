@@ -24,6 +24,67 @@ const JAWABAN = {
   ],
 }
 
+/**
+ * Potongan jawaban Overpass asli di sekitar Tebet dan Pancoran (2026-10-21): stasiun KRL, halte TransJakarta yang dipecah
+ * per arah, dan halte yang namanya diambil dari stasiun. Sisanya harus dilewati: stasiun LRT dan MRT, pool bus tanpa
+ * `network`, area stasiun tanpa tag `railway`, dan stasiun Whoosh buatan.
+ */
+const JAWABAN_STASIUN = {
+  elements: [
+    {
+      type: 'node',
+      id: 3056674105,
+      lat: -6.2263977,
+      lon: 106.8584389,
+      tags: { name: 'Tebet', network: 'KAI Commuter', public_transport: 'station', railway: 'station', train: 'yes' },
+    },
+    {
+      type: 'node',
+      id: 3415431318,
+      lat: -6.2416725,
+      lon: 106.8372822,
+      tags: { amenity: 'bus_station', bus: 'yes', name: 'Pancoran Arah Barat', network: 'Transjakarta', public_transport: 'platform' },
+    },
+    {
+      type: 'node',
+      id: 6249633581,
+      lat: -6.2415527,
+      lon: 106.8380523,
+      tags: { amenity: 'bus_station', bus: 'yes', name: 'Pancoran Arah Timur', network: 'Transjakarta', public_transport: 'platform' },
+    },
+    {
+      type: 'node',
+      id: 11744682976,
+      lat: -6.2154315,
+      lon: 106.8693599,
+      tags: { amenity: 'bus_station', bus: 'yes', name: 'Stasiun Jatinegara', network: 'Transjakarta', public_transport: 'platform' },
+    },
+    {
+      type: 'node',
+      id: 6720467132,
+      lat: -6.2421415,
+      lon: 106.8385146,
+      tags: { light_rail: 'yes', name: 'Pancoran', network: 'LRT Jabodebek', public_transport: 'station', railway: 'station', station: 'light_rail' },
+    },
+    {
+      type: 'node',
+      id: 6196107720,
+      lat: -6.2007957,
+      lon: 106.822788,
+      tags: { name: 'Dukuh Atas BNI', network: 'MRT Jakarta', public_transport: 'station', railway: 'station', station: 'subway', subway: 'yes' },
+    },
+    {
+      type: 'node',
+      id: 11662373378,
+      lat: -6.2577848,
+      lon: 106.8691837,
+      tags: { amenity: 'bus_station', bus: 'yes', name: 'Pool Primajasa Cililitan', public_transport: 'station' },
+    },
+    { type: 'way', id: 481951535, center: { lat: -6.214898, lon: 106.8702862 }, tags: { name: 'Stasiun Jatinegara', public_transport: 'station' } },
+    { type: 'node', id: 9, lat: -6.2466, lon: 106.8869, tags: { name: 'Halim', network: 'Whoosh', railway: 'station' } },
+  ],
+}
+
 /** Tempat buatan di timur Tebet, sejauh `jarak` meter. */
 const tempatBuatan = (osmId: string, nama: string, kategori: Tempat['kategori'], jarak: number): Tempat => ({
   osmId,
@@ -52,6 +113,15 @@ describe('kueriOverpass', () => {
       expect(kueri).toContain(`nwr${filter}["name"]${kotak};`)
     }
     expect(kueri).toMatch(/out center tags;$/)
+    expect(kueri).not.toMatch(/railway|bus_station/)
+  })
+
+  it('ikut mencari stasiun KRL dan halte TransJakarta kalau diminta', () => {
+    const kueri = kueriOverpass(TEBET, 1500, { stasiun: true })
+    const kotak = '(-6.23949,106.84443,-6.21251,106.87157)'
+    expect(kueri).toContain(`nwr["amenity"="cafe"]["name"]${kotak};`)
+    expect(kueri).toContain(`nwr["railway"~"^(station|halt)$"]["network"~"^KAI",i]["name"]${kotak};`)
+    expect(kueri).toContain(`nwr["amenity"="bus_station"]["network"~"^Transjakarta",i]["name"]${kotak};`)
   })
 })
 
@@ -92,6 +162,26 @@ describe('bacaTempat', () => {
     expect(tempat.find((t) => t.osmId === 'relation/8')?.kategori).toBe('mall')
   })
 
+  it('stasiun KRL dan halte TransJakarta jadi kategori stasiun, dengan nama yang menyebut jenisnya', () => {
+    expect(bacaTempat(JAWABAN_STASIUN, TEBET).map((t) => [t.osmId, t.nama, t.kategori])).toEqual([
+      ['node/3056674105', 'Stasiun Tebet', 'stasiun'],
+      ['node/3415431318', 'Halte Pancoran', 'stasiun'],
+      ['node/6249633581', 'Halte Pancoran', 'stasiun'],
+      ['node/11744682976', 'Halte Stasiun Jatinegara', 'stasiun'],
+    ])
+  })
+
+  it('nama yang sudah diawali jenisnya tidak diberi awalan lagi, dan huruf besar di network tidak berpengaruh', () => {
+    const jawaban = {
+      elements: [
+        { type: 'node', id: 1, lat: -6.21, lon: 106.85, tags: { railway: 'station', network: 'KAI Commuter', name: 'Stasiun Manggarai' } },
+        { type: 'node', id: 2, lat: -6.23, lon: 106.83, tags: { amenity: 'bus_station', network: 'TransJakarta', name: 'Halte Kuningan Arah Utara' } },
+        { type: 'node', id: 3, lat: -6.2, lon: 106.87, tags: { amenity: 'bus_station', network: 'Transjakarta', name: 'Flyover Jatinegara Arah Barat dan Timur' } },
+      ],
+    }
+    expect(bacaTempat(jawaban, TEBET).map((t) => t.nama)).toEqual(['Stasiun Manggarai', 'Halte Kuningan', 'Halte Flyover Jatinegara'])
+  })
+
   it('jawaban yang rusak atau kosong menghasilkan daftar kosong', () => {
     for (const rusak of [null, 'teks', {}, { elements: 'bukan daftar' }, { remark: 'runtime error' }]) {
       expect(bacaTempat(rusak, TEBET)).toEqual([])
@@ -129,6 +219,23 @@ describe('pilihKandidat', () => {
     ]
     const hasil = pilihKandidat(banyak, { total: 5, perKategori: 2 })
     expect(hasil.map((t) => t.osmId)).toEqual(['kafe0', 'kafe1', 'resto0', 'resto1', 'mall0'])
+  })
+
+  it('halte yang dipecah per arah cukup jadi satu kandidat, yaitu peron yang terdekat', () => {
+    const hasil = pilihKandidat(bacaTempat(JAWABAN_STASIUN, TEBET))
+    expect(hasil.map((t) => [t.nama, t.osmId])).toEqual([
+      ['Stasiun Tebet', 'node/3056674105'],
+      ['Halte Stasiun Jatinegara', 'node/11744682976'],
+      ['Halte Pancoran', 'node/6249633581'],
+    ])
+  })
+
+  it('paling banyak empat stasiun yang ikut dihitung, supaya kafe dan resto tetap kebagian tempat', () => {
+    const hasil = pilihKandidat([
+      ...Array.from({ length: 6 }, (_, i) => tempatBuatan(`stasiun${i}`, `Stasiun ${i}`, 'stasiun', 50 + i)),
+      ...Array.from({ length: 5 }, (_, i) => tempatBuatan(`kafe${i}`, `Kafe ${i}`, 'kafe', 300 + i)),
+    ])
+    expect(hasil.map((t) => t.osmId)).toEqual(['stasiun0', 'stasiun1', 'stasiun2', 'stasiun3', 'kafe0', 'kafe1', 'kafe2', 'kafe3', 'kafe4'])
   })
 
   it('urutan tetap sama walaupun jaraknya seri', () => {

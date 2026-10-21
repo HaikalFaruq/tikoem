@@ -198,6 +198,7 @@ export async function hitungHasil(
     ambil,
     batasMs: 15_000,
     server: urlOverpass ? [urlOverpass] : undefined,
+    stasiun: naikUmum.length > 0,
   })
   if (tempat.length === 0) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
 
