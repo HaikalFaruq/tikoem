@@ -25,17 +25,24 @@ export function nilaiKeadilan(menit: readonly number[]): DinilaiKeadilan {
   return { terlamaMenit: terlama, selisihMenit: terlama - Math.min(...menit) }
 }
 
-type BisaDinilai = { osmId: string; jarakDariTengahMeter: number; waktuTempuh: readonly { menit: number }[] }
+/**
+ * Stasiun dan halte paling banyak dua dari lima kandidat akhir, supaya kafe dan resto tetap jadi pilihan utama. Keduanya
+ * hanya dicari kalau ada yang naik transportasi umum (Discussions #63).
+ */
+export const MAKS_STASIUN = 2
+
+type BisaDinilai = { osmId: string; kategori: string; jarakDariTengahMeter: number; waktuTempuh: readonly { menit: number }[] }
 
 /**
  * Kandidat paling adil lebih dulu (Discussions #8):
  * waktu tempuh terlama paling pendek, lalu selisih paling kecil, lalu paling dekat ke titik tengah.
+ * Stasiun yang melebihi `MAKS_STASIUN` dilewati, dan tempatnya diisi kandidat berikutnya.
  */
 export function peringkatKandidat<T extends BisaDinilai>(
   kandidat: readonly T[],
   jumlah = JUMLAH_KANDIDAT_AKHIR,
 ): (T & DinilaiKeadilan & { peringkat: number })[] {
-  return kandidat
+  const urut = kandidat
     .map((k) => ({ ...k, ...nilaiKeadilan(k.waktuTempuh.map((w) => w.menit)) }))
     .toSorted(
       (a, b) =>
@@ -44,6 +51,12 @@ export function peringkatKandidat<T extends BisaDinilai>(
         a.jarakDariTengahMeter - b.jarakDariTengahMeter ||
         a.osmId.localeCompare(b.osmId),
     )
-    .slice(0, jumlah)
-    .map((k, i) => ({ ...k, peringkat: i + 1 }))
+  const terpilih: typeof urut = []
+  for (const k of urut) {
+    if (terpilih.length >= jumlah) break
+    const jumlahStasiun = terpilih.filter((t) => t.kategori === 'stasiun').length
+    if (k.kategori === 'stasiun' && jumlahStasiun >= MAKS_STASIUN) continue
+    terpilih.push(k)
+  }
+  return terpilih.map((k, i) => ({ ...k, peringkat: i + 1 }))
 }

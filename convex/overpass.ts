@@ -1,3 +1,4 @@
+import { MAKS_STASIUN } from '../src/domain/keadilan'
 import type { Titik } from '../src/domain/lokasi'
 import { bacaTempat, kueriOverpass, pilihKandidat, radiusPencarianMeter, type Tempat } from '../src/domain/tempat'
 import { PENGENAL } from './pengenal'
@@ -15,8 +16,14 @@ const KETIGA = 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
  */
 const PERCOBAAN = [UTAMA, CADANGAN, KETIGA]
 
-/** Kalau tempat yang ditemukan kurang dari ini, radius pencarian diperluas sekali. */
+/** Kalau tempat yang bisa masuk lima besar kurang dari ini, radius pencarian diperluas sekali. */
 const MIN_TEMPAT = 5
+
+/** Tempat yang bisa masuk lima besar. Stasiun yang melebihi `MAKS_STASIUN` tidak akan pernah tampil. */
+function jumlahBisaTampil(tempat: readonly Tempat[]) {
+  const stasiun = tempat.filter((t) => t.kategori === 'stasiun').length
+  return tempat.length - stasiun + Math.min(stasiun, MAKS_STASIUN)
+}
 
 export type OpsiOverpass = {
   ambil?: typeof fetch
@@ -26,6 +33,8 @@ export type OpsiOverpass = {
   jedaCadanganMs?: number
   /** Batas waktu satu pencarian, untuk semua server sekaligus. */
   batasMs?: number
+  /** Ikut mencari stasiun KRL dan halte TransJakarta, saat ada yang naik transportasi umum (Discussions #63). */
+  stasiun?: boolean
 }
 
 export class OverpassGagal extends Error {
@@ -38,11 +47,13 @@ export class OverpassGagal extends Error {
  * Dipanggil dari action alur hitung, karena `fetch` hanya boleh dipakai di action.
  */
 export async function cariTempatSekitar(tengah: Titik, radiusTemanMeter: number, opsi: OpsiOverpass = {}): Promise<Tempat[]> {
+  const cari = async (radiusMeter: number) =>
+    pilihKandidat(bacaTempat(await mintaOverpass(kueriOverpass(tengah, radiusMeter, { stasiun: opsi.stasiun }), opsi), tengah))
   const radius = radiusPencarianMeter(radiusTemanMeter)
-  const dekat = pilihKandidat(bacaTempat(await mintaOverpass(kueriOverpass(tengah, radius), opsi), tengah))
-  if (dekat.length >= MIN_TEMPAT) return dekat
+  const dekat = await cari(radius)
+  if (jumlahBisaTampil(dekat) >= MIN_TEMPAT) return dekat
   // Daerah yang jarang tempatnya diperluas sekali saja, supaya tetap muat di batas waktu hitung.
-  return pilihKandidat(bacaTempat(await mintaOverpass(kueriOverpass(tengah, radius * 2.5), opsi), tengah))
+  return cari(radius * 2.5)
 }
 
 type Percobaan = { henti: AbortController; selesai: boolean; janji: Promise<unknown> }

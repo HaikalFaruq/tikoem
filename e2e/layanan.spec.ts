@@ -96,6 +96,30 @@ test('alur hitung dengan transportasi umum lewat Transitous tiruan (Discussions 
   expect(hasil.kandidat.every((k) => k.waktuTempuh.some((w) => w.pesertaId === bintang.pesertaId && w.menit > 0))).toBe(true)
 })
 
+test('stasiun dan halte ikut jadi kandidat kalau ada yang naik transportasi umum, paling banyak dua dari lima', async () => {
+  const convex = new ConvexHttpClient(URL_BACKEND)
+  // Dua orang naik transportasi umum dari arah berlawanan, jadi yang paling adil ada di sekitar titik tengah.
+  const barat = await convex.mutation(api.room.buat, { nama: 'Barat', kendaraan: 'transportasi_umum' })
+  const timur = await convex.mutation(api.room.gabung, { kode: barat.kode, nama: 'Timur', kendaraan: 'transportasi_umum' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: barat.pesertaId, kunci: barat.kunci, lokasi: { lat: -6.226, lng: 106.838 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: timur.pesertaId, kunci: timur.kunci, lokasi: { lat: -6.226, lng: 106.878 } })
+
+  await convex.mutation(api.room.hitung, { pesertaId: barat.pesertaId, kunci: barat.kunci })
+  const status = async () => {
+    const hasil = await convex.query(api.room.lihat, { kode: barat.kode })
+    return hasil.ok ? `${hasil.room.status} ${hasil.room.galatHitung}` : hasil.galat
+  }
+  await expect.poll(status, { timeout: 30_000 }).toBe('siap null')
+
+  const hasil = await convex.query(api.room.lihat, { kode: barat.kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  expect(hasil.kandidat).toHaveLength(5)
+  // Layanan tiruan menaruh dua stasiun dan satu halte paling dekat ke titik tengah. Yang masuk lima besar cuma dua.
+  const stasiun = hasil.kandidat.filter((k) => k.kategori === 'stasiun')
+  expect(stasiun).toHaveLength(2)
+  expect(stasiun.every((k) => ['Stasiun Tiruan', 'Stasiun Tiruan Baru', 'Halte Tiruan'].includes(k.nama))).toBe(true)
+})
+
 test('TRANSPORTASI_UMUM_TIDAK_TERJANGKAU menyebut orangnya, lalu dia ganti kendaraan tanpa keluar room', async () => {
   const convex = new ConvexHttpClient(URL_BACKEND)
   const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })

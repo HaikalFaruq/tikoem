@@ -16,7 +16,10 @@ export const vGalatHitung = v.union(
 /** Transportasi umum (TransJakarta dan KRL) dihitung lewat Transitous, yang lain lewat ORS (Discussions #63). */
 export const vKendaraan = v.union(v.literal('motor'), v.literal('mobil'), v.literal('jalan_kaki'), v.literal('transportasi_umum'))
 export const vTitik = v.object({ lat: v.number(), lng: v.number() })
-/** Sama dengan `KategoriTempat` di src/domain/tempat.ts. Stasiun belum dicari (Discussions #8). */
+/**
+ * Sama dengan `KategoriTempat` di src/domain/tempat.ts. `stasiun` mencakup stasiun KRL dan halte TransJakarta, dan hanya
+ * dicari kalau ada yang naik transportasi umum (Discussions #63).
+ */
 export const vKategoriTempat = v.union(v.literal('kafe'), v.literal('resto'), v.literal('mall'), v.literal('stasiun'))
 /** Layanan luar yang meminta app mundur dulu setelah menjawab 429 (convex/batasLaju.ts). */
 export const vLayananBerjeda = v.literal('transitous')

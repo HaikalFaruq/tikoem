@@ -36,6 +36,15 @@ const kafe = (jumlah: number) => ({
     tags: { amenity: i % 2 ? 'cafe' : 'restaurant', name: `Tempat ${i + 1}` },
   })),
 })
+/** Halte TransJakarta buatan di selatan Tebet, masing-masing dengan nama sendiri. */
+const halte = (jumlah: number) =>
+  Array.from({ length: jumlah }, (_, i) => ({
+    type: 'node',
+    id: 100 + i,
+    lat: TEBET.lat - (i + 1) * 0.0005,
+    lon: TEBET.lng,
+    tags: { amenity: 'bus_station', network: 'Transjakarta', name: `Uji ${i + 1}` },
+  }))
 const json = (isi: unknown, status = 200) => new Response(JSON.stringify(isi), { status })
 
 describe('cariTempatSekitar', () => {
@@ -113,6 +122,28 @@ describe('cariTempatSekitar', () => {
 
     expect(tempat).toHaveLength(7)
     expect(panggilan.map((p) => p.kueri)).toEqual([kueriOverpass(TEBET, 1000), kueriOverpass(TEBET, 2500)])
+  })
+
+  it('ikut mencari stasiun dan halte kalau diminta', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => json(kafe(6)))
+    await cariTempatSekitar(TEBET, 2000, { ambil, stasiun: true })
+    expect(panggilan[0].kueri).toBe(kueriOverpass(TEBET, 1000, { stasiun: true }))
+  })
+
+  it('stasiun lebih dari dua tidak dihitung saat menentukan radius perlu diperluas', async () => {
+    // Dua tempat makan dan empat halte: yang bisa masuk lima besar cuma empat, karena stasiun paling banyak dua.
+    const sempit = kueriOverpass(TEBET, 1000, { stasiun: true })
+    const { ambil, panggilan } = tiruanFetch((_, kueri) => json(kueri === sempit ? { elements: [...kafe(2).elements, ...halte(4)] } : kafe(7)))
+    const tempat = await cariTempatSekitar(TEBET, 2000, { ambil, jedaCadanganMs: 10_000, stasiun: true })
+
+    expect(panggilan.map((p) => p.kueri)).toEqual([sempit, kueriOverpass(TEBET, 2500, { stasiun: true })])
+    expect(tempat).toHaveLength(7)
+  })
+
+  it('tiga tempat makan dan dua halte sudah cukup untuk lima besar, jadi radius tidak diperluas', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => json({ elements: [...kafe(3).elements, ...halte(2)] }))
+    expect(await cariTempatSekitar(TEBET, 2000, { ambil, stasiun: true })).toHaveLength(5)
+    expect(panggilan).toHaveLength(1)
   })
 
   it('mengembalikan daftar kosong kalau memang tidak ada tempat, supaya alur hitung bisa memberi TEMPAT_TIDAK_DITEMUKAN', async () => {

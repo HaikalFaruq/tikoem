@@ -31,6 +31,9 @@ function kirim(jawaban: ServerResponse, status: number, isi: unknown) {
  * (lihat `LOKASI_TANPA_TEMPAT` dan `LOKASI_LAYANAN_GAGAL` di e2e/backend.ts):
  * - di selatan lintang -60: tidak ada tempat
  * - di utara lintang 60: layanan menjawab 503
+ *
+ * Kalau kuerinya ikut mencari stasiun, yaitu saat ada yang naik transportasi umum, ada juga dua stasiun KRL dan satu
+ * halte TransJakarta yang dipecah per arah. Semuanya sekitar 11 m dari pusat kotak.
  */
 function overpass(kueri: string): { status: number; isi: unknown } {
   const kotak = /\((-?[\d.]+),(-?[\d.]+),(-?[\d.]+),(-?[\d.]+)\)/.exec(kueri)
@@ -40,20 +43,26 @@ function overpass(kueri: string): { status: number; isi: unknown } {
   const lng = (barat + timur) / 2
   if (lat < -60) return { status: 200, isi: { elements: [] } }
   if (lat > 60) return { status: 503, isi: { error: 'layanan tiruan sengaja gagal' } }
-  const isi = {
-    elements: Array.from({ length: 6 }, (_, i) => ({
-      type: 'node',
-      id: i + 1,
-      lat: lat + (i - 2.5) * 0.001,
-      lon: lng + (i % 2) * 0.001,
-      tags: {
-        amenity: i % 2 ? 'cafe' : 'restaurant',
-        name: `Tempat Tiruan ${i + 1}`,
-        ...(i === 0 ? { 'addr:street': 'Jalan Tiruan Raya' } : {}),
-      },
-    })),
-  }
-  return { status: 200, isi }
+  const tempat = Array.from({ length: 6 }, (_, i) => ({
+    type: 'node',
+    id: i + 1,
+    lat: lat + (i - 2.5) * 0.001,
+    lon: lng + (i % 2) * 0.001,
+    tags: {
+      amenity: i % 2 ? 'cafe' : 'restaurant',
+      name: `Tempat Tiruan ${i + 1}`,
+      ...(i === 0 ? { 'addr:street': 'Jalan Tiruan Raya' } : {}),
+    },
+  }))
+  const stasiun = kueri.includes('"railway"')
+    ? [
+        { type: 'node', id: 101, lat: lat + 0.0001, lon: lng, tags: { railway: 'station', network: 'KAI Commuter', name: 'Tiruan' } },
+        { type: 'node', id: 102, lat: lat - 0.0001, lon: lng, tags: { railway: 'station', network: 'KAI Commuter', name: 'Tiruan Baru' } },
+        { type: 'node', id: 103, lat, lon: lng + 0.0001, tags: { amenity: 'bus_station', network: 'Transjakarta', name: 'Tiruan Arah Barat' } },
+        { type: 'node', id: 104, lat, lon: lng - 0.0001, tags: { amenity: 'bus_station', network: 'Transjakarta', name: 'Tiruan Arah Timur' } },
+      ]
+    : []
+  return { status: 200, isi: { elements: [...tempat, ...stasiun] } }
 }
 
 /** Teluk Jakarta, tempat `LOKASI_TIDAK_TERJANGKAU` di e2e/backend.ts. Tidak ada jalan di sana. */

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { PROFIL_RUTE, menitDariDetik, nilaiKeadilan, peringkatKandidat } from './keadilan'
 
-const kandidat = (osmId: string, menit: number[], jarakDariTengahMeter = 100) => ({
+const kandidat = (osmId: string, menit: number[], jarakDariTengahMeter = 100, kategori = 'kafe') => ({
   osmId,
+  kategori,
   jarakDariTengahMeter,
   waktuTempuh: menit.map((m, i) => ({ pesertaId: `p${i}`, menit: m })),
 })
@@ -53,5 +54,24 @@ describe('peringkatKandidat', () => {
     const hasil = peringkatKandidat(banyak)
     expect(hasil.map((k) => k.osmId)).toEqual(['k0', 'k1', 'k2', 'k3', 'k4'])
     expect(hasil.map((k) => k.peringkat)).toEqual([1, 2, 3, 4, 5])
+  })
+
+  it('stasiun dan halte paling banyak dua dari lima, sisanya diisi tempat berikutnya (Discussions #63)', () => {
+    const hasil = peringkatKandidat([
+      kandidat('stasiun1', [10, 10], 100, 'stasiun'),
+      kandidat('stasiun2', [11, 11], 100, 'stasiun'),
+      kandidat('stasiun3', [12, 12], 100, 'stasiun'),
+      kandidat('kafe1', [13, 13]),
+      kandidat('resto1', [14, 14], 100, 'resto'),
+      kandidat('kafe2', [15, 15]),
+      kandidat('kafe3', [16, 16]),
+    ])
+    expect(hasil.map((k) => [k.peringkat, k.osmId])).toEqual([
+      [1, 'stasiun1'],
+      [2, 'stasiun2'],
+      [3, 'kafe1'],
+      [4, 'resto1'],
+      [5, 'kafe2'],
+    ])
   })
 })

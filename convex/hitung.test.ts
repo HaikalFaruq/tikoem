@@ -11,6 +11,7 @@ import { hitungHasil, type PesertaDihitung } from './hitung'
 import { OrsGagal } from './ors'
 import schema from './schema'
 import { TransitousGagal } from './transitous'
+import { titikTengah } from '../src/domain/titikTengah'
 
 // Pola `!(*.*.*)` dari dokumentasi convex-test tidak didukung glob Vite 8, jadi pakai daftar pola dengan pengecualian.
 const modules = import.meta.glob(['./**/*.ts', './**/*.js', '!./**/*.test.ts', '!./**/*.d.ts'])
@@ -43,6 +44,8 @@ type Skenario = {
 function tiruanFetch({ tempat = TEMPAT, detik = (i, j) => 600 + i * 300 + j * 60, ors, umum = (_, j) => 1500 + j * 60, transitous }: Skenario = {}) {
   const panggilanOrs: { profil: string; tujuan: number }[] = []
   const panggilanUmum: { url: string; asal: string; tujuan: number; time: string | null }[] = []
+  /** Kueri Overpass QL yang dikirim. */
+  const panggilanOverpass: string[] = []
   const ambil = vi.fn<typeof fetch>(async (url, init = {}) => {
     const alamat = String(url)
     if (alamat.includes('one-to-many-intermodal')) {
@@ -67,9 +70,10 @@ function tiruanFetch({ tempat = TEMPAT, detik = (i, j) => 600 + i * 300 + j * 60
       if (khusus) return khusus
       return Response.json({ durations: isi.sources.map((i) => isi.destinations.map((_, j) => detik(i, j, profil))) })
     }
+    panggilanOverpass.push(new URLSearchParams(String(init.body)).get('data') ?? '')
     return Response.json({ elements: tempat })
   })
-  return { ambil, panggilanOrs, panggilanUmum }
+  return { ambil, panggilanOrs, panggilanUmum, panggilanOverpass }
 }
 
 const peserta = (id: string, kendaraan: PesertaDihitung['kendaraan'], lokasi: { lat: number; lng: number }): PesertaDihitung => ({
@@ -285,6 +289,41 @@ describe('hitungHasil dengan transportasi umum (Discussions #63)', () => {
       hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil: penuh.ambil, urlTransitous: URL_TRANSITOUS, antreTransitous: antreanPenuh }),
     ).rejects.toThrow('Antrean Transitous penuh')
     expect(penuh.panggilanUmum).toEqual([])
+  })
+
+  it('stasiun dan halte hanya dicari kalau ada yang naik transportasi umum', async () => {
+    const tanpa = tiruanFetch()
+    await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil: tanpa.ambil })
+    expect(tanpa.panggilanOverpass).toHaveLength(1)
+    expect(tanpa.panggilanOverpass[0]).not.toMatch(/railway|bus_station/)
+
+    const dengan = tiruanFetch({ umum: umumDariAsal })
+    await hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil: dengan.ambil, urlTransitous: URL_TRANSITOUS })
+    expect(dengan.panggilanOverpass[0]).toContain('nwr["railway"~"^(station|halt)$"]["network"~"^KAI",i]')
+    expect(dengan.panggilanOverpass[0]).toContain('nwr["amenity"="bus_station"]["network"~"^Transjakarta",i]')
+  })
+
+  it('stasiun di dekat titik tengah ikut jadi kandidat, tapi paling banyak dua dari lima', async () => {
+    const tengah = titikTengah(ORANG_CAMPUR.map((p) => p.lokasi))!.titik
+    const stasiun = ['Manggarai', 'Tebet', 'Cawang'].map((nama, i) => ({
+      type: 'node',
+      id: 100 + i,
+      lat: tengah.lat + (i + 1) * 0.0001,
+      lon: tengah.lng,
+      tags: { railway: 'station', network: 'KAI Commuter', name: nama },
+    }))
+    const { ambil } = tiruanFetch({ tempat: [...TEMPAT, ...stasiun], umum: umumDariAsal })
+    const hasil = await hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS })
+    if ('galat' in hasil) throw new Error(hasil.galat)
+
+    // Ketiga stasiun paling dekat ke titik tengah, jadi paling cepat dan paling adil. Stasiun Cawang digeser tempat makan.
+    expect(hasil.kandidat.map((k) => [k.nama, k.kategori])).toEqual([
+      ['Stasiun Manggarai', 'stasiun'],
+      ['Stasiun Tebet', 'stasiun'],
+      ['Tempat 1', 'resto'],
+      ['Tempat 2', 'kafe'],
+      ['Tempat 3', 'resto'],
+    ])
   })
 
   it('room yang semuanya naik transportasi umum tidak memanggil ORS dan tidak butuh key-nya', async () => {
