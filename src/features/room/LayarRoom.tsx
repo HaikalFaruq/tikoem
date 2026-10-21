@@ -135,6 +135,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
           <BagikanLokasi
             identitas={identitas}
             sudahAda={saya.lokasi !== null}
+            kendaraan={saya.kendaraan}
             pin={warnaPin(saya.urutanGabung)}
             awalPeta={titikAwalPilih(
               // Lokasi yang terlalu jauh dari jalan (misalnya di laut) bukan titik awal yang berguna.

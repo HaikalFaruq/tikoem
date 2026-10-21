@@ -170,7 +170,7 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
       {keadaan.jenis === 'siap' && keadaan.usang && (
         <KartuStiker className="flex flex-col gap-3 p-4">
           <p className="text-sm">
-            <b>Ada lokasi yang berubah</b> setelah tempat ini dicari. Hitung ulang supaya semua orang ikut dihitung. Pilihan yang
+            <b>Ada lokasi atau kendaraan yang berubah</b> setelah tempat ini dicari. Hitung ulang supaya semua orang ikut dihitung. Pilihan yang
             sudah masuk akan diulang.
           </p>
           <Tombol varian="biasa" onClick={cari} disabled={!keadaan.bisaHitungUlang || sibuk} className="self-start">

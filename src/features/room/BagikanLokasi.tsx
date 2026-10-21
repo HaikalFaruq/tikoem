@@ -2,16 +2,19 @@ import { useState } from 'react'
 import { useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
+import type { Kendaraan } from '../../domain/kendaraan'
 import type { Titik } from '../../domain/lokasi'
 import { pesanGalatGeolokasi } from '../../lib/geolokasi'
 import { KartuStiker, Pin, Tombol, type AksesoriPin, type WarnaPin } from '../../ui'
 import { PilihDiPeta } from '../peta/PilihDiPeta'
 import { CariAlamat } from './CariAlamat'
+import { GantiKendaraan } from './GantiKendaraan'
 import type { IdentitasRoom } from './identitas'
 
 type Props = {
   identitas: IdentitasRoom
   sudahAda: boolean
+  kendaraan: Kendaraan
   pin: { warna: WarnaPin; aksesori: AksesoriPin }
   /** Titik awal peta "pilih di peta" (`titikAwalPilih`). */
   awalPeta: Titik | null
@@ -45,7 +48,7 @@ function ambilPosisi(): Promise<Posisi> {
   })
 }
 
-export function BagikanLokasi({ identitas, sudahAda, pin, awalPeta, tidakTerjangkau: lokasiJauh, onIdentitasHilang }: Props) {
+export function BagikanLokasi({ identitas, sudahAda, kendaraan, pin, awalPeta, tidakTerjangkau: lokasiJauh, onIdentitasHilang }: Props) {
   const kirimLokasi = useMutation(api.room.kirimLokasi)
   const [status, setStatus] = useState<'diam' | 'mencari' | 'menyimpan'>('diam')
   const [galat, setGalat] = useState<string | null>(null)
@@ -135,6 +138,7 @@ export function BagikanLokasi({ identitas, sudahAda, pin, awalPeta, tidakTerjang
         )}
         {cara === 'alamat' && <CariAlamat onPilih={simpan} sibuk={sibuk} />}
         {cara === 'peta' && peta}
+        {cara === null && <GantiKendaraan identitas={identitas} kendaraan={kendaraan} onIdentitasHilang={onIdentitasHilang} />}
       </KartuStiker>
     )
   }

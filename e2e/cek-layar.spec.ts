@@ -131,6 +131,20 @@ test('room sendirian setelah berbagi lokasi', async ({ browser }) => {
   })
 })
 
+test('ganti kendaraan', async ({ browser }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.226, lng: 106.858 } })
+  await potret(browser, 'ganti-kendaraan', 'Ganti kendaraan dari kartu lokasi, tanpa keluar room', {
+    url: `/r/${haikal.kode}`,
+    sebagai: { kode: haikal.kode, identitas: haikal },
+    halamanPenuh: false,
+    tunggu: async (halaman) => {
+      await halaman.getByRole('button', { name: 'Ganti kendaraan' }).click()
+      await halaman.getByText('Jalan kaki', { exact: true }).click()
+    },
+  })
+})
+
 test('room dengan peta', async ({ browser }) => {
   const { kode, haikal } = await roomBertiga()
   await potret(browser, 'room-peta', 'Tiga orang berbagi lokasi: peta dan tombol Cari tempat', {
