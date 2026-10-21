@@ -13,9 +13,10 @@ export type OpsiTransitous = {
 }
 
 /**
- * Tim Transitous mengizinkan pemakaian ini di channel Matrix mereka pada 21 Oktober 2026 (#58). Kata mereka, endpoint
- * `experimental` dan API tanpa versi lainnya bisa berubah tanpa pemberitahuan. Kalau bentuk jawabannya berubah, `bacaDurasi`
- * menolaknya dan room berakhir LAYANAN_GAGAL.
+ * Tim Transitous mengizinkan pemakaian ini di channel Matrix mereka pada 21 Oktober 2026 (#58), selama Tikoem 100% open
+ * source dan orang lain bisa menjalankan ulang seluruh setup-nya. Kata mereka, endpoint `experimental` dan API tanpa versi
+ * lainnya bisa berubah tanpa pemberitahuan. Kalau bentuk jawabannya berubah, `bacaDurasi` menolaknya dan room berakhir
+ * LAYANAN_GAGAL.
  */
 const URL_DASAR_TRANSITOUS = 'https://api.transitous.org'
 
