@@ -320,6 +320,89 @@ async function tetapDari(t: Tes, kode: string) {
   return hasil.room.tetap
 }
 
+/** Room siap yang hasilnya sudah memperhitungkan lokasi Bintang. Haikal belum berbagi lokasi. */
+async function roomDenganHasil(t: Tes) {
+  const { haikal, bintang } = await roomSiap(t)
+  await t.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: -6.22, lng: 106.85 } })
+  await t.run(async (ctx) => {
+    const room = (await ctx.db.query('room').first())!
+    await ctx.db.patch('room', room._id, { versiHasil: room.versiLokasi })
+  })
+  return { haikal, bintang }
+}
+
+async function lihatRoom(t: Tes, kode: string) {
+  const hasil = await t.query(api.room.lihat, { kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  return hasil
+}
+
+describe('kendaraan (Discussions #63)', () => {
+  it('orang bisa gabung dengan transportasi umum', async () => {
+    const t = siapkan()
+    const { kode } = await roomBaru(t)
+    await t.mutation(api.room.gabung, { kode, nama: 'Bintang', kendaraan: 'transportasi_umum' })
+    expect((await lihatRoom(t, kode)).peserta.map((p) => p.kendaraan)).toEqual(['motor', 'transportasi_umum'])
+  })
+
+  it('ganti kendaraan tanpa keluar room membuat hasil usang kalau orangnya ikut dihitung', async () => {
+    const t = siapkan()
+    const { haikal, bintang } = await roomDenganHasil(t)
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kendaraan: 'transportasi_umum' })
+
+    const hasil = await lihatRoom(t, haikal.kode)
+    expect(hasil.peserta.map((p) => p.kendaraan)).toEqual(['motor', 'transportasi_umum'])
+    expect(hasil.room.hasilUsang).toBe(true)
+  })
+
+  it('ganti kendaraan sebelum berbagi lokasi, atau ke kendaraan yang sama, tidak membuat hasil usang', async () => {
+    const t = siapkan()
+    const { haikal, bintang } = await roomDenganHasil(t)
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kendaraan: 'jalan_kaki' })
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kendaraan: 'mobil' })
+
+    const hasil = await lihatRoom(t, haikal.kode)
+    expect(hasil.peserta.map((p) => p.kendaraan)).toEqual(['jalan_kaki', 'mobil'])
+    expect(hasil.room.hasilUsang).toBe(false)
+  })
+
+  it('hanya pemilik kunci yang bisa mengganti kendaraannya', async () => {
+    const t = siapkan()
+    const { haikal, bintang } = await roomSiap(t)
+    expect(
+      await galatDari(t.mutation(api.room.ubahKendaraan, { pesertaId: bintang.pesertaId, kunci: haikal.kunci, kendaraan: 'motor' })),
+    ).toBe('PESERTA_TIDAK_DIKENAL')
+    expect((await lihatRoom(t, haikal.kode)).peserta.map((p) => p.kendaraan)).toEqual(['motor', 'mobil'])
+  })
+
+  it('orang yang belum terjangkau transportasi umum tidak disebut lagi setelah ganti kendaraan', async () => {
+    const t = siapkan()
+    const { haikal, bintang } = await roomDenganHasil(t)
+    const gagalUntukBintang = (galatHitung: 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU' | 'LOKASI_TIDAK_TERJANGKAU') =>
+      t.run(async (ctx) => {
+        const room = (await ctx.db.query('room').first())!
+        await ctx.db.patch('room', room._id, { status: 'gagal', galatHitung, pesertaTidakTerjangkau: bintang.pesertaId })
+      })
+
+    await gagalUntukBintang('TRANSPORTASI_UMUM_TIDAK_TERJANGKAU')
+    // Orang lain yang ganti kendaraan tidak mengubah siapa yang perlu bertindak.
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kendaraan: 'mobil' })
+    expect((await lihatRoom(t, haikal.kode)).room.pesertaTidakTerjangkau).toBe(bintang.pesertaId)
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kendaraan: 'motor' })
+    // Galatnya tetap sampai dicari lagi, tapi Bintang tidak lagi disebut.
+    expect((await lihatRoom(t, haikal.kode)).room).toMatchObject({
+      status: 'gagal',
+      galatHitung: 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU',
+      pesertaTidakTerjangkau: null,
+    })
+
+    // Lokasi yang jauh dari jalan tetap bermasalah walaupun kendaraannya diganti, jadi orangnya tetap disebut.
+    await gagalUntukBintang('LOKASI_TIDAK_TERJANGKAU')
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kendaraan: 'mobil' })
+    expect((await lihatRoom(t, haikal.kode)).room.pesertaTidakTerjangkau).toBe(bintang.pesertaId)
+  })
+})
+
 describe('tetapkan tempat (Discussions #42)', () => {
   it('siapa saja di room bisa menetapkan suara terbanyak, dan semua HP melihatnya', async () => {
     const t = siapkan()

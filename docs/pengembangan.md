@@ -50,6 +50,7 @@ Diisi lewat `npx convex env set` di terminalmu sendiri, tidak pernah lewat varia
 | `OVERPASS_URL` | Tidak | Server Overpass pengganti. Kosong berarti server asli, dengan dua server cadangan |
 | `ORS_URL` | Tidak | Server OpenRouteService pengganti, tanpa antrean batas laju |
 | `NOMINATIM_URL` | Tidak | Server Nominatim pengganti, tanpa antrean batas laju |
+| `TRANSITOUS_URL` | Untuk transportasi umum | Server Transitous. Selama izin dari Transitous belum jelas ([#58](https://github.com/HaikalFaruq/tikoem/issues/58)), hanya diisi E2E. Tanpa env ini, hitung untuk orang yang naik transportasi umum berakhir dengan `LAYANAN_GAGAL` |
 
 ## Layanan luar dan batasnya
 
@@ -60,6 +61,7 @@ Semua layanan luar dipanggil dari Convex action, jadi key dan batasnya dijaga di
 | Overpass API | Kandidat tempat | Tiga server ditanya berurutan. Server berikutnya ikut ditanya kalau yang sebelumnya gagal atau belum menjawab dalam 4 detik |
 | OpenRouteService Matrix | Waktu tempuh | 30 per menit plus cadangan 10, jadi tidak pernah lebih dari 40 dalam 60 detik (batas paket gratis). Paling banyak 5 antre. Kuota hariannya (500) dihitung OpenRouteService sendiri |
 | Nominatim (OSMF) | Ketik alamat | Satu permintaan tiap 1,1 detik untuk semua pengguna. Paling banyak 3 antre |
+| Transitous (MOTIS) | Waktu tempuh transportasi umum | Satu permintaan per orang yang naik transportasi umum, ke semua tempat sekaligus. Belum tersambung ke server asli sampai izinnya jelas, dan batas lajunya diatur saat itu ([Discussions #63](https://github.com/HaikalFaruq/tikoem/discussions/63)) |
 
 Yang tidak kebagian antrean, atau hitung yang lewat 50 detik, berakhir dengan `LAYANAN_GAGAL` supaya layar bisa menawarkan "Coba lagi". Hitung ulang hanya jalan kalau ada lokasi yang berubah sejak hasil terakhir.
 
@@ -69,7 +71,9 @@ Pertama kali di mesin baru: `npx playwright install --only-shell chromium`.
 
 E2E memakai backend Convex lokal di `127.0.0.1:3210`. Kalau `npx convex dev` sudah jalan, backend itu yang dipakai. Kalau belum, E2E menyalakannya sendiri. Di CI, backend-nya dibuat baru tanpa akun setiap kali jalan.
 
-Overpass, OpenRouteService, dan Nominatim tidak dipanggil sungguhan. Di CI, ketiganya diganti server tiruan (`e2e/layanan-tiruan.ts`). Di laptop, E2E yang butuh layanan itu dilewati, kecuali dijalankan dengan `E2E_LAYANAN_TIRUAN=1 npm run test:e2e`. Selama itu, env `OVERPASS_URL`, `ORS_URL`, dan `NOMINATIM_URL` di deployment lokalmu diarahkan ke server tiruan, lalu dikembalikan. Untuk menguji keadaan gagal, taruh peserta di `LOKASI_TANPA_TEMPAT` atau `LOKASI_LAYANAN_GAGAL` dari `e2e/backend.ts`. Untuk `LOKASI_TIDAK_TERJANGKAU`, taruh satu peserta di `LOKASI_TIDAK_TERJANGKAU` (Teluk Jakarta) dan yang lain di darat.
+Overpass, OpenRouteService, Nominatim, dan Transitous tidak dipanggil sungguhan. Di CI, keempatnya diganti server tiruan (`e2e/layanan-tiruan.ts`). Di laptop, E2E yang butuh layanan itu dilewati, kecuali dijalankan dengan `E2E_LAYANAN_TIRUAN=1 npm run test:e2e`. Selama itu, env `OVERPASS_URL`, `ORS_URL`, `NOMINATIM_URL`, dan `TRANSITOUS_URL` di deployment lokalmu diarahkan ke server tiruan, lalu dikembalikan. Untuk menguji keadaan gagal, taruh peserta di `LOKASI_TANPA_TEMPAT` atau `LOKASI_LAYANAN_GAGAL` dari `e2e/backend.ts`. Untuk `LOKASI_TIDAK_TERJANGKAU`, taruh satu peserta di `LOKASI_TIDAK_TERJANGKAU` (Teluk Jakarta) dan yang lain di darat. Untuk `TRANSPORTASI_UMUM_TIDAK_TERJANGKAU`, taruh orang yang naik transportasi umum di `LOKASI_TANPA_TRANSPORTASI_UMUM` (Cileungsi).
+
+Pilihan "Transportasi umum" belum muncul di layar sampai Transitous asli tersambung (`KENDARAAN` di `src/domain/kendaraan.ts`). Untuk E2E layar, buat orang yang naik transportasi umum lewat `room.gabung` atau `room.ubahKendaraan` dari test, seperti di `e2e/layanan.spec.ts`.
 
 ## Kontrak data
 
@@ -77,9 +81,10 @@ Frontend hanya bicara dengan backend lewat fungsi Convex ini. Perubahan bentukny
 
 | Fungsi | Jenis | Isi |
 | --- | --- | --- |
-| `room.buat({ nama, kendaraan })` | mutation | Room baru dengan kode 6 karakter, pembuatnya jadi peserta pertama. Mengembalikan `{ kode, pesertaId, kunci, urutanGabung }` |
+| `room.buat({ nama, kendaraan })` | mutation | Room baru dengan kode 6 karakter, pembuatnya jadi peserta pertama. `kendaraan`: `motor`, `mobil`, `jalan_kaki`, atau `transportasi_umum` ([Discussions #63](https://github.com/HaikalFaruq/tikoem/discussions/63)). Mengembalikan `{ kode, pesertaId, kunci, urutanGabung }` |
 | `room.gabung({ kode, nama, kendaraan })` | mutation | Gabung ke room. Mengembalikan `{ pesertaId, kunci, urutanGabung }` |
 | `room.kirimLokasi({ pesertaId, kunci, lokasi })` | mutation | Simpan lokasi yang sudah dibulatkan. Hasil yang sudah keluar ditandai usang |
+| `room.ubahKendaraan({ pesertaId, kunci, kendaraan })` | mutation | Ganti kendaraan tanpa keluar room. Kalau orang itu sudah berbagi lokasi, hasil yang sudah keluar ditandai usang |
 | `room.hitung({ pesertaId, kunci })` | mutation | Mulai mencari tempat di latar. Tidak melakukan apa-apa kalau hasilnya masih berlaku |
 | `room.vote({ pesertaId, kunci, kandidatId })` | mutation | Pilih tempat. `kandidatId: null` membatalkan pilihan |
 | `room.tetapkan({ pesertaId, kunci, kandidatId })` | mutation | Tetapkan tempat untuk semua orang. Siapa saja di room boleh, tapi hanya untuk suara terbanyak saat ini ([Discussions #42](https://github.com/HaikalFaruq/tikoem/discussions/42)) |
@@ -89,7 +94,7 @@ Frontend hanya bicara dengan backend lewat fungsi Convex ini. Perubahan bentukny
 | `lokasi.cari({ teks })` | action | Cari alamat lewat Nominatim |
 | `lokasi.alamat({ lokasi })` | action | Label untuk titik yang dipilih di peta lewat Nominatim reverse: `{ label }`, atau `null` kalau titiknya tidak dekat jalan, misalnya di laut ([#53](https://github.com/HaikalFaruq/tikoem/issues/53)). Antreannya sama dengan `lokasi.cari`, jadi panggil setelah peta berhenti digeser. Galatnya `LAYANAN_GAGAL` atau `LOKASI_TIDAK_VALID` |
 
-`pesertaId` dan `kunci` adalah identitas "ini aku" di sebuah room, disimpan di `localStorage` HP itu saja. Galat dikirim sebagai kode di `error.data.galat` (mutation dan action) atau `galat` (query). Daftarnya ada di tipe `Galat` di [`convex/room.ts`](../convex/room.ts), ditambah `galatHitung`: `TEMPAT_TIDAK_DITEMUKAN`, `LAYANAN_GAGAL`, atau `LOKASI_TIDAK_TERJANGKAU`. Yang terakhir berarti lokasi satu orang terlalu jauh dari jalan, misalnya pin di laut, dan `room.pesertaTidakTerjangkau` berisi id orang itu, atau `null` lagi setelah dia memperbarui lokasinya atau keluar ([#53](https://github.com/HaikalFaruq/tikoem/issues/53)). Selama tempat sudah ditetapkan, `vote`, `hitung`, dan menetapkan tempat lain ditolak dengan `ROOM_SUDAH_TETAP`. `tetapkan` untuk tempat yang sudah bukan suara terbanyak ditolak dengan `PILIHAN_BERUBAH`.
+`pesertaId` dan `kunci` adalah identitas "ini aku" di sebuah room, disimpan di `localStorage` HP itu saja. Galat dikirim sebagai kode di `error.data.galat` (mutation dan action) atau `galat` (query). Daftarnya ada di tipe `Galat` di [`convex/room.ts`](../convex/room.ts), ditambah `galatHitung`: `TEMPAT_TIDAK_DITEMUKAN`, `LAYANAN_GAGAL`, `LOKASI_TIDAK_TERJANGKAU`, atau `TRANSPORTASI_UMUM_TIDAK_TERJANGKAU`. `LOKASI_TIDAK_TERJANGKAU` berarti lokasi satu orang terlalu jauh dari jalan, misalnya pin di laut, dan `room.pesertaTidakTerjangkau` berisi id orang itu, atau `null` lagi setelah dia memperbarui lokasinya atau keluar ([#53](https://github.com/HaikalFaruq/tikoem/issues/53)). `TRANSPORTASI_UMUM_TIDAK_TERJANGKAU` berarti orang yang naik transportasi umum tidak punya rute ke tempat mana pun, misalnya jauh dari halte dan stasiun. `room.pesertaTidakTerjangkau` juga berisi id orang itu, dan jadi `null` lagi setelah dia memperbarui lokasinya, mengganti kendaraan, atau keluar ([Discussions #63](https://github.com/HaikalFaruq/tikoem/discussions/63)). Selama tempat sudah ditetapkan, `vote`, `hitung`, dan menetapkan tempat lain ditolak dengan `ROOM_SUDAH_TETAP`. `tetapkan` untuk tempat yang sudah bukan suara terbanyak ditolak dengan `PILIHAN_BERUBAH`.
 
 ## Gerbang mutu
 

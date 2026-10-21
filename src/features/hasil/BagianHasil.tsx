@@ -27,6 +27,9 @@ const LAMA_MENGHITUNG_MS = 10_000
 const PESAN_GAGAL: Record<Exclude<GalatHitung, 'LOKASI_TIDAK_TERJANGKAU'>, string> = {
   TEMPAT_TIDAK_DITEMUKAN: 'Tidak ada kafe, resto, atau mal di sekitar titik tengah. Coba lagi setelah ada lokasi yang berubah.',
   LAYANAN_GAGAL: 'Layanan peta sedang gangguan, jadi tempatnya belum bisa dicari. Coba lagi sebentar lagi.',
+  // Sementara, sampai pesan di kartu lokasi orang itu dibuat (Discussions #63). Pilihan transportasi umum belum muncul di layar.
+  TRANSPORTASI_UMUM_TIDAK_TERJANGKAU:
+    'Ada yang belum punya rute transportasi umum dari lokasinya. Geser titiknya ke dekat halte atau stasiun, atau ganti kendaraan.',
 }
 
 const PESAN_GALAT_AKSI: Record<string, string> = {

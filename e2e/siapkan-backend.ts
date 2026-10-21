@@ -8,6 +8,7 @@ const ENV_TIRUAN: Record<string, string> = {
   OVERPASS_URL: `${URL_TIRUAN}/overpass`,
   ORS_URL: `${URL_TIRUAN}/ors`,
   NOMINATIM_URL: `${URL_TIRUAN}/nominatim/search`,
+  TRANSITOUS_URL: `${URL_TIRUAN}/transitous`,
 }
 
 const convexEnv = (...argumen: string[]) => execFileSync('npx', ['convex', 'env', ...argumen], { encoding: 'utf8' })

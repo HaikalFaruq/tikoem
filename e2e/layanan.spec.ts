@@ -2,7 +2,14 @@ import { expect, test } from '@playwright/test'
 import { ConvexHttpClient } from 'convex/browser'
 import { ConvexError } from 'convex/values'
 import { api } from '../convex/_generated/api'
-import { LOKASI_LAYANAN_GAGAL, LOKASI_TANPA_TEMPAT, LOKASI_TIDAK_TERJANGKAU, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
+import {
+  LOKASI_LAYANAN_GAGAL,
+  LOKASI_TANPA_TEMPAT,
+  LOKASI_TANPA_TRANSPORTASI_UMUM,
+  LOKASI_TIDAK_TERJANGKAU,
+  PAKAI_LAYANAN_TIRUAN,
+  URL_BACKEND,
+} from './backend'
 
 test.skip(!PAKAI_LAYANAN_TIRUAN, 'Butuh layanan tiruan. Otomatis di CI, atau jalankan dengan E2E_LAYANAN_TIRUAN=1.')
 
@@ -67,6 +74,46 @@ test('alur hitung berakhir dengan LOKASI_TIDAK_TERJANGKAU untuk orang yang lokas
     return hasil.ok ? `${hasil.room.status} ${hasil.room.galatHitung} ${hasil.room.pesertaTidakTerjangkau}` : hasil.galat
   }
   await expect.poll(keadaan, { timeout: 30_000 }).toBe(`gagal LOKASI_TIDAK_TERJANGKAU ${dua.pesertaId}`)
+})
+
+test('alur hitung dengan transportasi umum lewat Transitous tiruan (Discussions #63)', async () => {
+  const convex = new ConvexHttpClient(URL_BACKEND)
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const bintang = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Bintang', kendaraan: 'transportasi_umum' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.262, lng: 106.813 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: { lat: -6.226, lng: 106.858 } })
+
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  const status = async () => {
+    const hasil = await convex.query(api.room.lihat, { kode: haikal.kode })
+    return hasil.ok ? `${hasil.room.status} ${hasil.room.galatHitung}` : hasil.galat
+  }
+  await expect.poll(status, { timeout: 30_000 }).toBe('siap null')
+
+  const hasil = await convex.query(api.room.lihat, { kode: haikal.kode })
+  if (!hasil.ok) throw new Error(hasil.galat)
+  expect(hasil.kandidat).toHaveLength(5)
+  expect(hasil.kandidat.every((k) => k.waktuTempuh.some((w) => w.pesertaId === bintang.pesertaId && w.menit > 0))).toBe(true)
+})
+
+test('TRANSPORTASI_UMUM_TIDAK_TERJANGKAU menyebut orangnya, lalu dia ganti kendaraan tanpa keluar room', async () => {
+  const convex = new ConvexHttpClient(URL_BACKEND)
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const bintang = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Bintang', kendaraan: 'transportasi_umum' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.262, lng: 106.813 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, lokasi: LOKASI_TANPA_TRANSPORTASI_UMUM })
+
+  const keadaan = async () => {
+    const hasil = await convex.query(api.room.lihat, { kode: haikal.kode })
+    return hasil.ok ? `${hasil.room.status} ${hasil.room.galatHitung} ${hasil.room.pesertaTidakTerjangkau}` : hasil.galat
+  }
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await expect.poll(keadaan, { timeout: 30_000 }).toBe(`gagal TRANSPORTASI_UMUM_TIDAK_TERJANGKAU ${bintang.pesertaId}`)
+
+  await convex.mutation(api.room.ubahKendaraan, { pesertaId: bintang.pesertaId, kunci: bintang.kunci, kendaraan: 'motor' })
+  expect(await keadaan()).toBe('gagal TRANSPORTASI_UMUM_TIDAK_TERJANGKAU null')
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await expect.poll(keadaan, { timeout: 30_000 }).toBe('siap null null')
 })
 
 test('cari alamat lewat Nominatim tiruan, termasuk LAYANAN_GAGAL', async () => {

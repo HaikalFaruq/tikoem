@@ -34,6 +34,7 @@ type Env = {
   readonly ORS_API_KEY: string | undefined;
   readonly ORS_URL: string | undefined;
   readonly OVERPASS_URL: string | undefined;
+  readonly TRANSITOUS_URL: string | undefined;
 };
 
 /**

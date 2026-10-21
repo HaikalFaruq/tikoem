@@ -11,8 +11,10 @@ export const vGalatHitung = v.union(
   v.literal('TEMPAT_TIDAK_DITEMUKAN'),
   v.literal('LAYANAN_GAGAL'),
   v.literal('LOKASI_TIDAK_TERJANGKAU'),
+  v.literal('TRANSPORTASI_UMUM_TIDAK_TERJANGKAU'),
 )
-export const vKendaraan = v.union(v.literal('motor'), v.literal('mobil'), v.literal('jalan_kaki'))
+/** Transportasi umum (TransJakarta dan KRL) dihitung lewat Transitous, yang lain lewat ORS (Discussions #63). */
+export const vKendaraan = v.union(v.literal('motor'), v.literal('mobil'), v.literal('jalan_kaki'), v.literal('transportasi_umum'))
 export const vTitik = v.object({ lat: v.number(), lng: v.number() })
 /** Sama dengan `KategoriTempat` di src/domain/tempat.ts. Stasiun belum dicari (Discussions #8). */
 export const vKategoriTempat = v.union(v.literal('kafe'), v.literal('resto'), v.literal('mall'), v.literal('stasiun'))
@@ -47,15 +49,20 @@ export default defineSchema({
     /** Terisi saat status `gagal`. */
     galatHitung: v.optional(vGalatHitung),
     /**
-     * Terisi bersama galat LOKASI_TIDAK_TERJANGKAU: orang yang lokasinya terlalu jauh dari jalan (#53). Dikosongkan saat orang itu
-     * mengirim lokasi baru, atau saat Cari tempat ditekan lagi.
+     * Terisi bersama galat LOKASI_TIDAK_TERJANGKAU, untuk orang yang lokasinya terlalu jauh dari jalan (#53), atau
+     * TRANSPORTASI_UMUM_TIDAK_TERJANGKAU, untuk orang yang tidak punya rute transportasi umum ke tempat mana pun (Discussions #63).
+     * Dikosongkan saat orang itu mengirim lokasi baru, saat dia mengganti kendaraan setelah galat transportasi umum, atau saat
+     * Cari tempat ditekan lagi.
      */
     pesertaTidakTerjangkau: v.optional(v.id('peserta')),
     /** Waktu hasil terakhir keluar. */
     hasilPada: v.optional(v.number()),
     /** Naik setiap tombol "Cari tempat" ditekan. Hasil dari putaran yang sudah lewat diabaikan. */
     putaranHitung: v.optional(v.number()),
-    /** Naik setiap ada lokasi yang berubah. Kalau berbeda dengan `versiHasil`, hasilnya usang (Discussions #8). */
+    /**
+     * Naik setiap ada lokasi atau kendaraan orang yang ikut dihitung berubah. Kalau berbeda dengan `versiHasil`, hasilnya usang
+     * (Discussions #8).
+     */
     versiLokasi: v.optional(v.number()),
     versiHasil: v.optional(v.number()),
     /** Tempat yang sudah ditetapkan untuk semua orang (Discussions #42). Selama terisi, vote dan hitung ditolak. */

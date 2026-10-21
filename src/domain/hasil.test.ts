@@ -100,6 +100,7 @@ describe('label dan link', () => {
     expect(rute.searchParams.get('origin')).toBeNull()
     expect(rute.searchParams.get('travelmode')).toBe('driving')
     expect(new URL(linkRute({ lat: 0, lng: 0 }, 'jalan_kaki')).searchParams.get('travelmode')).toBe('walking')
+    expect(new URL(linkRute({ lat: 0, lng: 0 }, 'transportasi_umum')).searchParams.get('travelmode')).toBe('transit')
   })
 
   it('membuka koordinat tempat di Google Maps', () => {
