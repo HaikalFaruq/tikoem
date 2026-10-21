@@ -11,10 +11,6 @@ const app = defineApp({
     OVERPASS_URL: v.optional(v.string()),
     ORS_URL: v.optional(v.string()),
     NOMINATIM_URL: v.optional(v.string()),
-    /**
-     * Server Transitous untuk transportasi umum. Selama izin dari Transitous belum jelas (#58), env ini hanya diisi E2E,
-     * jadi di tempat lain hitung untuk orang yang naik transportasi umum berakhir dengan LAYANAN_GAGAL.
-     */
     TRANSITOUS_URL: v.optional(v.string()),
   },
 })

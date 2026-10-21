@@ -1,6 +1,9 @@
 import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter'
+import { v, type Infer } from 'convex/values'
 import { components } from './_generated/api'
-import type { ActionCtx } from './_generated/server'
+import { internalMutation, internalQuery, type ActionCtx, type QueryCtx } from './_generated/server'
+import { vLayananBerjeda } from './schema'
+import { jedaBertahap } from '../src/lib/waktu'
 
 /**
  * Batas pemakaian layanan luar. Berlaku untuk seluruh app, bukan per orang, karena semua permintaan keluar dari server
@@ -20,11 +23,44 @@ export const batasLaju = new RateLimiter(components.rateLimiter, {
    * ditiru di sini. Kalau habis, ORS menjawab 403 dan room berakhir LAYANAN_GAGAL seperti galat ORS lainnya.
    */
   ors: { kind: 'token bucket', rate: 30, period: MINUTE, capacity: 10, maxReserved: 5 },
+  /**
+   * Transitous membolehkan sekitar 30 permintaan per menit untuk seluruh app (channel Matrix Transitous, #58). Isi 10
+   * ditambah 20 per menit tidak pernah melewati 30 di jendela 60 detik mana pun. Tiap orang yang naik transportasi umum
+   * butuh satu permintaan. Paling banyak tiga permintaan boleh antre (sekitar 9 detik), supaya hitung tetap selesai sebelum
+   * `BATAS_HITUNG_MS`.
+   */
+  transitous: { kind: 'token bucket', rate: 20, period: MINUTE, capacity: 10, maxReserved: 3 },
 })
 
 /** Menunggu giliran memakai layanan luar. `false` kalau antreannya sudah penuh, dan jatahnya tidak terpakai. */
-export async function tungguGiliran(ctx: ActionCtx, layanan: 'nominatim' | 'ors') {
+export async function tungguGiliran(ctx: ActionCtx, layanan: 'nominatim' | 'ors' | 'transitous') {
   const { ok, retryAfter } = await batasLaju.limit(ctx, layanan, { reserve: true })
   if (ok && retryAfter) await new Promise((lanjut) => setTimeout(lanjut, retryAfter))
   return ok
 }
+
+const jedaDari = (ctx: QueryCtx, layanan: Infer<typeof vLayananBerjeda>) =>
+  ctx.db
+    .query('jedaLayanan')
+    .withIndex('by_layanan', (q) => q.eq('layanan', layanan))
+    .unique()
+
+/** Sampai kapan permintaan ke layanan itu ditahan setelah dijawab 429, atau `null` kalau belum pernah. */
+export const jeda = internalQuery({
+  args: { layanan: vLayananBerjeda },
+  handler: async (ctx, { layanan }) => (await jedaDari(ctx, layanan))?.sampai ?? null,
+})
+
+/**
+ * Dicatat saat layanan menjawab 429, supaya permintaan berikutnya dari room mana pun ditahan dulu. Transitous meminta app
+ * mundur dengan jeda, bukan langsung mengirim ulang (#58). Lamanya dihitung `jedaBertahap` di src/lib/waktu.ts.
+ */
+export const catatSibuk = internalMutation({
+  args: { layanan: vLayananBerjeda, mintaJedaMs: v.optional(v.number()) },
+  handler: async (ctx, { layanan, mintaJedaMs }) => {
+    const lama = await jedaDari(ctx, layanan)
+    const baru = jedaBertahap(Date.now(), lama, mintaJedaMs)
+    if (lama) await ctx.db.patch('jedaLayanan', lama._id, baru)
+    else await ctx.db.insert('jedaLayanan', { layanan, ...baru })
+  },
+})

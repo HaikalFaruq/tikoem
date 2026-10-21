@@ -6,13 +6,14 @@ import { tungguGiliran } from './batasLaju'
 import { cariTempatSekitar } from './overpass'
 import { KODE_TITIK_TIDAK_TERJANGKAU, OrsGagal, matriksDurasi, type OpsiOrs } from './ors'
 import { vGalatHitung, vKandidat, vTitik } from './schema'
-import { TransitousGagal, durasiTransportasiUmum } from './transitous'
+import { TransitousGagal, TransitousSibuk, durasiTransportasiUmum } from './transitous'
 import { PROFIL_RUTE, menitDariDetik, peringkatKandidat } from '../src/domain/keadilan'
 import type { Kendaraan } from '../src/domain/kendaraan'
 import type { Titik } from '../src/domain/lokasi'
 import { MAKS_PESERTA } from '../src/domain/room'
 import type { Tempat } from '../src/domain/tempat'
 import { titikTengah } from '../src/domain/titikTengah'
+import { berangkatTransportasiUmum } from '../src/domain/transportasiUmum'
 
 /**
  * Kalau hitung belum selesai setelah ini, statusnya jadi `gagal` dengan LAYANAN_GAGAL, supaya layar bisa menampilkan "Coba lagi".
@@ -111,8 +112,9 @@ export const jalankan = internalAction({
         urlOverpass: env.OVERPASS_URL,
         urlOrs: env.ORS_URL,
         urlTransitous: env.TRANSITOUS_URL,
-        // Batas per menit hanya untuk ORS asli. Server lain yang diisi lewat ORS_URL, termasuk tiruan E2E, tidak antre.
+        // Batas laju hanya untuk ORS dan Transitous asli. Server lain yang diisi lewat env, termasuk tiruan E2E, tidak antre.
         antreOrs: env.ORS_URL ? undefined : () => giliranOrs(ctx),
+        antreTransitous: env.TRANSITOUS_URL ? undefined : () => giliranTransitous(ctx),
       })
       if ('galat' in hasil) await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, ...hasil })
       else await ctx.runMutation(internal.hitung.simpan, { roomId, putaran, versiLokasi: data.versiLokasi, ...hasil })
@@ -120,6 +122,10 @@ export const jalankan = internalAction({
       // Pesan galat Overpass, ORS, dan Transitous sengaja tidak memuat koordinat, jadi aman ditulis ke log (AGENTS.md §8).
       console.error(`Hitung room gagal: ${galat instanceof Error ? galat.message : 'galat tidak dikenal'}`)
       await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: 'LAYANAN_GAGAL' })
+      // Room lain ikut berhenti bertanya ke Transitous asli sampai jedanya habis.
+      if (galat instanceof TransitousSibuk && !env.TRANSITOUS_URL) {
+        await ctx.runMutation(internal.batasLaju.catatSibuk, { layanan: 'transitous', mintaJedaMs: galat.mintaJedaMs })
+      }
     }
   },
 })
@@ -129,19 +135,26 @@ async function giliranOrs(ctx: ActionCtx) {
   if (!(await tungguGiliran(ctx, 'ors'))) throw new OrsGagal('Antrean ORS penuh')
 }
 
+/** Menunggu giliran ke Transitous. Selama jeda setelah 429 atau kalau antreannya penuh, hitung gagal tanpa bertanya ke sana. */
+async function giliranTransitous(ctx: ActionCtx) {
+  const jedaSampai: number | null = await ctx.runQuery(internal.batasLaju.jeda, { layanan: 'transitous' })
+  if (jedaSampai !== null && Date.now() < jedaSampai) throw new TransitousGagal('Transitous masih meminta jeda')
+  if (!(await tungguGiliran(ctx, 'transitous'))) throw new TransitousGagal('Antrean Transitous penuh')
+}
+
 export type OpsiHitung = {
   kunciOrs: string | undefined
   ambil?: typeof fetch
-  /** Kosong berarti server asli. Diisi dari env `OVERPASS_URL` dan `ORS_URL`, misalnya oleh E2E. */
+  /** Kosong berarti server asli. Diisi dari env `OVERPASS_URL`, `ORS_URL`, dan `TRANSITOUS_URL`, misalnya oleh E2E. */
   urlOverpass?: string
   urlOrs?: string
-  /**
-   * Dari env `TRANSITOUS_URL`. Kosong berarti Transitous belum disambungkan, karena izinnya belum jelas (#58), jadi
-   * transportasi umum belum bisa dihitung. E2E mengisinya dengan server tiruan.
-   */
   urlTransitous?: string
   /** Dipanggil sebelum tiap permintaan ORS. */
   antreOrs?: () => Promise<void>
+  /** Dipanggil sebelum tiap permintaan Transitous. */
+  antreTransitous?: () => Promise<void>
+  /** Saat tombol Cari tempat ditekan, untuk jam berangkat transportasi umum. Kosong berarti sekarang. */
+  sekarang?: number
 }
 export type HasilHitung =
   | { titikTengah: Titik; kandidat: Infer<typeof vKandidat>[] }
@@ -174,15 +187,12 @@ class PesertaTakTerjangkau extends Error {
  */
 export async function hitungHasil(
   peserta: readonly PesertaDihitung[],
-  { kunciOrs, ambil = fetch, urlOverpass, urlOrs, urlTransitous, antreOrs }: OpsiHitung,
+  { kunciOrs, ambil = fetch, urlOverpass, urlOrs, urlTransitous, antreOrs, antreTransitous, sekarang = Date.now() }: OpsiHitung,
 ): Promise<HasilHitung> {
   const tengah = titikTengah(peserta.map((p) => p.lokasi))
   if (!tengah) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
   if (!kunciOrs && peserta.some((p) => profilRute(p.kendaraan) !== null)) throw new OrsGagal('ORS_API_KEY belum diisi di env Convex')
   const naikUmum = peserta.filter((p) => p.kendaraan === 'transportasi_umum')
-  if (!urlTransitous && naikUmum.length > 0) {
-    throw new TransitousGagal('TRANSITOUS_URL belum diisi, jadi transportasi umum belum bisa dihitung')
-  }
 
   let tempat = await cariTempatSekitar(tengah.titik, tengah.radiusMeter, {
     ambil,
@@ -193,9 +203,10 @@ export async function hitungHasil(
 
   // Satu permintaan Transitous per orang ke semua tempat, sekali saja. Menitnya disimpan menurut `osmId` tempatnya, jadi
   // tetap cocok walaupun ORS nanti membuang tempat yang jauh dari jalan.
+  const opsiTransitous = { urlDasar: urlTransitous, ambil, antre: antreTransitous, berangkat: berangkatTransportasiUmum(sekarang) }
   const menitUmum = new Map<Id<'peserta'>, Map<string, number>>()
   for (const p of naikUmum) {
-    const detik = await durasiTransportasiUmum(p.lokasi, tempat.map((t) => t.lokasi), { urlDasar: urlTransitous!, ambil })
+    const detik = await durasiTransportasiUmum(p.lokasi, tempat.map((t) => t.lokasi), opsiTransitous)
     if (detik.every((d) => d === null)) return { galat: 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU', pesertaTidakTerjangkau: p.id }
     const menitTempat = new Map<string, number>()
     tempat.forEach((t, j) => {
