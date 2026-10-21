@@ -120,6 +120,17 @@ test('room menunggu lokasi', async ({ browser }) => {
   })
 })
 
+test('room sendirian setelah berbagi lokasi', async ({ browser }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.226, lng: 106.858 } })
+  // Hanya layar pertama: ajakan ke grup harus terlihat tanpa menggulir (#65).
+  await potret(browser, 'room-sendirian', 'Masih sendirian, lokasi sudah masuk: Kirim ke grup WA di layar pertama', {
+    url: `/r/${haikal.kode}`,
+    sebagai: { kode: haikal.kode, identitas: haikal },
+    halamanPenuh: false,
+  })
+})
+
 test('room dengan peta', async ({ browser }) => {
   const { kode, haikal } = await roomBertiga()
   await potret(browser, 'room-peta', 'Tiga orang berbagi lokasi: peta dan tombol Cari tempat', {
