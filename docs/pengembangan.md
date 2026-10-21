@@ -50,7 +50,7 @@ Diisi lewat `npx convex env set` di terminalmu sendiri, tidak pernah lewat varia
 | `OVERPASS_URL` | Tidak | Server Overpass pengganti. Kosong berarti server asli, dengan dua server cadangan |
 | `ORS_URL` | Tidak | Server OpenRouteService pengganti, tanpa antrean batas laju |
 | `NOMINATIM_URL` | Tidak | Server Nominatim pengganti, tanpa antrean batas laju |
-| `TRANSITOUS_URL` | Untuk transportasi umum | Server Transitous. Selama izin dari Transitous belum jelas ([#58](https://github.com/HaikalFaruq/tikoem/issues/58)), hanya diisi E2E. Tanpa env ini, hitung untuk orang yang naik transportasi umum berakhir dengan `LAYANAN_GAGAL` |
+| `TRANSITOUS_URL` | Tidak | Server Transitous pengganti, tanpa antrean batas laju dan tanpa jeda setelah 429 |
 
 ## Layanan luar dan batasnya
 
@@ -61,9 +61,15 @@ Semua layanan luar dipanggil dari Convex action, jadi key dan batasnya dijaga di
 | Overpass API | Kandidat tempat | Tiga server ditanya berurutan. Server berikutnya ikut ditanya kalau yang sebelumnya gagal atau belum menjawab dalam 4 detik |
 | OpenRouteService Matrix | Waktu tempuh | 30 per menit plus cadangan 10, jadi tidak pernah lebih dari 40 dalam 60 detik (batas paket gratis). Paling banyak 5 antre. Kuota hariannya (500) dihitung OpenRouteService sendiri |
 | Nominatim (OSMF) | Ketik alamat | Satu permintaan tiap 1,1 detik untuk semua pengguna. Paling banyak 3 antre |
-| Transitous (MOTIS) | Waktu tempuh transportasi umum | Satu permintaan per orang yang naik transportasi umum, ke semua tempat sekaligus. Belum tersambung ke server asli sampai izinnya jelas, dan batas lajunya diatur saat itu ([Discussions #63](https://github.com/HaikalFaruq/tikoem/discussions/63)) |
+| Transitous (MOTIS) | Waktu tempuh transportasi umum | Satu permintaan per orang yang naik transportasi umum, ke semua tempat sekaligus. 20 per menit plus cadangan 10, jadi tidak pernah lebih dari 30 dalam 60 detik, sesuai izin dari tim Transitous ([#58](https://github.com/HaikalFaruq/tikoem/issues/58)). Paling banyak 3 antre. Setelah dijawab 429, seluruh app berhenti bertanya selama 1 menit, lalu 2, 4, dan seterusnya sampai paling lama 15 menit kalau 429 terus datang, atau selama Retry-After kalau lebih lama |
 
-Yang tidak kebagian antrean, atau hitung yang lewat 50 detik, berakhir dengan `LAYANAN_GAGAL` supaya layar bisa menawarkan "Coba lagi". Hitung ulang hanya jalan kalau ada lokasi yang berubah sejak hasil terakhir.
+Yang tidak kebagian antrean, atau hitung yang lewat 50 detik, berakhir dengan `LAYANAN_GAGAL` supaya layar bisa menawarkan "Coba lagi". Begitu juga hitung yang butuh Transitous selama jeda setelah 429. Hitung ulang hanya jalan kalau ada lokasi yang berubah sejak hasil terakhir.
+
+Catatan Transitous:
+
+- **Jam berangkat** transportasi umum adalah saat Cari tempat ditekan. Pada Sabtu dan Minggu (waktu Jakarta), yang ditanyakan Senin berikutnya di jam yang sama, karena feed KRL di Transitous hanya berisi jadwal hari kerja (`src/domain/transportasiUmum.ts`). Waktunya sudah termasuk menunggu kendaraan dan jalan kaki ke dan dari halte.
+- **Jalan kaki ke halte** paling lama 15 menit, bawaan MOTIS. Orang yang lebih jauh dari halte TransJakarta dan stasiun KRL mendapat `TRANSPORTASI_UMUM_TIDAK_TERJANGKAU`.
+- **Endpoint-nya masih eksperimen** (`/api/experimental/one-to-many-intermodal`). Kata tim Transitous, API tanpa versi bisa berubah tanpa pemberitahuan. Kalau bentuk jawabannya berubah, log Convex menulis "Bentuk jawaban Transitous tidak dikenali" dan room berakhir `LAYANAN_GAGAL`. Cek [openapi MOTIS](https://transitous.org/api/) versi terbaru. Server mana yang sedang jalan terlihat dari header `Server` jawabannya. Cadangannya goRute ([#58](https://github.com/HaikalFaruq/tikoem/issues/58)).
 
 ## E2E
 
@@ -73,7 +79,7 @@ E2E memakai backend Convex lokal di `127.0.0.1:3210`. Kalau `npx convex dev` sud
 
 Overpass, OpenRouteService, Nominatim, dan Transitous tidak dipanggil sungguhan. Di CI, keempatnya diganti server tiruan (`e2e/layanan-tiruan.ts`). Di laptop, E2E yang butuh layanan itu dilewati, kecuali dijalankan dengan `E2E_LAYANAN_TIRUAN=1 npm run test:e2e`. Selama itu, env `OVERPASS_URL`, `ORS_URL`, `NOMINATIM_URL`, dan `TRANSITOUS_URL` di deployment lokalmu diarahkan ke server tiruan, lalu dikembalikan. Untuk menguji keadaan gagal, taruh peserta di `LOKASI_TANPA_TEMPAT` atau `LOKASI_LAYANAN_GAGAL` dari `e2e/backend.ts`. Untuk `LOKASI_TIDAK_TERJANGKAU`, taruh satu peserta di `LOKASI_TIDAK_TERJANGKAU` (Teluk Jakarta) dan yang lain di darat. Untuk `TRANSPORTASI_UMUM_TIDAK_TERJANGKAU`, taruh orang yang naik transportasi umum di `LOKASI_TANPA_TRANSPORTASI_UMUM` (Cileungsi).
 
-Pilihan "Transportasi umum" belum muncul di layar sampai Transitous asli tersambung (`KENDARAAN` di `src/domain/kendaraan.ts`). Untuk E2E layar, buat orang yang naik transportasi umum lewat `room.gabung` atau `room.ubahKendaraan` dari test, seperti di `e2e/layanan.spec.ts`.
+Pilihan "Transportasi umum" belum muncul di layar sampai layarnya siap (`KENDARAAN` di `src/domain/kendaraan.ts`). Untuk E2E layar, buat orang yang naik transportasi umum lewat `room.gabung` atau `room.ubahKendaraan` dari test, seperti di `e2e/layanan.spec.ts`.
 
 ## Kontrak data
 

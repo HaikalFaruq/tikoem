@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { PENGENAL } from './pengenal'
-import { TransitousGagal, durasiTransportasiUmum } from './transitous'
+import { TransitousGagal, TransitousSibuk, durasiTransportasiUmum } from './transitous'
 
 const KEMANG = { lat: -6.262, lng: 106.813 }
 const KAFE = { lat: -6.2235, lng: 106.8559 }
@@ -23,6 +23,13 @@ function tiruanFetch(jawab: () => Response | 'gantung') {
   return { ambil, panggilan }
 }
 
+/** Galat dari Transitous yang menjawab 429 dengan header itu. */
+async function sibuk(headers?: HeadersInit) {
+  const ambil = tiruanFetch(() => new Response('', { status: 429, headers })).ambil
+  const galat: unknown = await durasiTransportasiUmum(KEMANG, [KAFE], { urlDasar: URL_DASAR, ambil }).catch((e: unknown) => e)
+  return galat as TransitousSibuk
+}
+
 describe('durasiTransportasiUmum', () => {
   it('meminta satu asal ke semua tujuan sekaligus, dengan batas 3 jam dan User-Agent Tikoem', async () => {
     const { ambil, panggilan } = tiruanFetch(() =>
@@ -36,7 +43,48 @@ describe('durasiTransportasiUmum', () => {
     expect(url.searchParams.get('one')).toBe('-6.262;106.813')
     expect(url.searchParams.get('many')).toBe('-6.2235;106.8559,-6.2257;106.8569')
     expect(url.searchParams.get('maxTravelTime')).toBe('180')
+    // Tanpa jam berangkat, Transitous memakai jam sekarang.
+    expect(url.searchParams.has('time')).toBe(false)
     expect(new Headers(panggilan[0].init.headers).get('User-Agent')).toBe(PENGENAL)
+  })
+
+  it('memakai server Transitous asli kalau urlDasar kosong, dengan jam berangkat yang diminta', async () => {
+    const { ambil, panggilan } = tiruanFetch(() => Response.json({}))
+    await durasiTransportasiUmum(KEMANG, [KAFE], { ambil, berangkat: Date.parse('2026-10-26T10:00+07:00') })
+
+    const url = new URL(panggilan[0].url)
+    expect(url.origin + url.pathname).toBe('https://api.transitous.org/api/experimental/one-to-many-intermodal')
+    expect(url.searchParams.get('time')).toBe('2026-10-26T03:00:00.000Z')
+  })
+
+  it('menunggu antrean dulu, dan waktu menunggunya tidak memakan batas waktu permintaan', async () => {
+    const urutan: string[] = []
+    const { ambil } = tiruanFetch(() => {
+      urutan.push('kirim')
+      return Response.json({})
+    })
+    const antre = async () => {
+      await new Promise((lanjut) => setTimeout(lanjut, 80))
+      urutan.push('antre')
+    }
+    await durasiTransportasiUmum(KEMANG, [KAFE], { urlDasar: URL_DASAR, ambil, antre, batasMs: 50 })
+    expect(urutan).toEqual(['antre', 'kirim'])
+  })
+
+  it('429 jadi TransitousSibuk, dengan jeda yang diminta lewat Retry-After', async () => {
+    const detik = await sibuk({ 'Retry-After': '120' })
+    expect(detik).toBeInstanceOf(TransitousSibuk)
+    expect(detik).toBeInstanceOf(TransitousGagal)
+    expect(detik.message).toContain('429')
+    expect(detik.mintaJedaMs).toBe(120_000)
+
+    // Tanggal HTTP hanya sampai detik, jadi jedanya bisa kurang sedikit dari 5 menit.
+    const tanggal = await sibuk({ 'Retry-After': new Date(Date.now() + 300_000).toUTCString() })
+    expect(tanggal.mintaJedaMs).toBeGreaterThan(298_000)
+    expect(tanggal.mintaJedaMs).toBeLessThanOrEqual(300_000)
+
+    expect((await sibuk()).mintaJedaMs).toBeUndefined()
+    expect((await sibuk({ 'Retry-After': 'nanti saja' })).mintaJedaMs).toBeUndefined()
   })
 
   it('memakai yang tercepat antara jalan kaki langsung dan transportasi umum', async () => {

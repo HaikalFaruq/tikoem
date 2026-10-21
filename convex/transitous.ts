@@ -2,17 +2,42 @@ import type { Titik } from '../src/domain/lokasi'
 import { PENGENAL } from './pengenal'
 
 export type OpsiTransitous = {
-  /** Dari env `TRANSITOUS_URL`. E2E mengisinya dengan server tiruan (e2e/layanan-tiruan.ts). */
-  urlDasar: string
+  /** Kosong berarti server asli. Diisi dari env `TRANSITOUS_URL`, misalnya oleh E2E (e2e/layanan-tiruan.ts). */
+  urlDasar?: string
   ambil?: typeof fetch
   batasMs?: number
+  /** Jam berangkat. Kosong berarti sekarang, menurut jam Transitous. */
+  berangkat?: number
+  /** Dipanggil tepat sebelum permintaan dikirim, untuk menunggu giliran di antrean. */
+  antre?: () => Promise<void>
 }
+
+/**
+ * Tim Transitous mengizinkan pemakaian ini di channel Matrix mereka pada 21 Oktober 2026 (#58). Kata mereka, endpoint
+ * `experimental` dan API tanpa versi lainnya bisa berubah tanpa pemberitahuan. Kalau bentuk jawabannya berubah, `bacaDurasi`
+ * menolaknya dan room berakhir LAYANAN_GAGAL.
+ */
+const URL_DASAR_TRANSITOUS = 'https://api.transitous.org'
 
 /** Perjalanan yang lebih lama dari ini dianggap tidak punya rute ke tempat itu (Discussions #63). */
 const MAKS_MENIT = 180
 
 export class TransitousGagal extends Error {
   override name = 'TransitousGagal'
+}
+
+/**
+ * Transitous menjawab 429 karena permintaan dari Tikoem terlalu banyak. Mereka minta app mundur dulu, bukan langsung
+ * mengirim ulang, jadi room lain ikut berhenti bertanya selama jedanya (`catatSibuk` di convex/batasLaju.ts).
+ */
+export class TransitousSibuk extends TransitousGagal {
+  override name = 'TransitousSibuk'
+  constructor(
+    /** Dari header Retry-After, kalau ada dan bisa dibaca. */
+    readonly mintaJedaMs?: number,
+  ) {
+    super('Transitous menjawab HTTP 429')
+  }
 }
 
 const bentukAsing = () => new TransitousGagal('Bentuk jawaban Transitous tidak dikenali')
@@ -28,14 +53,18 @@ const titik = ({ lat, lng }: Titik) => `${lat};${lng}`
 export async function durasiTransportasiUmum(
   asal: Titik,
   tujuan: readonly Titik[],
-  { urlDasar, ambil = fetch, batasMs = 10_000 }: OpsiTransitous,
+  { urlDasar = URL_DASAR_TRANSITOUS, ambil = fetch, batasMs = 10_000, berangkat, antre }: OpsiTransitous = {},
 ): Promise<(number | null)[]> {
-  const kueri = `one=${titik(asal)}&many=${tujuan.map(titik).join(',')}&maxTravelTime=${MAKS_MENIT}`
+  const waktu = berangkat === undefined ? '' : `&time=${new Date(berangkat).toISOString()}`
+  const kueri = `one=${titik(asal)}&many=${tujuan.map(titik).join(',')}&maxTravelTime=${MAKS_MENIT}${waktu}`
   const url = `${urlDasar}/api/experimental/one-to-many-intermodal?${kueri}`
+  // Antre sebelum jam dinyalakan, jadi waktu menunggu giliran tidak memakan batas waktu permintaan.
+  await antre?.()
   const henti = new AbortController()
   const jam = setTimeout(() => henti.abort(), batasMs)
   try {
     const jawaban = await ambil(url, { headers: { Accept: 'application/json', 'User-Agent': PENGENAL }, signal: henti.signal })
+    if (jawaban.status === 429) throw new TransitousSibuk(bacaRetryAfter(jawaban.headers.get('Retry-After')))
     if (!jawaban.ok) throw new TransitousGagal(`Transitous menjawab HTTP ${jawaban.status}`)
     return bacaDurasi(await jawaban.json().catch(() => null), tujuan.length)
   } catch (galat) {
@@ -44,6 +73,14 @@ export async function durasiTransportasiUmum(
   } finally {
     clearTimeout(jam)
   }
+}
+
+/** Retry-After berisi jumlah detik atau tanggal HTTP. Isi yang tidak bisa dibaca diabaikan. */
+function bacaRetryAfter(isi: string | null): number | undefined {
+  if (isi === null) return undefined
+  if (/^\d+$/.test(isi.trim())) return Number(isi.trim()) * 1000
+  const pada = Date.parse(isi)
+  return Number.isNaN(pada) ? undefined : Math.max(0, pada - Date.now())
 }
 
 /** Daftar per tujuan di bawah `kunci`, atau `null` kalau tidak ada. Jawaban `{}` berarti tidak ada rute ke tujuan mana pun. */

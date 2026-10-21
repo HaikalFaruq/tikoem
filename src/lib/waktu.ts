@@ -16,3 +16,22 @@ export function sisaWaktu(sisaMs: number): string {
 export function jedaPermintaan(sekarang: number, terakhir: number | null, jarakMinMs: number, tundaMs: number): number {
   return Math.max(tundaMs, terakhir === null ? 0 : terakhir + jarakMinMs - sekarang)
 }
+
+const JEDA_AWAL_MS = MENIT
+const JEDA_MAKS_MS = 15 * MENIT
+
+type Jeda = { sampai: number; lamaMs: number }
+
+/**
+ * Jeda setelah layanan luar menjawab 429 (terlalu banyak permintaan): mulai satu menit, lalu dua kali lipat setiap 429 datang
+ * lagi tidak lama setelah jeda sebelumnya habis, paling lama 15 menit. 429 dari permintaan yang terkirim sebelum jeda tercatat
+ * tidak memperpanjangnya. Kalau layanan meminta jeda lebih lama lewat Retry-After (`mintaMs`), permintaannya diikuti.
+ */
+export function jedaBertahap(sekarang: number, sebelumnya: Jeda | null, mintaMs = 0): Jeda {
+  if (sebelumnya && sekarang < sebelumnya.sampai) {
+    return { sampai: Math.max(sebelumnya.sampai, sekarang + mintaMs), lamaMs: sebelumnya.lamaMs }
+  }
+  const berlanjut = sebelumnya !== null && sekarang - sebelumnya.sampai < sebelumnya.lamaMs
+  const lamaMs = berlanjut ? Math.min(sebelumnya.lamaMs * 2, JEDA_MAKS_MS) : JEDA_AWAL_MS
+  return { sampai: sekarang + Math.max(lamaMs, mintaMs), lamaMs }
+}

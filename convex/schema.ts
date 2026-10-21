@@ -18,6 +18,8 @@ export const vKendaraan = v.union(v.literal('motor'), v.literal('mobil'), v.lite
 export const vTitik = v.object({ lat: v.number(), lng: v.number() })
 /** Sama dengan `KategoriTempat` di src/domain/tempat.ts. Stasiun belum dicari (Discussions #8). */
 export const vKategoriTempat = v.union(v.literal('kafe'), v.literal('resto'), v.literal('mall'), v.literal('stasiun'))
+/** Layanan luar yang meminta app mundur dulu setelah menjawab 429 (convex/batasLaju.ts). */
+export const vLayananBerjeda = v.literal('transitous')
 
 /** Satu kandidat hasil hitung, tanpa `roomId`. Dipakai tabel `kandidat` dan argumen `hitung.simpan`. */
 export const vKandidat = v.object({
@@ -89,4 +91,10 @@ export default defineSchema({
   })
     .index('by_roomId', ['roomId'])
     .index('by_pesertaId', ['pesertaId']),
+
+  /**
+   * Jeda untuk seluruh app setelah layanan luar menjawab 429. Satu baris per layanan, tanpa data pengguna. Selama `sampai`
+   * belum lewat, permintaan ke layanan itu tidak dikirim. `lamaMs` adalah lama jeda terakhir, untuk jeda berikutnya.
+   */
+  jedaLayanan: defineTable({ layanan: vLayananBerjeda, sampai: v.number(), lamaMs: v.number() }).index('by_layanan', ['layanan']),
 })
