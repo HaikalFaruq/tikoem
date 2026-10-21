@@ -13,7 +13,7 @@ PWA, tanpa akun.
 
 ### [Coba di tikoem.vercel.app →](https://tikoem.vercel.app)
 
-[![Status](https://img.shields.io/badge/v1-live-D4F35B?style=flat-square&labelColor=141414)](https://tikoem.vercel.app)
+[![Status](https://img.shields.io/badge/v2-live-D4F35B?style=flat-square&labelColor=141414)](https://tikoem.vercel.app)
 [![Convex](https://img.shields.io/badge/backend-Convex-ee342f?style=flat-square&labelColor=141414)](https://www.convex.dev)
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=61dafb&labelColor=141414)](https://react.dev)
 [![OpenStreetMap](https://img.shields.io/badge/peta-OpenStreetMap-7ebc6f?style=flat-square&logo=openstreetmap&logoColor=white&labelColor=141414)](https://www.openstreetmap.org)
@@ -30,8 +30,8 @@ PWA, tanpa akun.
 ## Cara pakai
 
 1. Buat room, lalu bagikan link-nya ke grup WhatsApp.
-2. Tiap teman mengisi nama dan kendaraan, lalu berbagi lokasi lewat GPS, ketik alamat, atau pilih titik di peta.
-3. Ketuk **Cari tempat**. Tikoem menampilkan 5 tempat dengan waktu tempuh terlama paling pendek, jadi tidak ada yang jauh sendiri.
+2. Tiap teman mengisi nama dan kendaraan (motor, mobil, jalan kaki, atau transportasi umum), lalu berbagi lokasi lewat GPS, ketik alamat, atau pilih titik di peta.
+3. Ketuk **Cari tempat**. Tikoem menampilkan 5 tempat dengan waktu tempuh terlama paling pendek, jadi tidak ada yang jauh sendiri. Kalau ada yang naik KRL atau TransJakarta, stasiun dan halte di dekat titik tengah ikut jadi pilihan.
 4. Pilih bareng, lalu kirim kartu hasilnya ke grup.
 
 Satu room muat 24 orang. Nama, lokasi, dan pilihan dihapus otomatis 24 jam setelah room dibuat.
@@ -43,13 +43,13 @@ Satu room muat 24 orang. Nama, lokasi, dan pilihan dihapus otomatis 24 jam setel
 <a href="https://haikalfaruq.github.io/tikoem/arsitektur.html">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/gambar/arsitektur-gelap.png" />
-  <img src="docs/gambar/arsitektur-terang.png" alt="Arsitektur Tikoem: PWA memanggil room.hitung di Convex, action terjadwal bertanya ke Overpass dan OpenRouteService, lalu hasilnya sampai ke semua HP lewat query realtime" />
+  <img src="docs/gambar/arsitektur-terang.png" alt="Arsitektur Tikoem: PWA memanggil room.hitung di Convex, action terjadwal bertanya ke Overpass, OpenRouteService, dan Transitous, lalu hasilnya sampai ke semua HP lewat query realtime" />
 </picture>
 </a>
 
-**[Buka diagram interaktif ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html)** · [telusuri jalur Cari tempat ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html#route=teman~ors) · [sumber JSON](docs/arsitektur.archify.json)
+**[Buka diagram interaktif ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html)** · [telusuri jalur Cari tempat ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html#route=teman~ors) · [jalur transportasi umum ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html#route=teman~transitous) · [sumber JSON](docs/arsitektur.archify.json)
 
-- **Adil, bukan sekadar tengah.** Pencarian dimulai dari pusat lingkaran terkecil yang memuat lokasi semua orang. Kandidat dari Overpass diberi waktu tempuh tiap orang lewat OpenRouteService, lalu yang menang adalah tempat dengan waktu tempuh terlama paling pendek.
+- **Adil, bukan sekadar tengah.** Pencarian dimulai dari pusat lingkaran terkecil yang memuat lokasi semua orang. Kandidat dari Overpass diberi waktu tempuh tiap orang, lewat OpenRouteService untuk motor, mobil, dan jalan kaki, atau lewat [Transitous](https://transitous.org/sources/) untuk KRL dan TransJakarta. Yang menang adalah tempat dengan waktu tempuh terlama paling pendek.
 - **Realtime.** Hitung berjalan di action Convex terjadwal, dan hasilnya langsung sampai ke semua HP di room.
 - **Privat.** Lokasi dibulatkan sekitar 100 m, dihapus setelah 24 jam, dan tidak pernah ditulis ke log. Key layanan luar hanya ada di env Convex.
 

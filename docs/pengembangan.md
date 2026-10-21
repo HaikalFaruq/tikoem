@@ -9,9 +9,9 @@ Halaman ini untuk yang mau menjalankan, mengubah, atau men-deploy Tikoem. Gambar
 | Frontend | Vite, React, TypeScript, Tailwind CSS (termasuk animasinya), PWA lewat vite-plugin-pwa |
 | Backend dan database | Convex: query realtime, mutation, action, fungsi terjadwal, dan komponen rate limiter |
 | Peta | MapLibre GL + OpenFreeMap |
-| Tempat | OpenStreetMap lewat Overpass API |
+| Tempat | OpenStreetMap lewat Overpass API, termasuk stasiun KRL dan halte TransJakarta kalau ada yang naik transportasi umum |
 | Alamat | Nominatim (OpenStreetMap) |
-| Waktu tempuh | OpenRouteService Matrix |
+| Waktu tempuh | OpenRouteService Matrix untuk motor, mobil, dan jalan kaki. Transitous (MOTIS) untuk transportasi umum |
 | Kualitas | Vitest, Playwright, oxlint, knip, GitHub Actions |
 | Deploy | Vercel + Convex Cloud |
 

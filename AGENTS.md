@@ -70,9 +70,9 @@ Pertanyaan teknis atau desain yang butuh jawaban pasangan ditulis di **Discussio
 | Frontend | Vite, React, TypeScript, Tailwind CSS | PWA lewat vite-plugin-pwa, sama seperti Tookthel. Animasi memakai Tailwind dan menghormati reduced motion |
 | Backend dan database | Convex | Query realtime, mutation, action untuk API luar, dan fungsi terjadwal |
 | Peta | MapLibre GL + OpenFreeMap | Gratis dan tanpa API key |
-| Tempat | OpenStreetMap lewat Overpass API | Kafe, resto, dan mal di sekitar titik tengah. Stasiun menyusul kalau transportasi umum didukung |
+| Tempat | OpenStreetMap lewat Overpass API | Kafe, resto, dan mal di sekitar titik tengah. Stasiun KRL dan halte TransJakarta ikut kalau ada yang naik transportasi umum |
 | Alamat | Nominatim (OpenStreetMap) | Fitur ketik alamat, dipanggil dari Convex action dengan batas satu permintaan per detik |
-| Waktu tempuh | OpenRouteService Matrix | Dipanggil dari Convex action, key-nya di env Convex |
+| Waktu tempuh | OpenRouteService Matrix dan Transitous | Dipanggil dari Convex action. Key ORS di env Convex. Transitous untuk transportasi umum, tanpa key, dengan batas laju sesuai izin mereka |
 | Deploy | Vercel (frontend) + Convex Cloud (backend) | Free tier, tanpa domain sendiri |
 
 Struktur folder:

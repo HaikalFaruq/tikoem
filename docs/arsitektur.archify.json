@@ -7,13 +7,13 @@
     "translations": {
       "legend.title": "Keterangan"
     },
-    "output": ".archify/arsitektur.html",
+    "output": ".archify/architecture-tikoem-20261021-160503/arsitektur.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/HaikalFaruq/tikoem.git",
       "provider": "github",
       "link_mode": "web",
-      "revision": "4712eac9ae71255050671a1cd8ff221d3d2eb3f4"
+      "revision": "5da384c5d556ce94eb70fce57593b6f6dc34ad96"
     },
     "legend": {
       "entries": {
@@ -55,12 +55,14 @@
         },
         {
           "path": "src/features/room/BagikanRoom.tsx",
-          "line": 37,
+          "line": 42,
+          "end_line": 48,
           "label": "tombol Kirim ke grup WA"
         },
         {
           "path": "src/features/hasil/KartuHasil.tsx",
-          "line": 129,
+          "line": 156,
+          "end_line": 157,
           "label": "kartu hasil ke grup WA"
         }
       ]
@@ -95,9 +97,9 @@
       ],
       "sources": [
         {
-          "path": "src/features/peta/PetaLive.tsx",
-          "line": 16,
-          "end_line": 17,
+          "path": "src/features/peta/maplibre.ts",
+          "line": 9,
+          "end_line": 12,
           "label": "gaya peta terang dan gelap"
         }
       ]
@@ -124,13 +126,12 @@
         },
         {
           "path": "src/features/hasil/BagianHasil.tsx",
-          "line": 42,
-          "end_line": 75,
-          "label": "tombol Cari tempat"
+          "line": 83,
+          "label": "tombol Cari tempat memanggil room.hitung"
         },
         {
           "path": "src/features/room/LayarRoom.tsx",
-          "line": 50,
+          "line": 52,
           "label": "useQuery room.lihat"
         }
       ]
@@ -152,9 +153,9 @@
       "sources": [
         {
           "path": "convex/schema.ts",
-          "line": 33,
-          "end_line": 76,
-          "label": "empat tabel"
+          "line": 44,
+          "end_line": 103,
+          "label": "tabel room dan jeda layanan"
         },
         {
           "path": "convex/room.ts",
@@ -186,20 +187,20 @@
       "sources": [
         {
           "path": "convex/room.ts",
-          "line": 164,
-          "end_line": 185,
+          "line": 192,
+          "end_line": 218,
           "label": "room.hitung"
         },
         {
           "path": "convex/room.ts",
-          "line": 265,
-          "end_line": 313,
+          "line": 298,
+          "end_line": 354,
           "label": "room.lihat"
         },
         {
           "path": "convex/hitung.ts",
-          "line": 44,
-          "end_line": 72,
+          "line": 46,
+          "end_line": 74,
           "label": "hitung.simpan"
         }
       ]
@@ -221,33 +222,33 @@
       "sources": [
         {
           "path": "convex/hitung.ts",
-          "line": 96,
-          "end_line": 117,
+          "line": 104,
+          "end_line": 131,
           "label": "hitung.jalankan"
         },
         {
           "path": "convex/hitung.ts",
-          "line": 184,
-          "end_line": 200,
-          "label": "satu permintaan ORS per profil"
+          "line": 188,
+          "end_line": 245,
+          "label": "tempat, waktu tempuh, lima besar"
         },
         {
           "path": "convex/batasLaju.ts",
-          "line": 9,
-          "end_line": 30,
-          "label": "batas laju ORS"
+          "line": 12,
+          "end_line": 66,
+          "label": "batas laju dan jeda setelah 429"
         }
       ]
     },
     {
-      "id": "cari",
+      "id": "lokasi",
       "type": "backend",
-      "label": "Action lokasi.cari",
-      "sublabel": "ketik alamat",
+      "label": "Action lokasi.*",
+      "sublabel": "alamat dan titik di peta",
       "tag": "antre lewat rate limiter",
       "pos": [
         610,
-        536
+        620
       ],
       "size": [
         190,
@@ -256,15 +257,20 @@
       "sources": [
         {
           "path": "convex/lokasi.ts",
-          "line": 12,
-          "end_line": 25,
+          "line": 26,
+          "end_line": 29,
           "label": "lokasi.cari"
         },
         {
-          "path": "convex/batasLaju.ts",
-          "line": 9,
-          "end_line": 30,
-          "label": "batas laju Nominatim"
+          "path": "convex/lokasi.ts",
+          "line": 35,
+          "end_line": 42,
+          "label": "lokasi.alamat"
+        },
+        {
+          "path": "convex/lokasi.ts",
+          "line": 10,
+          "label": "antre Nominatim"
         }
       ]
     },
@@ -272,7 +278,7 @@
       "id": "overpass",
       "type": "external",
       "label": "Overpass API",
-      "sublabel": "kafe, resto, mal",
+      "sublabel": "kafe, resto, mal, stasiun",
       "pos": [
         950,
         200
@@ -284,15 +290,21 @@
       "sources": [
         {
           "path": "convex/overpass.ts",
-          "line": 5,
-          "end_line": 16,
+          "line": 6,
+          "end_line": 17,
           "label": "tiga server Overpass"
         },
         {
           "path": "convex/overpass.ts",
-          "line": 40,
-          "end_line": 46,
+          "line": 49,
+          "end_line": 57,
           "label": "cariTempatSekitar"
+        },
+        {
+          "path": "src/domain/tempat.ts",
+          "line": 32,
+          "end_line": 43,
+          "label": "stasiun KRL dan halte TransJakarta"
         }
       ]
     },
@@ -300,7 +312,7 @@
       "id": "ors",
       "type": "external",
       "label": "OpenRouteService",
-      "sublabel": "Matrix waktu tempuh",
+      "sublabel": "motor, mobil, jalan kaki",
       "pos": [
         950,
         368
@@ -312,15 +324,48 @@
       "sources": [
         {
           "path": "convex/ors.ts",
-          "line": 35,
-          "end_line": 68,
+          "line": 38,
+          "end_line": 76,
           "label": "matriksDurasi"
         },
         {
           "path": "convex/hitung.ts",
-          "line": 184,
-          "end_line": 200,
+          "line": 251,
+          "end_line": 280,
           "label": "satu permintaan per profil"
+        }
+      ]
+    },
+    {
+      "id": "transitous",
+      "type": "external",
+      "label": "Transitous",
+      "sublabel": "KRL dan TransJakarta",
+      "pos": [
+        950,
+        496
+      ],
+      "size": [
+        170,
+        64
+      ],
+      "sources": [
+        {
+          "path": "convex/transitous.ts",
+          "line": 20,
+          "label": "api.transitous.org"
+        },
+        {
+          "path": "convex/transitous.ts",
+          "line": 53,
+          "end_line": 76,
+          "label": "durasiTransportasiUmum"
+        },
+        {
+          "path": "convex/hitung.ts",
+          "line": 207,
+          "end_line": 218,
+          "label": "satu permintaan per orang"
         }
       ]
     },
@@ -331,7 +376,7 @@
       "sublabel": "alamat dari OSMF",
       "pos": [
         950,
-        536
+        620
       ],
       "size": [
         170,
@@ -340,14 +385,20 @@
       "sources": [
         {
           "path": "convex/nominatim.ts",
-          "line": 4,
+          "line": 5,
           "label": "server Nominatim OSMF"
         },
         {
           "path": "convex/nominatim.ts",
-          "line": 23,
-          "end_line": 57,
+          "line": 25,
+          "end_line": 45,
           "label": "cariAlamat"
+        },
+        {
+          "path": "convex/nominatim.ts",
+          "line": 51,
+          "end_line": 67,
+          "label": "alamatDariTitik"
         }
       ]
     }
@@ -360,7 +411,7 @@
         "database",
         "fungsi",
         "jalankan",
-        "cari"
+        "lokasi"
       ]
     }
   ],
@@ -409,6 +460,12 @@
       "toSide": "left"
     },
     {
+      "id": "transportasi-umum",
+      "from": "jalankan",
+      "to": "transitous",
+      "label": "transportasi umum"
+    },
+    {
       "id": "simpan-hasil",
       "from": "jalankan",
       "to": "fungsi",
@@ -433,16 +490,16 @@
     {
       "id": "ketik-alamat",
       "from": "pwa",
-      "to": "cari",
-      "label": "lokasi.cari",
+      "to": "lokasi",
+      "label": "lokasi.*",
       "fromSide": "bottom",
       "toSide": "left"
     },
     {
       "id": "cari-alamat",
-      "from": "cari",
+      "from": "lokasi",
       "to": "nominatim",
-      "label": "cari alamat"
+      "label": "alamat"
     },
     {
       "id": "ubin",
@@ -465,8 +522,9 @@
       "title": "Jalur Cari tempat",
       "items": [
         "room.hitung menjadwalkan hitung.jalankan, dengan batas 50 detik",
-        "Overpass memberi kandidat, OpenRouteService memberi waktu tempuh tiap orang",
-        "Lima tempat dengan waktu tempuh terlama paling pendek disimpan lewat hitung.simpan",
+        "Overpass memberi kandidat, termasuk stasiun KRL dan halte TransJakarta kalau ada yang naik transportasi umum",
+        "OpenRouteService menghitung motor, mobil, dan jalan kaki. Transitous menghitung transportasi umum",
+        "Lima tempat dengan waktu tempuh terlama paling pendek disimpan lewat hitung.simpan, paling banyak dua stasiun",
         "Semua HP di room menerima hasilnya lewat query realtime room.lihat"
       ]
     },
@@ -475,6 +533,8 @@
       "title": "Batas dan privasi",
       "items": [
         "ORS: 30 per menit plus cadangan 10, paling banyak 5 antre",
+        "Transitous: 20 per menit plus cadangan 10. Setelah 429, seluruh app berhenti bertanya mulai 1 menit",
+        "Link ke transitous.org/sources tampil di layar, sesuai syarat Transitous",
         "Nominatim: satu permintaan tiap 1,1 detik, paling banyak 3 antre",
         "Lokasi dibulatkan sekitar 100 m dan dihapus 24 jam setelah room dibuat",
         "Key OpenRouteService hanya ada di env Convex"
