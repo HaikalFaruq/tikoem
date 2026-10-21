@@ -6,6 +6,7 @@ import {
   linkMaps,
   linkRute,
   pesanLokasiTidakTerjangkau,
+  pesanTransportasiUmumTidakTerjangkau,
   teksHasil,
   teksPenetap,
 } from './hasil'
@@ -91,6 +92,8 @@ describe('label dan link', () => {
   it('memberi label kategori yang mudah dibaca', () => {
     expect(labelKategori('mall')).toBe('Mal')
     expect(labelKategori('kafe')).toBe('Kafe')
+    // Nama stasiun dan halte sudah berawalan "Stasiun" atau "Halte", jadi tidak perlu label lagi.
+    expect(labelKategori('stasiun')).toBeNull()
   })
 
   it('membuka rute ke tempat kumpul tanpa menyertakan lokasi asal, dengan mode sesuai kendaraan', () => {
@@ -163,5 +166,26 @@ describe('teksHasil', () => {
     expect(teks).toContain('Sudah fix, sampai ketemu di sana!')
     expect(teks).not.toContain('Dipilih 2 dari 3 orang.')
     expect(teks.endsWith('https://tikoem.vercel.app/r/ABC234')).toBe(true)
+  })
+})
+
+describe('pesanTransportasiUmumTidakTerjangkau', () => {
+  const peserta = [
+    { id: 'h', nama: 'Haikal' },
+    { id: 'b', nama: 'Bintang' },
+  ]
+
+  it('teman lain diminta menunggu orangnya menggeser titik atau ganti kendaraan', () => {
+    const pesan = pesanTransportasiUmumTidakTerjangkau('b', peserta, 'h')
+    expect(pesan).toContain('dari lokasi Bintang')
+    expect(pesan).toContain('Minta Bintang')
+  })
+
+  it('orangnya sendiri diarahkan ke kartu lokasinya', () => {
+    expect(pesanTransportasiUmumTidakTerjangkau('b', peserta, 'b')).toContain('kartu lokasimu')
+  })
+
+  it('tinggal Coba lagi setelah backend tidak lagi menyebut siapa pun', () => {
+    expect(pesanTransportasiUmumTidakTerjangkau(null, peserta, 'h')).toContain('Tekan Coba lagi')
   })
 })

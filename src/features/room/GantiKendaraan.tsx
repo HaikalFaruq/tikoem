@@ -4,6 +4,7 @@ import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
 import { KENDARAAN, labelKendaraan, type Kendaraan } from '../../domain/kendaraan'
 import { PilihanChip, Tombol } from '../../ui'
+import { KeteranganTransportasiUmum } from '../peserta/SumberTransitous'
 import type { IdentitasRoom } from './identitas'
 
 type Props = {
@@ -60,6 +61,7 @@ export function GantiKendaraan({ identitas, kendaraan, utama = false, onIdentita
   return (
     <div className="flex flex-col gap-3 border-t-2 border-garis/15 pt-3" data-ganti-kendaraan>
       <PilihanChip judul="Ganti kendaraan" pilihan={KENDARAAN} nilai={pilihan} onUbah={setPilihan} />
+      {pilihan === 'transportasi_umum' && <KeteranganTransportasiUmum />}
       <p className="text-sm text-teks-redup">Kalau tempatnya sudah dicari, hasilnya perlu dihitung ulang.</p>
       <div className="flex flex-wrap gap-2">
         {/* Bukan langkah utama room, jadi tidak merah: tombol merahnya tetap milik keadaan room (cek-ux.md §1). */}

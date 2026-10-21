@@ -45,7 +45,9 @@ export function KartuTempat({ kandidat, peserta, idSaya, skalaMenit, pilihanSaya
           {kandidat.nama}
         </h3>
         <p className="text-sm text-teks-redup">
-          {labelKategori(kandidat.kategori)} · {kandidat.alamat ?? `${formatJarak(kandidat.jarakDariTengahMeter)} dari titik tengah`}
+          {[labelKategori(kandidat.kategori), kandidat.alamat ?? `${formatJarak(kandidat.jarakDariTengahMeter)} dari titik tengah`]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
       </header>
 

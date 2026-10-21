@@ -4,6 +4,7 @@ import { Map as PetaMapLibre, Marker, NavigationControl, type GeoJSONSource } fr
 import { batasPeta, lingkaranGeo, sebarPinBerdekatan } from '../../domain/peta'
 import type { Titik } from '../../domain/lokasi'
 import { namaPendek } from '../../lib/teks'
+import type { KategoriTempat } from '../../domain/hasil'
 import { Bintang, Pin, type AksesoriPin, type WarnaPin } from '../../ui'
 import { GAYA_PETA, JAKARTA } from './maplibre'
 
@@ -24,6 +25,8 @@ export type KandidatPeta = {
   nama: string
   lokasi: Titik
   peringkat: number
+  /** Stasiun dan halte (#70) diberi penanda kotak dengan gambar kereta, supaya beda dari kafe dan resto. */
+  kategori: KategoriTempat
   /** Suara terbanyak saat ini (pilihanAkhir). Digambar sebagai bintang tempat kumpul. */
   terpilih: boolean
 }
@@ -299,6 +302,7 @@ function PinDiPeta({ pin }: { pin: PinPeta }) {
 
 function PenandaKandidat({ kandidat, redup, onPilih }: { kandidat: KandidatPeta; redup: boolean; onPilih: (peringkat: number) => void }) {
   const label = `${kandidat.nama}, peringkat ${kandidat.peringkat}${kandidat.terpilih ? ', suara terbanyak' : ''}`
+  const stasiun = kandidat.kategori === 'stasiun'
   return (
     <button
       type="button"
@@ -307,6 +311,7 @@ function PenandaKandidat({ kandidat, redup, onPilih }: { kandidat: KandidatPeta;
       onClick={() => onPilih(kandidat.peringkat)}
       data-kandidat-peta={kandidat.peringkat}
       {...(kandidat.terpilih ? { 'data-pilihan-peta': '' } : {})}
+      {...(stasiun ? { 'data-stasiun-peta': '' } : {})}
       className={`flex cursor-pointer flex-col items-center transition-opacity focus-visible:outline-3 focus-visible:outline-pin-2 ${redup ? 'opacity-40' : ''}`}
     >
       {kandidat.terpilih ? (
@@ -316,12 +321,30 @@ function PenandaKandidat({ kandidat, redup, onPilih }: { kandidat: KandidatPeta;
           </span>
           <Bintang ukuran={34} className="animate-jatuh origin-bottom motion-reduce:animate-none" />
         </>
+      ) : stasiun ? (
+        <span className="flex h-7 items-center gap-0.5 rounded-lg border-[2.5px] border-garis bg-kartu pr-1.5 pl-1 text-xs font-extrabold text-teks shadow-stiker-kecil">
+          <GambarKereta />
+          {kandidat.peringkat}
+        </span>
       ) : (
         <span className="grid size-7 place-items-center rounded-full border-[2.5px] border-garis bg-kartu text-xs font-extrabold text-teks shadow-stiker-kecil">
           {kandidat.peringkat}
         </span>
       )}
     </button>
+  )
+}
+
+/** Kereta dari depan, cukup jelas di 14 px untuk stasiun KRL maupun halte TransJakarta. */
+function GambarKereta() {
+  return (
+    <svg viewBox="0 0 14 14" width={14} height={14} aria-hidden fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round">
+      <rect x={2.5} y={1.5} width={9} height={9} rx={2.5} />
+      <path d="M2.5 6 H11.5" />
+      <circle cx={5} cy={8.3} r={0.6} fill="currentColor" />
+      <circle cx={9} cy={8.3} r={0.6} fill="currentColor" />
+      <path d="M4.5 10.5 L3 12.8 M9.5 10.5 L11 12.8" strokeLinecap="round" />
+    </svg>
   )
 }
 
