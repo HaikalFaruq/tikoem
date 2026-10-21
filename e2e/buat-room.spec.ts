@@ -33,6 +33,34 @@ test('membuat room lalu sampai di room sebagai orang ke-1, siap mengundang lewat
   await expect(wa).toHaveAttribute('target', '_blank')
 })
 
+test('pembuat yang masih sendirian melihat ajakan ke grup tanpa menggulir, dengan satu tombol merah (#65)', async ({ page, context }) => {
+  await context.grantPermissions(['geolocation'])
+  await context.setGeolocation({ latitude: -6.226, longitude: 106.858 })
+  await buatRoomLewatLayar(page, 'Haikal')
+  const merah = page.locator('button.bg-merah:visible, a.bg-merah:visible')
+
+  // Belum berbagi lokasi: aksi utamanya lokasi, kartu ajakan sudah terlihat tepat di bawahnya.
+  await expect(page.getByRole('heading', { name: 'Ajak teman-temanmu' })).toBeInViewport()
+  await expect(merah).toHaveCount(1)
+  await expect(merah).toHaveText('Pakai lokasiku sekarang')
+
+  // Lokasi masuk: Kirim ke grup WA jadi satu-satunya tombol merah, dan terlihat tanpa menggulir.
+  await page.getByRole('button', { name: 'Pakai lokasiku sekarang' }).click()
+  await expect(page.getByRole('heading', { name: 'Lokasimu sudah masuk' })).toBeVisible()
+  await expect(merah).toHaveCount(1)
+  await expect(merah).toHaveText('Kirim ke grup WA')
+  await expect(page.getByRole('link', { name: 'Kirim ke grup WA' })).toBeInViewport()
+
+  // Setelah ada teman, kartu ajakan turun ke bawah dan Cari tempat jadi aksi utama.
+  const convex = new ConvexHttpClient(URL_BACKEND)
+  const kode = new URL(page.url()).pathname.split('/').at(-1)!
+  const umar = await convex.mutation(api.room.gabung, { kode, nama: 'Umar', kendaraan: 'motor' })
+  await expect(page.getByRole('heading', { name: 'Undang teman lagi' })).toBeVisible()
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: { lat: -6.262, lng: 106.813 } })
+  await expect(merah).toHaveText('Cari tempat')
+  await expect(merah).toHaveCount(1)
+})
+
 test('nama kosong ditolak sebelum dikirim ke backend', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel('Namamu').fill('   ')

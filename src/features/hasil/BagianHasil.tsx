@@ -116,7 +116,13 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
                 ? 'Yang belum berbagi lokasi tidak ikut dihitung.'
                 : 'Semua sudah siap.'}
           </p>
-          <Tombol onClick={cari} disabled={keadaan.jenis === 'kurang_lokasi' || sibuk} className="w-full">
+          {/* Selagi nonaktif tidak merah, supaya aksi utama keadaan ini (bagikan lokasi atau ajak teman) tetap satu-satunya. */}
+          <Tombol
+            onClick={cari}
+            disabled={keadaan.jenis === 'kurang_lokasi' || sibuk}
+            varian={keadaan.jenis === 'kurang_lokasi' ? 'biasa' : 'utama'}
+            className="min-h-11 w-full"
+          >
             {sibuk ? 'Memulai…' : 'Cari tempat'}
           </Tombol>
         </KartuStiker>

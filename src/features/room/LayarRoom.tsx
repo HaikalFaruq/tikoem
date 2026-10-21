@@ -101,6 +101,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
   const saya = daftar.find((p) => p.id === identitas?.pesertaId) ?? null
   const lokasiJauh =
     saya !== null && room.status === 'gagal' && room.galatHitung === 'LOKASI_TIDAK_TERJANGKAU' && room.pesertaTidakTerjangkau === saya.id
+  const sendirian = daftar.length === 1
   const lupakanIdentitas = () => {
     hapusIdentitas(room.kode)
     setIdentitas(null)
@@ -143,6 +144,11 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             tidakTerjangkau={lokasiJauh}
             onIdentitasHilang={lupakanIdentitas}
           />
+          {/*
+            Selama masih sendirian, mengajak teman adalah langkah berikutnya, jadi kartunya tepat di bawah kartu lokasi
+            supaya terlihat tanpa menggulir (#65). Tombol WA baru merah setelah lokasinya masuk: satu aksi utama per keadaan.
+          */}
+          {sendirian && <BagikanRoom kode={room.kode} sendirian utama={saya.lokasi !== null} />}
           {/* Peta dulu, lalu tombol Cari tempat di bawahnya (diselingi kartu traktir): orang melihat titik tengahnya, lalu tahu langkah berikutnya. */}
           <BagianPeta
             pin={pinPeta}
@@ -160,7 +166,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             identitas={identitas}
             onIdentitasHilang={lupakanIdentitas}
           />
-          <BagikanRoom kode={room.kode} sendirian={daftar.length === 1} />
+          {!sendirian && <BagikanRoom kode={room.kode} sendirian={false} utama={false} />}
         </>
       ) : (
         <KartuStiker as="section" aria-labelledby="gabung-judul" className="flex min-w-0 flex-col gap-5 p-5">
