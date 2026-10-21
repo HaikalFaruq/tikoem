@@ -24,3 +24,9 @@ export const LOKASI_LAYANAN_GAGAL = { lat: 70, lng: 0 }
  * ORS 9 asli (titiknya `null` di `sources`), jadi hitung berakhir dengan LOKASI_TIDAK_TERJANGKAU untuk orang itu.
  */
 export const LOKASI_TIDAK_TERJANGKAU = { lat: -6.05, lng: 106.85 }
+
+/**
+ * Titik di Cileungsi, jauh dari halte TransJakarta dan stasiun KRL. Transitous tiruan tidak menemukan rute dari sini, jadi
+ * orang yang naik transportasi umum dari titik ini membuat hitung berakhir dengan TRANSPORTASI_UMUM_TIDAK_TERJANGKAU.
+ */
+export const LOKASI_TANPA_TRANSPORTASI_UMUM = { lat: -6.4, lng: 107 }

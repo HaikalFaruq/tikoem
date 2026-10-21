@@ -16,6 +16,7 @@ import type * as ors from "../ors.js";
 import type * as overpass from "../overpass.js";
 import type * as pengenal from "../pengenal.js";
 import type * as room from "../room.js";
+import type * as transitous from "../transitous.js";
 
 import type {
   ApiFromModules,
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   overpass: typeof overpass;
   pengenal: typeof pengenal;
   room: typeof room;
+  transitous: typeof transitous;
 }>;
 
 /**

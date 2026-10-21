@@ -5,8 +5,11 @@ export const JUMLAH_KANDIDAT_AKHIR = 5
 
 export type ProfilRute = 'driving-car' | 'foot-walking'
 
-/** OpenRouteService tidak punya profil motor, jadi motor memakai profil mobil (#1). */
-export const PROFIL_RUTE: Record<Kendaraan, ProfilRute> = {
+/**
+ * OpenRouteService tidak punya profil motor, jadi motor memakai profil mobil (#1). Transportasi umum tidak lewat ORS,
+ * melainkan Transitous (Discussions #63).
+ */
+export const PROFIL_RUTE: Record<Exclude<Kendaraan, 'transportasi_umum'>, ProfilRute> = {
   motor: 'driving-car',
   mobil: 'driving-car',
   jalan_kaki: 'foot-walking',

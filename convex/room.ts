@@ -164,6 +164,30 @@ export const kirimLokasi = mutation({
   },
 })
 
+/**
+ * Mengganti kendaraan tanpa keluar room (Discussions #63). Seperti `kirimLokasi`, hasil yang sudah keluar jadi usang kalau
+ * orang itu ikut dihitung.
+ */
+export const ubahKendaraan = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string(), kendaraan: vKendaraan },
+  handler: async (ctx, { pesertaId, kunci, kendaraan }) => {
+    const { peserta, room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    if (peserta.kendaraan === kendaraan) return
+    await ctx.db.patch('peserta', pesertaId, { kendaraan })
+    // Hanya orang yang sudah berbagi lokasi yang ikut dihitung.
+    const usang = peserta.lokasi !== undefined
+    // Orang yang tidak punya rute transportasi umum bisa beralih ke kendaraan lain, jadi tidak disebut lagi. Lokasi yang jauh
+    // dari jalan (LOKASI_TIDAK_TERJANGKAU) tetap bermasalah dengan kendaraan apa pun, jadi orangnya tetap disebut.
+    const tidakDisebutLagi = room.galatHitung === 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU' && room.pesertaTidakTerjangkau === pesertaId
+    if (usang || tidakDisebutLagi) {
+      await ctx.db.patch('room', room._id, {
+        ...(usang ? { versiLokasi: (room.versiLokasi ?? 0) + 1 } : {}),
+        ...(tidakDisebutLagi ? { pesertaTidakTerjangkau: undefined } : {}),
+      })
+    }
+  },
+})
+
 /** Tombol "Cari tempat". Siapa saja di room boleh menekannya setelah minimal 2 orang berbagi lokasi (Discussions #8). */
 export const hitung = mutation({
   args: { pesertaId: v.id('peserta'), kunci: v.string() },
@@ -293,8 +317,9 @@ export const lihat = query({
         titikTengah: room.titikTengah ?? null,
         galatHitung: room.galatHitung ?? null,
         /**
-         * Orang yang lokasinya perlu digeser ke dekat jalan saat galat LOKASI_TIDAK_TERJANGKAU (#53). `null` lagi setelah orang itu
-         * memperbarui lokasinya atau keluar room.
+         * Orang yang lokasinya perlu digeser ke dekat jalan saat galat LOKASI_TIDAK_TERJANGKAU (#53), atau yang tidak punya rute
+         * transportasi umum saat TRANSPORTASI_UMUM_TIDAK_TERJANGKAU (Discussions #63). `null` lagi setelah orang itu memperbarui
+         * lokasinya, mengganti kendaraan setelah galat transportasi umum, atau keluar room.
          */
         pesertaTidakTerjangkau: peserta.find((p) => p._id === room.pesertaTidakTerjangkau)?._id ?? null,
         hasilPada: room.hasilPada ?? null,

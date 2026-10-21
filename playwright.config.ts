@@ -15,7 +15,7 @@ export default defineConfig({
   },
   projects: [{ name: 'mobile', use: { ...devices['Pixel 7'] } }],
   webServer: [
-    // Overpass, ORS, dan Nominatim tiruan. Env Convex diarahkan ke sini oleh e2e/siapkan-backend.ts.
+    // Overpass, ORS, Nominatim, dan Transitous tiruan. Env Convex diarahkan ke sini oleh e2e/siapkan-backend.ts.
     ...(PAKAI_LAYANAN_TIRUAN
       ? [{ command: `node e2e/layanan-tiruan.ts ${PORT_TIRUAN}`, url: `${URL_TIRUAN}/`, reuseExistingServer: false }]
       : []),

@@ -1,7 +1,8 @@
+import type { Kendaraan } from './kendaraan'
 import type { Titik } from './lokasi'
 
 type StatusRoom = 'menunggu_peserta' | 'menghitung' | 'siap' | 'gagal'
-export type GalatHitung = 'TEMPAT_TIDAK_DITEMUKAN' | 'LAYANAN_GAGAL' | 'LOKASI_TIDAK_TERJANGKAU'
+export type GalatHitung = 'TEMPAT_TIDAK_DITEMUKAN' | 'LAYANAN_GAGAL' | 'LOKASI_TIDAK_TERJANGKAU' | 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU'
 export type KategoriTempat = 'kafe' | 'resto' | 'mall' | 'stasiun'
 
 /** Sama dengan syarat `room.hitung` di backend (Discussions #8). */
@@ -78,12 +79,15 @@ export const labelKategori = (kategori: KategoriTempat) => LABEL_KATEGORI[katego
 /** Membuka tempat di Google Maps (atau aplikasi peta bawaan HP) untuk melihat foto, ulasan, dan rute. */
 export const linkMaps = ({ lat, lng }: Titik) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
 
+/** Mode rute Google Maps untuk tiap kendaraan. Motor memakai mode mobil, seperti di OpenRouteService. */
+const MODE_RUTE: Record<Kendaraan, string> = { motor: 'driving', mobil: 'driving', jalan_kaki: 'walking', transportasi_umum: 'transit' }
+
 /**
  * Rute di Google Maps dari lokasi HP sendiri ke tempat kumpul. Titik awalnya diambil Google Maps sendiri,
- * jadi lokasi kita tidak ikut di link. Motor memakai mode mobil, seperti di OpenRouteService.
+ * jadi lokasi kita tidak ikut di link.
  */
-export const linkRute = ({ lat, lng }: Titik, kendaraan: 'motor' | 'mobil' | 'jalan_kaki') =>
-  `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${kendaraan === 'jalan_kaki' ? 'walking' : 'driving'}`
+export const linkRute = ({ lat, lng }: Titik, kendaraan: Kendaraan) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=${MODE_RUTE[kendaraan]}`
 
 type IsiTeksHasil = {
   namaTempat: string

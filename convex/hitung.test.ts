@@ -10,6 +10,7 @@ import { batasLaju } from './batasLaju'
 import { hitungHasil, type PesertaDihitung } from './hitung'
 import { OrsGagal } from './ors'
 import schema from './schema'
+import { TransitousGagal } from './transitous'
 
 // Pola `!(*.*.*)` dari dokumentasi convex-test tidak didukung glob Vite 8, jadi pakai daftar pola dengan pengecualian.
 const modules = import.meta.glob(['./**/*.ts', './**/*.js', '!./**/*.test.ts', '!./**/*.d.ts'])
@@ -32,13 +33,28 @@ type Skenario = {
   /** Detik dari sumber ke-i ke tujuan ke-j. `null` berarti tidak ada rute. */
   detik?: (i: number, j: number, profil: string) => number | null
   ors?: (jumlahSumber: number) => Response | undefined
+  /** Detik transportasi umum dari `asal` ke tujuan ke-j lewat Transitous. `null` berarti tidak ada rute. */
+  umum?: (asal: { lat: number; lng: number }, j: number) => number | null
 }
 
-/** `fetch` tiruan untuk Overpass dan ORS sekaligus. */
-function tiruanFetch({ tempat = TEMPAT, detik = (i, j) => 600 + i * 300 + j * 60, ors }: Skenario = {}) {
+/** `fetch` tiruan untuk Overpass, ORS, dan Transitous sekaligus. */
+function tiruanFetch({ tempat = TEMPAT, detik = (i, j) => 600 + i * 300 + j * 60, ors, umum = (_, j) => 1500 + j * 60 }: Skenario = {}) {
   const panggilanOrs: { profil: string; tujuan: number }[] = []
+  const panggilanUmum: { asal: string; tujuan: number }[] = []
   const ambil = vi.fn<typeof fetch>(async (url, init = {}) => {
     const alamat = String(url)
+    if (alamat.includes('one-to-many-intermodal')) {
+      const kueri = new URL(alamat).searchParams
+      const asal = kueri.get('one')!
+      const [lat, lng] = asal.split(';').map(Number)
+      const tujuan = kueri.get('many')!.split(',')
+      panggilanUmum.push({ asal, tujuan: tujuan.length })
+      const detikUmum = tujuan.map((_, j) => umum({ lat, lng }, j))
+      return Response.json({
+        street_durations: tujuan.map(() => ({})),
+        transit_durations: detikUmum.map((d) => (d === null ? [] : [{ duration: d, transfers: 1 }])),
+      })
+    }
     if (alamat.includes('openrouteservice')) {
       const profil = alamat.split('/').at(-1)!
       const isi = JSON.parse(String(init.body)) as { sources: number[]; destinations: number[] }
@@ -49,7 +65,7 @@ function tiruanFetch({ tempat = TEMPAT, detik = (i, j) => 600 + i * 300 + j * 60
     }
     return Response.json({ elements: tempat })
   })
-  return { ambil, panggilanOrs }
+  return { ambil, panggilanOrs, panggilanUmum }
 }
 
 const peserta = (id: string, kendaraan: PesertaDihitung['kendaraan'], lokasi: { lat: number; lng: number }): PesertaDihitung => ({
@@ -152,6 +168,96 @@ describe('hitungHasil', () => {
     const { ambil } = tiruanFetch()
     await expect(hitungHasil(TIGA_ORANG, { kunciOrs: undefined, ambil })).rejects.toThrow(OrsGagal)
     expect(ambil).not.toHaveBeenCalled()
+  })
+})
+
+describe('hitungHasil dengan transportasi umum (Discussions #63)', () => {
+  const URL_TRANSITOUS = 'http://127.0.0.1:4319/transitous'
+  /** Haikal naik motor, Bintang dan Umar naik transportasi umum. */
+  const ORANG_CAMPUR = [
+    peserta('haikal', 'motor', KEMANG),
+    peserta('bintang', 'transportasi_umum', TEBET),
+    peserta('umar', 'transportasi_umum', GADING),
+  ]
+  /** Dari Tebet 25 menit dan dari Kelapa Gading 40 menit ke tempat pertama, lalu tiap tempat berikutnya 1 menit lebih jauh. */
+  const umumDariAsal = (asal: { lat: number }, j: number) => (asal.lat === TEBET.lat ? 1500 : 2400) + j * 60
+
+  it('orang yang naik transportasi umum dihitung lewat Transitous, satu permintaan per orang, sisanya lewat ORS', async () => {
+    const { ambil, panggilanOrs, panggilanUmum } = tiruanFetch({ umum: umumDariAsal })
+    const hasil = await hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS })
+    if ('galat' in hasil) throw new Error(hasil.galat)
+
+    expect(panggilanUmum.map((p) => p.asal).toSorted()).toEqual(['-6.158;106.905', '-6.226;106.858'])
+    expect(panggilanUmum.every((p) => p.tujuan === 6)).toBe(true)
+    expect(panggilanOrs).toEqual([{ profil: 'driving-car', tujuan: 6 }])
+    expect(hasil.kandidat.find((k) => k.nama === 'Tempat 1')?.waktuTempuh).toEqual([
+      { pesertaId: 'haikal', menit: 10 },
+      { pesertaId: 'bintang', menit: 25 },
+      { pesertaId: 'umar', menit: 40 },
+    ])
+  })
+
+  it('TRANSPORTASI_UMUM_TIDAK_TERJANGKAU dengan orangnya kalau Transitous tidak menemukan rute ke tempat mana pun', async () => {
+    const { ambil } = tiruanFetch({ umum: (asal, j) => (asal.lat === GADING.lat ? null : umumDariAsal(asal, j)) })
+    expect(await hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS })).toEqual({
+      galat: 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU',
+      pesertaTidakTerjangkau: 'umar',
+    })
+  })
+
+  it('membuang tempat yang tidak punya rute transportasi umum', async () => {
+    const { ambil } = tiruanFetch({ umum: (asal, j) => (j === 0 ? null : umumDariAsal(asal, j)) })
+    const hasil = await hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS })
+    if ('galat' in hasil) throw new Error(hasil.galat)
+    expect(hasil.kandidat.map((k) => k.nama)).toEqual(['Tempat 2', 'Tempat 3', 'Tempat 4', 'Tempat 5', 'Tempat 6'])
+  })
+
+  it('waktu transportasi umum tetap cocok dengan tempatnya setelah ORS membuang tempat yang jauh dari jalan', async () => {
+    let ditolak = false
+    const { ambil } = tiruanFetch({
+      umum: umumDariAsal,
+      // Permintaan ORS pertama menolak tempat pertama: urutan titiknya sesudah semua sumber.
+      ors: (jumlahSumber) => {
+        if (ditolak) return undefined
+        ditolak = true
+        return Response.json({ error: { code: 6010, message: `Could not find routable point ... coordinate ${jumlahSumber}: 1 2.` } }, { status: 404 })
+      },
+    })
+    const hasil = await hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS })
+    if ('galat' in hasil) throw new Error(hasil.galat)
+
+    // Tempat ke-n berjarak 25 + (n - 1) menit dari Tebet.
+    expect(hasil.kandidat.map((k) => [k.nama, k.waktuTempuh.find((w) => w.pesertaId === 'bintang')?.menit])).toEqual([
+      ['Tempat 2', 26],
+      ['Tempat 3', 27],
+      ['Tempat 4', 28],
+      ['Tempat 5', 29],
+      ['Tempat 6', 30],
+    ])
+  })
+
+  it('TEMPAT_TIDAK_DITEMUKAN tanpa bertanya ke Transitous kalau tidak ada tempat di sekitar titik tengah', async () => {
+    const { ambil, panggilanUmum } = tiruanFetch({ tempat: [] })
+    expect(await hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS })).toEqual({
+      galat: 'TEMPAT_TIDAK_DITEMUKAN',
+    })
+    expect(panggilanUmum).toEqual([])
+  })
+
+  it('melempar TransitousGagal kalau Transitous belum disambungkan, sebelum memanggil layanan apa pun', async () => {
+    const { ambil } = tiruanFetch()
+    await expect(hitungHasil(ORANG_CAMPUR, { kunciOrs: 'k', ambil })).rejects.toThrow(TransitousGagal)
+    expect(ambil).not.toHaveBeenCalled()
+  })
+
+  it('room yang semuanya naik transportasi umum tidak memanggil ORS dan tidak butuh key-nya', async () => {
+    const { ambil, panggilanOrs, panggilanUmum } = tiruanFetch({ umum: umumDariAsal })
+    const semuaUmum = ORANG_CAMPUR.slice(1)
+    const hasil = await hitungHasil(semuaUmum, { kunciOrs: undefined, ambil, urlTransitous: URL_TRANSITOUS })
+    if ('galat' in hasil) throw new Error(hasil.galat)
+    expect(hasil.kandidat).toHaveLength(5)
+    expect(panggilanOrs).toEqual([])
+    expect(panggilanUmum).toHaveLength(2)
   })
 })
 
@@ -356,6 +462,37 @@ describe('alur hitung di Convex', () => {
     await t.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: TEBET })
     // Galatnya tetap sampai dicari lagi, tapi Umar tidak lagi disebut.
     expect((await lihat(t, kode)).room).toMatchObject({ status: 'gagal', galatHitung: 'LOKASI_TIDAK_TERJANGKAU', pesertaTidakTerjangkau: null })
+  })
+
+  it('transportasi umum dihitung lewat TRANSITOUS_URL, dan tanpa env itu hitung berakhir LAYANAN_GAGAL', async () => {
+    const tiruan = tiruanFetch()
+    vi.stubGlobal('fetch', tiruan.ambil)
+    const { t, kode, roomId, haikal, umar } = await roomTigaOrang()
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: umar.pesertaId, kunci: umar.kunci, kendaraan: 'transportasi_umum' })
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+    expect((await lihat(t, kode)).room).toMatchObject({ status: 'gagal', galatHitung: 'LAYANAN_GAGAL' })
+    expect(tiruan.panggilanUmum).toEqual([])
+
+    vi.stubEnv('TRANSITOUS_URL', 'http://127.0.0.1:4319/transitous')
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 2 })
+    expect((await lihat(t, kode)).room.status).toBe('siap')
+    expect(tiruan.panggilanUmum.map((p) => p.asal)).toEqual(['-6.158;106.905'])
+  })
+
+  it('TRANSPORTASI_UMUM_TIDAK_TERJANGKAU menyebut orang yang tidak punya rute transportasi umum', async () => {
+    vi.stubEnv('TRANSITOUS_URL', 'http://127.0.0.1:4319/transitous')
+    vi.stubGlobal('fetch', tiruanFetch({ umum: () => null }).ambil)
+    const { t, kode, roomId, haikal, umar } = await roomTigaOrang()
+    await t.mutation(api.room.ubahKendaraan, { pesertaId: umar.pesertaId, kunci: umar.kunci, kendaraan: 'transportasi_umum' })
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+    expect((await lihat(t, kode)).room).toMatchObject({
+      status: 'gagal',
+      galatHitung: 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU',
+      pesertaTidakTerjangkau: umar.pesertaId,
+    })
   })
 
   it('batas waktu menggagalkan hitung yang tergantung, dan hasil dari putaran lama diabaikan', async () => {

@@ -1,5 +1,5 @@
-// Server tiruan untuk Overpass, OpenRouteService, dan Nominatim selama E2E. Jawabannya selalu sama, tanpa membebani
-// server asli dan tanpa key ORS. Dijalankan langsung oleh Node (`node e2e/layanan-tiruan.ts <port>`), jadi hanya
+// Server tiruan untuk Overpass, OpenRouteService, Nominatim, dan Transitous selama E2E. Jawabannya selalu sama, tanpa
+// membebani server asli dan tanpa key ORS. Dijalankan langsung oleh Node (`node e2e/layanan-tiruan.ts <port>`), jadi hanya
 // memakai modul bawaan Node dan sintaks TypeScript yang bisa dibuang begitu saja.
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 
@@ -73,6 +73,30 @@ function matriks(profil: string, isi: { locations: number[][]; sources: number[]
   }
 }
 
+/** Cileungsi, `LOKASI_TANPA_TRANSPORTASI_UMUM` di e2e/backend.ts. Tidak ada halte atau stasiun di dekatnya. */
+const jauhDariHalte = ([lng, lat]: number[]) => lat > -6.45 && lat < -6.35 && lng > 106.95 && lng < 107.05
+
+/** "lintang;bujur" dari MOTIS jadi [bujur, lintang], urutan yang dipakai `jarakMeter`. */
+function titikMotis(teks: string) {
+  const [lat, lng] = teks.split(';').map(Number)
+  return [lng, lat]
+}
+
+/**
+ * Transitous `one-to-many-intermodal`. Jalan kaki langsung hanya sampai 30 menit, seperti `maxDirectTime` bawaan MOTIS.
+ * Transportasi umum makan 10 menit ke dan dari halte, lalu 6 meter per detik dari jarak garis lurus. Seperti MOTIS asli,
+ * jawabannya `{}` kalau tidak ada rute ke tujuan mana pun.
+ */
+function transitous(kueri: URLSearchParams) {
+  const asal = titikMotis(kueri.get('one') ?? '')
+  if (jauhDariHalte(asal)) return {}
+  const jarak = (kueri.get('many') ?? '').split(',').map((t) => jarakMeter(asal, titikMotis(t)))
+  return {
+    street_durations: jarak.map((m) => (m / 1.3 <= 1800 ? { duration: Math.round(m / 1.3) } : {})),
+    transit_durations: jarak.map((m) => [{ duration: 600 + Math.round(m / 6), transfers: 1 }]),
+  }
+}
+
 /** Dua pilihan alamat. Teks yang mengandung "gagal" membuat layanan menjawab 503, untuk menguji LAYANAN_GAGAL. */
 function nominatim(q: string) {
   if (/gagal/i.test(q)) return null
@@ -109,6 +133,10 @@ createServer(async (permintaan, jawaban) => {
     if (permintaan.method === 'GET' && url.pathname === '/nominatim/search') {
       const hasil = nominatim(url.searchParams.get('q') ?? '')
       return hasil ? kirim(jawaban, 200, hasil) : kirim(jawaban, 503, { error: 'layanan tiruan sengaja gagal' })
+    }
+
+    if (permintaan.method === 'GET' && url.pathname === '/transitous/api/experimental/one-to-many-intermodal') {
+      return kirim(jawaban, 200, transitous(url.searchParams))
     }
 
     if (permintaan.method === 'GET' && url.pathname === '/nominatim/reverse') {

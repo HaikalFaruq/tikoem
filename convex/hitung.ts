@@ -6,6 +6,7 @@ import { tungguGiliran } from './batasLaju'
 import { cariTempatSekitar } from './overpass'
 import { KODE_TITIK_TIDAK_TERJANGKAU, OrsGagal, matriksDurasi, type OpsiOrs } from './ors'
 import { vGalatHitung, vKandidat, vTitik } from './schema'
+import { TransitousGagal, durasiTransportasiUmum } from './transitous'
 import { PROFIL_RUTE, menitDariDetik, peringkatKandidat } from '../src/domain/keadilan'
 import type { Kendaraan } from '../src/domain/kendaraan'
 import type { Titik } from '../src/domain/lokasi'
@@ -109,13 +110,14 @@ export const jalankan = internalAction({
         kunciOrs: env.ORS_API_KEY,
         urlOverpass: env.OVERPASS_URL,
         urlOrs: env.ORS_URL,
+        urlTransitous: env.TRANSITOUS_URL,
         // Batas per menit hanya untuk ORS asli. Server lain yang diisi lewat ORS_URL, termasuk tiruan E2E, tidak antre.
         antreOrs: env.ORS_URL ? undefined : () => giliranOrs(ctx),
       })
       if ('galat' in hasil) await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, ...hasil })
       else await ctx.runMutation(internal.hitung.simpan, { roomId, putaran, versiLokasi: data.versiLokasi, ...hasil })
     } catch (galat) {
-      // Pesan galat Overpass dan ORS sengaja tidak memuat koordinat, jadi aman ditulis ke log (AGENTS.md §8).
+      // Pesan galat Overpass, ORS, dan Transitous sengaja tidak memuat koordinat, jadi aman ditulis ke log (AGENTS.md §8).
       console.error(`Hitung room gagal: ${galat instanceof Error ? galat.message : 'galat tidak dikenal'}`)
       await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: 'LAYANAN_GAGAL' })
     }
@@ -133,13 +135,21 @@ export type OpsiHitung = {
   /** Kosong berarti server asli. Diisi dari env `OVERPASS_URL` dan `ORS_URL`, misalnya oleh E2E. */
   urlOverpass?: string
   urlOrs?: string
+  /**
+   * Dari env `TRANSITOUS_URL`. Kosong berarti Transitous belum disambungkan, karena izinnya belum jelas (#58), jadi
+   * transportasi umum belum bisa dihitung. E2E mengisinya dengan server tiruan.
+   */
+  urlTransitous?: string
   /** Dipanggil sebelum tiap permintaan ORS. */
   antreOrs?: () => Promise<void>
 }
 export type HasilHitung =
   | { titikTengah: Titik; kandidat: Infer<typeof vKandidat>[] }
   | { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
-  | { galat: 'LOKASI_TIDAK_TERJANGKAU'; pesertaTidakTerjangkau: Id<'peserta'> }
+  | { galat: 'LOKASI_TIDAK_TERJANGKAU' | 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU'; pesertaTidakTerjangkau: Id<'peserta'> }
+
+/** Profil ORS untuk kendaraan itu, atau `null` untuk transportasi umum yang dihitung lewat Transitous. */
+const profilRute = (kendaraan: Kendaraan) => (kendaraan === 'transportasi_umum' ? null : PROFIL_RUTE[kendaraan])
 
 /** Tempat yang terlalu jauh dari jalan, sehingga ORS menolak seluruh matriks. */
 class TempatTakTerjangkau extends Error {
@@ -159,26 +169,48 @@ class PesertaTakTerjangkau extends Error {
 }
 
 /**
- * Titik tengah, kandidat dari Overpass, waktu tempuh lewat ORS, lalu 5 kandidat paling adil.
+ * Titik tengah, kandidat dari Overpass, waktu tempuh lewat ORS dan Transitous, lalu 5 kandidat paling adil.
  * Melempar galat kalau layanan luar gagal. Hasil `{ galat }` berarti memang tidak ada tempat yang bisa dipakai.
  */
 export async function hitungHasil(
   peserta: readonly PesertaDihitung[],
-  { kunciOrs, ambil = fetch, urlOverpass, urlOrs, antreOrs }: OpsiHitung,
+  { kunciOrs, ambil = fetch, urlOverpass, urlOrs, urlTransitous, antreOrs }: OpsiHitung,
 ): Promise<HasilHitung> {
   const tengah = titikTengah(peserta.map((p) => p.lokasi))
   if (!tengah) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
-  if (!kunciOrs) throw new OrsGagal('ORS_API_KEY belum diisi di env Convex')
+  if (!kunciOrs && peserta.some((p) => profilRute(p.kendaraan) !== null)) throw new OrsGagal('ORS_API_KEY belum diisi di env Convex')
+  const naikUmum = peserta.filter((p) => p.kendaraan === 'transportasi_umum')
+  if (!urlTransitous && naikUmum.length > 0) {
+    throw new TransitousGagal('TRANSITOUS_URL belum diisi, jadi transportasi umum belum bisa dihitung')
+  }
 
   let tempat = await cariTempatSekitar(tengah.titik, tengah.radiusMeter, {
     ambil,
     batasMs: 15_000,
     server: urlOverpass ? [urlOverpass] : undefined,
   })
+  if (tempat.length === 0) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
+
+  // Satu permintaan Transitous per orang ke semua tempat, sekali saja. Menitnya disimpan menurut `osmId` tempatnya, jadi
+  // tetap cocok walaupun ORS nanti membuang tempat yang jauh dari jalan.
+  const menitUmum = new Map<Id<'peserta'>, Map<string, number>>()
+  for (const p of naikUmum) {
+    const detik = await durasiTransportasiUmum(p.lokasi, tempat.map((t) => t.lokasi), { urlDasar: urlTransitous!, ambil })
+    if (detik.every((d) => d === null)) return { galat: 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU', pesertaTidakTerjangkau: p.id }
+    const menitTempat = new Map<string, number>()
+    tempat.forEach((t, j) => {
+      const d = detik[j]
+      if (d !== null) menitTempat.set(t.osmId, menitDariDetik(d))
+    })
+    menitUmum.set(p.id, menitTempat)
+  }
+
   // Tempat yang ditolak ORS dibuang, lalu dicoba lagi. Tiga kali sudah lebih dari cukup untuk data kota.
   for (let percobaan = 0; percobaan < 3 && tempat.length > 0; percobaan++) {
     try {
-      const menit = await menitTiapPeserta(peserta, tempat, { kunci: kunciOrs, ambil, urlDasar: urlOrs, antre: antreOrs })
+      // Tanpa orang yang lewat ORS, key-nya tidak pernah dipakai.
+      const opsiOrs = { kunci: kunciOrs ?? '', ambil, urlDasar: urlOrs, antre: antreOrs }
+      const menit = await menitTiapPeserta(peserta, tempat, menitUmum, opsiOrs)
       const terjangkau = tempat.flatMap((t, j) => {
         if (peserta.some((_, i) => menit[i][j] === null)) return []
         return [
@@ -200,15 +232,19 @@ export async function hitungHasil(
   return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
 }
 
-/** Menit dari tiap peserta ke tiap tempat. Satu permintaan ORS untuk tiap profil rute yang dipakai. */
+/**
+ * Menit dari tiap peserta ke tiap tempat. Satu permintaan ORS untuk tiap profil rute yang dipakai. Orang yang naik
+ * transportasi umum memakai `menitUmum` dari Transitous, dan tempat yang tidak ada di sana tidak punya rute.
+ */
 async function menitTiapPeserta(
   peserta: readonly PesertaDihitung[],
   tempat: readonly Tempat[],
+  menitUmum: ReadonlyMap<Id<'peserta'>, ReadonlyMap<string, number>>,
   opsiOrs: OpsiOrs,
 ): Promise<(number | null)[][]> {
-  const menit: (number | null)[][] = peserta.map(() => [])
-  for (const profil of new Set(peserta.map((p) => PROFIL_RUTE[p.kendaraan]))) {
-    const anggota = peserta.flatMap((p, i) => (PROFIL_RUTE[p.kendaraan] === profil ? [i] : []))
+  const menit: (number | null)[][] = peserta.map((p) => tempat.map((t) => menitUmum.get(p.id)?.get(t.osmId) ?? null))
+  for (const profil of new Set(peserta.flatMap((p) => profilRute(p.kendaraan) ?? []))) {
+    const anggota = peserta.flatMap((p, i) => (profilRute(p.kendaraan) === profil ? [i] : []))
     let durasi: (number | null)[][]
     try {
       durasi = await matriksDurasi(
