@@ -3,6 +3,7 @@ import { ConvexError } from 'convex/values'
 import { KENDARAAN, type Kendaraan } from '../../domain/kendaraan'
 import { MAKS_PANJANG_NAMA, rapikanNama } from '../../domain/peserta'
 import { IsianTeks, PilihanChip, Tombol } from '../../ui'
+import { KeteranganTransportasiUmum } from './SumberTransitous'
 
 const PESAN_NAMA = `Isi namamu, maksimal ${MAKS_PANJANG_NAMA} karakter.`
 const PESAN_UMUM = 'Belum berhasil. Cek koneksi internetmu, lalu coba lagi.'
@@ -59,7 +60,10 @@ export function FormPeserta({ labelTombol, labelMengirim, onKirim, pesanGalat }:
         keterangan="Teman-temanmu melihat nama ini di room."
         galat={galatNama}
       />
-      <PilihanChip judul="Kamu berangkat naik apa?" pilihan={KENDARAAN} nilai={kendaraan} onUbah={setKendaraan} />
+      <div className="flex flex-col gap-2">
+        <PilihanChip judul="Kamu berangkat naik apa?" pilihan={KENDARAAN} nilai={kendaraan} onUbah={setKendaraan} />
+        {kendaraan === 'transportasi_umum' && <KeteranganTransportasiUmum />}
+      </div>
       {galatUmum && (
         <p role="alert" className="text-sm font-semibold">
           {galatUmum}

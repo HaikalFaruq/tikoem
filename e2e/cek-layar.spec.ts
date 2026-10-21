@@ -2,7 +2,7 @@ import { test, type Browser, type Page } from '@playwright/test'
 import { ConvexHttpClient } from 'convex/browser'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { api } from '../convex/_generated/api'
-import { LOKASI_LAYANAN_GAGAL, LOKASI_TIDAK_TERJANGKAU, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
+import { LOKASI_LAYANAN_GAGAL, LOKASI_TANPA_TRANSPORTASI_UMUM, LOKASI_TIDAK_TERJANGKAU, PAKAI_LAYANAN_TIRUAN, URL_BACKEND } from './backend'
 
 /**
  * Bukan test biasa: memotret layar-layar penting supaya bisa dicek sebelum push (docs/desain/cek-ux.md).
@@ -142,6 +142,34 @@ test('ganti kendaraan', async ({ browser }) => {
       await halaman.getByRole('button', { name: 'Ganti kendaraan' }).click()
       await halaman.getByText('Jalan kaki', { exact: true }).click()
     },
+  })
+})
+
+test('hasil dengan transportasi umum', async ({ browser }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const gita = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Gita', kendaraan: 'transportasi_umum' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.226, lng: 106.838 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: gita.pesertaId, kunci: gita.kunci, lokasi: { lat: -6.226, lng: 106.878 } })
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await tungguStatus(haikal.kode, 'siap')
+  await potret(browser, 'room-transportasi-umum', 'Gita naik transportasi umum: catatan Transitous, stasiun dan halte di kartu dan peta', {
+    url: `/r/${haikal.kode}`,
+    sebagai: { kode: haikal.kode, identitas: gita },
+    tunggu: petaSiap,
+  })
+})
+
+test('kartu lokasi tanpa rute transportasi umum', async ({ browser }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const gita = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Gita', kendaraan: 'transportasi_umum' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.262, lng: 106.813 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: gita.pesertaId, kunci: gita.kunci, lokasi: LOKASI_TANPA_TRANSPORTASI_UMUM })
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  await tungguStatus(haikal.kode, 'gagal')
+  await potret(browser, 'lokasi-tanpa-rute', 'Gita di Cileungsi: belum ada rute transportasi umum, Ganti kendaraan jadi aksi utama', {
+    url: `/r/${haikal.kode}`,
+    sebagai: { kode: haikal.kode, identitas: gita },
+    halamanPenuh: false,
   })
 })
 

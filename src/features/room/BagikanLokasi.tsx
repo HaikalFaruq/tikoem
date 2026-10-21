@@ -23,6 +23,11 @@ type Props = {
    * begitu aku mengirim lokasi baru (#59).
    */
   tidakTerjangkau: boolean
+  /**
+   * Pencarian terakhir gagal karena dari lokasiku tidak ada rute transportasi umum (TRANSPORTASI_UMUM_TIDAK_TERJANGKAU):
+   * halte atau stasiun terdekat lebih dari 15 menit jalan kaki. Kosong lagi setelah lokasi atau kendaraanku berubah.
+   */
+  tanpaRute: boolean
   /** Dipanggil kalau backend tidak mengenali identitas ini lagi, misalnya orangnya sudah keluar room. */
   onIdentitasHilang: () => void
 }
@@ -48,7 +53,7 @@ function ambilPosisi(): Promise<Posisi> {
   })
 }
 
-export function BagikanLokasi({ identitas, sudahAda, kendaraan, pin, awalPeta, tidakTerjangkau: lokasiJauh, onIdentitasHilang }: Props) {
+export function BagikanLokasi({ identitas, sudahAda, kendaraan, pin, awalPeta, tidakTerjangkau: lokasiJauh, tanpaRute, onIdentitasHilang }: Props) {
   const kirimLokasi = useMutation(api.room.kirimLokasi)
   const [status, setStatus] = useState<'diam' | 'mencari' | 'menyimpan'>('diam')
   const [galat, setGalat] = useState<string | null>(null)
@@ -97,15 +102,21 @@ export function BagikanLokasi({ identitas, sudahAda, kendaraan, pin, awalPeta, t
     return (
       <KartuStiker as="section" aria-labelledby="lokasi-judul" className="flex min-w-0 flex-col gap-3 p-4">
         <div className="flex items-center gap-3">
-          <Pin {...pin} ekspresi={lokasiJauh ? 'kaget' : 'senang'} ukuran={32} />
+          <Pin {...pin} ekspresi={lokasiJauh || tanpaRute ? 'kaget' : 'senang'} ukuran={32} />
           <div className="flex min-w-0 flex-1 flex-col">
             <h2 id="lokasi-judul" className="font-bold">
-              {lokasiJauh ? 'Lokasimu terlalu jauh dari jalan' : 'Lokasimu sudah masuk'}
+              {lokasiJauh
+                ? 'Lokasimu terlalu jauh dari jalan'
+                : tanpaRute
+                  ? 'Belum ada rute transportasi umum dari lokasimu'
+                  : 'Lokasimu sudah masuk'}
             </h2>
             <p className="text-sm text-teks-redup">
               {lokasiJauh
                 ? 'Waktu tempuhnya tidak bisa dihitung. Pilih titik yang dekat jalan, lalu tekan Coba lagi di bagian Cari tempat.'
-                : 'Disamarkan sekitar 100 m, jadi rumahmu tidak terlihat persis.'}
+                : tanpaRute
+                  ? 'Halte TransJakarta atau stasiun KRL terdekat lebih dari 15 menit jalan kaki. Ganti kendaraan, atau geser titikmu ke dekat halte atau stasiun, lalu tekan Coba lagi di bagian Cari tempat.'
+                  : 'Disamarkan sekitar 100 m, jadi rumahmu tidak terlihat persis.'}
             </p>
           </div>
         </div>
@@ -126,7 +137,7 @@ export function BagikanLokasi({ identitas, sudahAda, kendaraan, pin, awalPeta, t
             )}
             {!lokasiJauh && (
               <Tombol varian="biasa" onClick={() => setCara('peta')} disabled={sibuk}>
-                Pilih di peta
+                {tanpaRute ? 'Pilih titik di peta' : 'Pilih di peta'}
               </Tombol>
             )}
           </div>
@@ -138,7 +149,10 @@ export function BagikanLokasi({ identitas, sudahAda, kendaraan, pin, awalPeta, t
         )}
         {cara === 'alamat' && <CariAlamat onPilih={simpan} sibuk={sibuk} />}
         {cara === 'peta' && peta}
-        {cara === null && <GantiKendaraan identitas={identitas} kendaraan={kendaraan} onIdentitasHilang={onIdentitasHilang} />}
+        {cara === null && (
+          // Ganti kendaraan jalan keluar yang paling cepat kalau tidak ada rute transportasi umum, jadi aksi utamanya.
+          <GantiKendaraan identitas={identitas} kendaraan={kendaraan} utama={tanpaRute} onIdentitasHilang={onIdentitasHilang} />
+        )}
       </KartuStiker>
     )
   }

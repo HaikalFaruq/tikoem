@@ -52,6 +52,24 @@ export function barisWaktuTempuh<Id, P extends { id: Id; urutanGabung: number }>
 }
 
 /**
+ * Pesan galat TRANSPORTASI_UMUM_TIDAK_TERJANGKAU (Discussions #63): halte atau stasiun terdekat lebih dari 15 menit jalan
+ * kaki. Orangnya sendiri mendapat jalan keluar di kartu lokasinya. Kalau dia sudah ganti kendaraan, memperbarui lokasi,
+ * atau keluar room, backend tidak lagi menyebutnya.
+ */
+export function pesanTransportasiUmumTidakTerjangkau<Id>(
+  idTakTerjangkau: Id | null,
+  peserta: readonly { id: Id; nama: string }[],
+  idSaya: Id,
+) {
+  const orang = peserta.find((p) => p.id === idTakTerjangkau)
+  if (!orang) return 'Yang tadi belum punya rute transportasi umum sudah mengganti lokasi atau kendaraannya. Tekan Coba lagi untuk mencari tempat.'
+  if (orang.id === idSaya) {
+    return 'Belum ada rute transportasi umum dari lokasimu. Geser titikmu atau ganti kendaraan di kartu lokasimu, lalu coba lagi.'
+  }
+  return `Belum ada rute transportasi umum dari lokasi ${orang.nama}, karena halte atau stasiun terdekat lebih dari 15 menit jalan kaki. Minta ${orang.nama} menggeser titiknya atau ganti kendaraan, lalu coba lagi.`
+}
+
+/**
  * Pesan galat LOKASI_TIDAK_TERJANGKAU (#53): siapa yang perlu memperbarui lokasinya ke titik yang dekat jalan.
  * Kalau orangnya sudah memperbarui lokasinya atau keluar room, backend tidak lagi menyebutnya, jadi tinggal mencari lagi.
  */
@@ -73,7 +91,8 @@ export function teksPenetap<Id>(olehPesertaId: Id, peserta: readonly { id: Id; n
   return orang ? `Ditetapkan oleh ${orang.nama}` : 'Ditetapkan'
 }
 
-const LABEL_KATEGORI: Record<KategoriTempat, string> = { kafe: 'Kafe', resto: 'Resto', mall: 'Mal', stasiun: 'Stasiun' }
+/** Stasiun dan halte tanpa label, karena namanya sudah berawalan "Stasiun" atau "Halte" (#70). */
+const LABEL_KATEGORI: Record<KategoriTempat, string | null> = { kafe: 'Kafe', resto: 'Resto', mall: 'Mal', stasiun: null }
 export const labelKategori = (kategori: KategoriTempat) => LABEL_KATEGORI[kategori]
 
 /** Membuka tempat di Google Maps (atau aplikasi peta bawaan HP) untuk melihat foto, ulasan, dan rute. */

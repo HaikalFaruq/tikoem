@@ -101,6 +101,11 @@ export function LayarRoom({ kode, keBeranda }: Props) {
   const saya = daftar.find((p) => p.id === identitas?.pesertaId) ?? null
   const lokasiJauh =
     saya !== null && room.status === 'gagal' && room.galatHitung === 'LOKASI_TIDAK_TERJANGKAU' && room.pesertaTidakTerjangkau === saya.id
+  const tanpaRute =
+    saya !== null &&
+    room.status === 'gagal' &&
+    room.galatHitung === 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU' &&
+    room.pesertaTidakTerjangkau === saya.id
   const sendirian = daftar.length === 1
   const lupakanIdentitas = () => {
     hapusIdentitas(room.kode)
@@ -143,6 +148,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
               daftar.flatMap((p) => (p.lokasi && p.id !== saya.id ? [p.lokasi] : [])),
             )}
             tidakTerjangkau={lokasiJauh}
+            tanpaRute={tanpaRute}
             onIdentitasHilang={lupakanIdentitas}
           />
           {/*

@@ -3,10 +3,12 @@ import { useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
-import { keadaanCariTempat, pesanLokasiTidakTerjangkau, type GalatHitung } from '../../domain/hasil'
+import { keadaanCariTempat, pesanLokasiTidakTerjangkau, pesanTransportasiUmumTidakTerjangkau, type GalatHitung } from '../../domain/hasil'
+import { dihitungAkhirPekan } from '../../domain/transportasiUmum'
 import { pilihanAkhir } from '../../domain/vote'
 import { warnaPin } from '../../domain/warnaPin'
 import { KartuStiker, Pin, Tombol } from '../../ui'
+import { KeteranganTransportasiUmum } from '../peserta/SumberTransitous'
 import type { IdentitasRoom } from '../room/identitas'
 import { KartuHasil } from './KartuHasil'
 import { KartuTempat } from './KartuTempat'
@@ -23,13 +25,10 @@ type Props = {
 /** Overpass dan OpenRouteService bisa makan puluhan detik, jadi setelah ini layar memberi tahu bahwa pencarian masih jalan. */
 const LAMA_MENGHITUNG_MS = 10_000
 
-/** LOKASI_TIDAK_TERJANGKAU menyebut nama orangnya, jadi pesannya dari `pesanLokasiTidakTerjangkau`. */
-const PESAN_GAGAL: Record<Exclude<GalatHitung, 'LOKASI_TIDAK_TERJANGKAU'>, string> = {
+/** Galat yang menyebut nama orangnya punya fungsi pesan sendiri di domain/hasil.ts. */
+const PESAN_GAGAL: Record<Exclude<GalatHitung, 'LOKASI_TIDAK_TERJANGKAU' | 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU'>, string> = {
   TEMPAT_TIDAK_DITEMUKAN: 'Tidak ada kafe, resto, atau mal di sekitar titik tengah. Coba lagi setelah ada lokasi yang berubah.',
   LAYANAN_GAGAL: 'Layanan peta sedang gangguan, jadi tempatnya belum bisa dicari. Coba lagi sebentar lagi.',
-  // Sementara, sampai pesan di kartu lokasi orang itu dibuat (Discussions #63). Pilihan transportasi umum belum muncul di layar.
-  TRANSPORTASI_UMUM_TIDAK_TERJANGKAU:
-    'Ada yang belum punya rute transportasi umum dari lokasinya. Geser titiknya ke dekat halte atau stasiun, atau ganti kendaraan.',
 }
 
 const PESAN_GALAT_AKSI: Record<string, string> = {
@@ -56,6 +55,7 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
   const berbagi = peserta.filter((p) => p.lokasi).length
   const keadaan = keadaanCariTempat(room, berbagi, peserta.length)
   const menghitung = keadaan.jenis === 'menghitung'
+  const adaTransportasiUmum = peserta.some((p) => p.kendaraan === 'transportasi_umum' && p.lokasi)
 
   useEffect(() => {
     if (!menghitung) return
@@ -105,6 +105,19 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
           </p>
         )}
       </div>
+
+      {/* Sekali di atas daftar tempat, hanya kalau ada yang naik transportasi umum (Discussions #63). */}
+      {(keadaan.jenis === 'siap' || keadaan.jenis === 'tetap') && adaTransportasiUmum && (
+        <div className="flex flex-col gap-1 rounded-2xl border-2 border-dashed border-garis/40 px-4 py-3" data-catatan-transportasi-umum>
+          <KeteranganTransportasiUmum />
+          {dihitungAkhirPekan(room.hasilPada) && (
+            <p className="text-sm text-teks-redup">
+              Jadwal KRL akhir pekan belum tersedia, jadi dihitung dengan jadwal hari kerja di jam yang sama. Waktu sebenarnya bisa
+              lebih lama.
+            </p>
+          )}
+        </div>
+      )}
 
       {(keadaan.jenis === 'kurang_lokasi' || keadaan.jenis === 'bisa_dicari') && (
         <KartuStiker className="flex flex-col gap-3 p-5">
@@ -157,11 +170,19 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
           <p className="font-semibold">
             {keadaan.galat === 'LOKASI_TIDAK_TERJANGKAU'
               ? pesanLokasiTidakTerjangkau(room.pesertaTidakTerjangkau, peserta, identitas.pesertaId)
-              : keadaan.galat
+              : keadaan.galat === 'TRANSPORTASI_UMUM_TIDAK_TERJANGKAU'
+                ? pesanTransportasiUmumTidakTerjangkau(room.pesertaTidakTerjangkau, peserta, identitas.pesertaId)
+                : keadaan.galat
                 ? PESAN_GAGAL[keadaan.galat]
                 : 'Tempatnya belum berhasil dicari.'}
           </p>
-          <Tombol onClick={cari} disabled={!keadaan.bisaDicobaLagi || sibuk}>
+          {/* Kalau galatnya menyebutku, aksi utamanya ada di kartu lokasiku, jadi Coba lagi tidak merah. */}
+          <Tombol
+            onClick={cari}
+            disabled={!keadaan.bisaDicobaLagi || sibuk}
+            varian={room.pesertaTidakTerjangkau === identitas.pesertaId ? 'biasa' : 'utama'}
+            className="min-h-11"
+          >
             Coba lagi
           </Tombol>
         </KartuStiker>

@@ -16,3 +16,13 @@ export function berangkatTransportasiUmum(sekarang: number): number {
   if (hari === 0) return sekarang + HARI_MS
   return sekarang
 }
+
+/**
+ * Hasil yang dicari pada Sabtu atau Minggu (waktu Jakarta) memakai jadwal KRL hari kerja (`berangkatTransportasiUmum`),
+ * jadi layar memberi catatan bahwa waktu tempuhnya perkiraan.
+ */
+export function dihitungAkhirPekan(hasilPada: number | null): boolean {
+  if (hasilPada === null) return false
+  const hari = hariDiJakarta(hasilPada)
+  return hari === 0 || hari === 6
+}
