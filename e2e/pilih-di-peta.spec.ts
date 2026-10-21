@@ -91,6 +91,13 @@ test('lokasi yang terlalu jauh dari jalan diberi tahu di kartu lokasi orang itu,
   await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: TEBET })
   await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: LOKASI_TIDAK_TERJANGKAU })
   await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  // Halaman dibuka setelah pencarian selesai, supaya pop up traktir (muncul saat pencarian berjalan) tidak menutupi layar.
+  await expect
+    .poll(async () => {
+      const hasil = await convex.query(api.room.lihat, { kode: haikal.kode })
+      return hasil.ok ? hasil.room.status : null
+    }, { timeout: 30_000 })
+    .toBe('gagal')
 
   await page.goto('/')
   await page.evaluate(([k, v]) => localStorage.setItem(`tikoem:peserta:${k}`, JSON.stringify(v)), [haikal.kode, umar] as const)
