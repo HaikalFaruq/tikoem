@@ -1,5 +1,6 @@
 // Membuat ikon PWA dan gambar pratinjau link (Open Graph) dari SVG, lewat Chromium milik Playwright.
 // Jalankan ulang setelah identitas visual berubah: `npm run ikon`. Hasilnya ditulis ke public/ dan ikut di-commit.
+// Logo: B untuk ikon dan favicon, C untuk ilustrasi og.png (Discussions #61, gambar di docs/desain/logo/).
 import { chromium } from '@playwright/test'
 import { readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -17,14 +18,24 @@ const BINTANG_8 =
 const wajah = `<g transform="translate(0 -27)" stroke="${TINTA}" stroke-width="2.4" stroke-linecap="round" fill="none"><circle cx="-5.5" cy="-2" r="1.7" fill="${TINTA}"/><circle cx="5.5" cy="-2" r="1.7" fill="${TINTA}"/><path d="M-6 4 Q0 10 6 4"/></g>`
 
 /** Pin stiker: bayangan keras, isi warna, outline tinta, dan wajah. */
-const pinStiker = (x, y, skala, isi) =>
-  `<g transform="translate(${x} ${y}) scale(${skala})"><path d="${PIN}" transform="translate(2.2 2.2)" fill="${TINTA}"/><path d="${PIN}" fill="${isi}" stroke="${TINTA}" stroke-width="3" stroke-linejoin="round"/>${wajah}</g>`
+const pinStiker = (x, y, skala, isi, putar = 0) =>
+  `<g transform="translate(${x} ${y}) rotate(${putar}) scale(${skala})"><path d="${PIN}" transform="translate(2.2 2.2)" fill="${TINTA}"/><path d="${PIN}" fill="${isi}" stroke="${TINTA}" stroke-width="3" stroke-linejoin="round"/>${wajah}</g>`
 
-/** Ikon biasa: kotak merah membulat dengan pin putih, untuk layar pemasangan dan tab browser. */
-const ikonBiasa = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect x="16" y="16" width="480" height="480" rx="112" fill="${MERAH}" stroke="${TINTA}" stroke-width="16"/>${pinStiker(250, 430, 7.6, '#FFFFFF')}</svg>`
+/** Bintang stiker berujung delapan, berpusat di (x, y) dengan jari-jari 18 × skala. */
+const bintangStiker = (x, y, skala) =>
+  `<g transform="translate(${x} ${y}) scale(${skala})"><path d="${BINTANG_8}" transform="translate(1.6 1.6)" fill="${TINTA}"/><path d="${BINTANG_8}" fill="${BINTANG}" stroke="${TINTA}" stroke-width="2.6" stroke-linejoin="round"/></g>`
 
-/** Ikon penuh untuk Android (maskable) dan iOS: latar sampai tepi, pin di dalam lingkaran aman 80% di tengah. */
-const ikonPenuh = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="${MERAH}"/>${pinStiker(253, 392, 6, '#FFFFFF')}</svg>`
+/** Logo B: pin putih dengan bintang menempel di pojok kanan atas kepalanya. Ujung pin di (x, y). */
+const pinBintang = (x, y, skala) => pinStiker(x, y, skala, '#FFFFFF') + bintangStiker(Math.round(x + 18.9 * skala), Math.round(y - 38.9 * skala), skala / 2)
+
+/** Ikon biasa: kotak merah membulat, untuk layar pemasangan, tab browser, dan favicon. */
+const ikonBiasa = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect x="16" y="16" width="480" height="480" rx="112" fill="${MERAH}" stroke="${TINTA}" stroke-width="16"/>${pinBintang(236, 430, 7.2)}</svg>`
+
+/**
+ * Ikon penuh untuk Android (maskable) dan iOS: latar sampai tepi. Pin dan bintangnya diperkecil supaya seluruhnya,
+ * termasuk ujung bintang, masuk lingkaran aman berjari-jari 40% di tengah (paling jauh sekitar 175 dari 205 px).
+ */
+const ikonPenuh = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="${MERAH}"/>${pinBintang(246, 396, 5.6)}</svg>`
 
 async function fontDataUri(berkas) {
   return `data:font/woff2;base64,${(await readFile(new URL(`../node_modules/${berkas}`, import.meta.url))).toString('base64')}`
@@ -34,12 +45,17 @@ async function fontDataUri(berkas) {
 async function halamanOg() {
   const bricolage = await fontDataUri('@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2')
   const figtree = await fontDataUri('@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2')
-  const pin = [
-    [615, 470, 1, MERAH],
-    [800, 505, 2, '#3D7BFF'],
-    [985, 470, 3, '#4CC9A0'],
+  // Logo C: dua pin dari kiri dan kanan, ujungnya bertemu di bintang. Dua teman kecil masih menyusul lewat jejak
+  // titik-titik, supaya gambarnya terbaca sebagai kumpul ramai-ramai, bukan berdua saja.
+  const temu = [905, 450]
+  const jejak = [
+    `M715 565 Q 790 560 ${temu[0] - 40} ${temu[1] + 20}`,
+    `M1095 565 Q 1020 560 ${temu[0] + 40} ${temu[1] + 20}`,
   ]
-  const garis = pin.map(([x, y]) => `<path d="M${x} ${y - 170} Q ${(x + 800) / 2} ${y - 230} 800 215" />`).join('')
+  const menyusul = [
+    [715, 565, '#4CC9A0'],
+    [1095, 565, '#9B7BFF'],
+  ]
   return `<!doctype html><html><head><style>
     @font-face { font-family: 'Bricolage'; src: url(${bricolage}) format('woff2'); font-weight: 200 800; }
     @font-face { font-family: 'Figtree'; src: url(${figtree}) format('woff2'); font-weight: 300 900; }
@@ -52,9 +68,11 @@ async function halamanOg() {
     svg { position: absolute; inset: 0; }
   </style></head><body><div class="kanvas">
     <svg width="1200" height="630" viewBox="0 0 1200 630">
-      <g stroke="${TINTA}" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.1 20" fill="none" opacity="0.5">${garis}</g>
-      <g transform="translate(800 170) scale(3.2)"><path d="${BINTANG_8}" fill="${BINTANG}" stroke="${TINTA}" stroke-width="2.6" stroke-linejoin="round"/></g>
-      ${pin.map(([x, y, , warna]) => pinStiker(x, y, 4.2, warna)).join('')}
+      <g stroke="${TINTA}" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.1 20" fill="none" opacity="0.5">${jejak.map((d) => `<path d="${d}" />`).join('')}</g>
+      ${pinStiker(temu[0], temu[1], 5.6, MERAH, -28)}
+      ${pinStiker(temu[0], temu[1], 5.6, '#3D7BFF', 28)}
+      ${bintangStiker(temu[0], temu[1] + 8, 2.8)}
+      ${menyusul.map(([x, y, warna]) => pinStiker(x, y, 2.6, warna)).join('')}
     </svg>
     <div class="teks">
       <h1>tikoem</h1>
@@ -80,6 +98,7 @@ await render(ikonBiasa, 192, 'pwa-192x192.png', true)
 await render(ikonBiasa, 512, 'pwa-512x512.png', true)
 await render(ikonPenuh, 512, 'maskable-icon-512x512.png', false)
 await render(ikonPenuh, 180, 'apple-touch-icon-180x180.png', false)
+await writeFile(`${akar}public/favicon.svg`, `${ikonBiasa}\n`)
 
 await halaman.setViewportSize({ width: 1200, height: 630 })
 await halaman.setContent(await halamanOg())
@@ -87,4 +106,4 @@ await halaman.evaluate(() => document.fonts.ready)
 await writeFile(`${akar}public/og.png`, await halaman.screenshot())
 
 await browser.close()
-console.log('Ikon PWA dan og.png ditulis ke public/.')
+console.log('Ikon PWA, favicon.svg, dan og.png ditulis ke public/.')

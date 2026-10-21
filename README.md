@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="public/pwa-512x512.png" width="112" alt="Logo Tikoem: pin berwajah di kotak merah" />
+<img src="public/pwa-512x512.png" width="112" alt="Logo Tikoem: pin berwajah dengan bintang di kotak merah" />
 
 # Tikoem
 
