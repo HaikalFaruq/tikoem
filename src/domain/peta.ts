@@ -23,31 +23,45 @@ export function lingkaranGeo(pusat: Titik, radiusMeter: number, jumlahTitik = 48
 export type TitikLayar = { x: number; y: number }
 
 /**
- * Geseran layar (piksel) supaya pin yang berdekatan di layar tidak saling menutupi.
- * Ini sering terjadi karena lokasi dibulatkan ke grid ~110 m, dan di zoom kota jarak 110 m hanya beberapa piksel.
- * Pin yang berjarak kurang dari `ambangPx` dikelompokkan, lalu disebar melingkar di sekitar pin pertama kelompok.
- * Pin yang sendirian tidak digeser.
+ * Penanda di layar: titik jangkarnya di tengah bawah (anchor `bottom` MapLibre), lebar dan tingginya dalam piksel.
+ * Penanda yang `diam` tidak ikut digeser, misalnya bintang tempat kumpul, supaya tetap tepat di tempatnya.
  */
-export function sebarPinBerdekatan(titik: readonly TitikLayar[], ambangPx = 28, jarakPx = 18): TitikLayar[] {
-  const kelompok: { pusat: TitikLayar; anggota: number[] }[] = []
-  titik.forEach((t, i) => {
-    const dekat = kelompok.find((k) => Math.hypot(t.x - k.pusat.x, t.y - k.pusat.y) < ambangPx)
-    if (dekat) dekat.anggota.push(i)
-    else kelompok.push({ pusat: t, anggota: [i] })
-  })
-  const geser = titik.map(() => ({ x: 0, y: 0 }))
-  for (const { pusat, anggota } of kelompok) {
-    if (anggota.length < 2) continue
-    anggota.forEach((indeks, urutan) => {
-      // Mulai dari kiri, berputar searah jarum jam.
-      const sudut = Math.PI + (2 * Math.PI * urutan) / anggota.length
-      geser[indeks] = {
-        x: Math.round(pusat.x + jarakPx * Math.cos(sudut) - titik[indeks].x),
-        y: Math.round(pusat.y + jarakPx * Math.sin(sudut) - titik[indeks].y),
+export type KotakPenanda = TitikLayar & { lebar: number; tinggi: number; diam?: boolean }
+
+/**
+ * Geseran layar (piksel) supaya penanda yang berdekatan di layar tidak saling menutupi (#65).
+ * Ini sering terjadi karena lokasi dibulatkan ke grid ~110 m, dan beberapa kafe sering ada di satu ruas jalan.
+ * Kotak yang bertumpuk didorong menjauh lewat sumbu yang tumpangannya paling kecil, berulang sampai semuanya lepas
+ * dengan celah `celahPx`. Penanda yang tidak bertumpuk tidak digeser, jadi yang sendirian tetap di lokasinya.
+ */
+export function pisahkanPenanda(kotak: readonly KotakPenanda[], celahPx = 4, putaran = 80): TitikLayar[] {
+  const posisi = kotak.map(({ x, y }) => ({ x, y }))
+  for (let n = 0; n < putaran; n++) {
+    let adaTumpuk = false
+    for (let i = 0; i < kotak.length; i++) {
+      for (let j = i + 1; j < kotak.length; j++) {
+        const a = kotak[i]
+        const b = kotak[j]
+        if (a.diam && b.diam) continue
+        const dx = posisi[j].x - posisi[i].x
+        // Kotak tumbuh ke atas dari jangkarnya, jadi bandingkan titik tengah kotaknya.
+        const dy = posisi[j].y - b.tinggi / 2 - (posisi[i].y - a.tinggi / 2)
+        const tumpukX = (a.lebar + b.lebar) / 2 + celahPx - Math.abs(dx)
+        const tumpukY = (a.tinggi + b.tinggi) / 2 + celahPx - Math.abs(dy)
+        if (tumpukX <= 0 || tumpukY <= 0) continue
+        adaTumpuk = true
+        // Dua penanda di titik yang sama: yang kemudian ke kanan, supaya hasilnya selalu sama.
+        const geser = tumpukX <= tumpukY ? { x: (dx < 0 ? -1 : 1) * tumpukX, y: 0 } : { x: 0, y: (dy < 0 ? -1 : 1) * tumpukY }
+        const bagianA = a.diam ? 0 : b.diam ? 1 : 0.5
+        posisi[i].x -= geser.x * bagianA
+        posisi[i].y -= geser.y * bagianA
+        posisi[j].x += geser.x * (1 - bagianA)
+        posisi[j].y += geser.y * (1 - bagianA)
       }
-    })
+    }
+    if (!adaTumpuk) break
   }
-  return geser
+  return posisi.map((p, i) => ({ x: Math.round(p.x - kotak[i].x), y: Math.round(p.y - kotak[i].y) }))
 }
 
 /** Kotak terkecil yang memuat semua titik: [[barat, selatan], [timur, utara]]. */
