@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Map as PetaMapLibre, Marker, NavigationControl, type GeoJSONSource } from 'maplibre-gl'
-import { batasPeta, lingkaranGeo, sebarPinBerdekatan } from '../../domain/peta'
+import { batasPeta, lingkaranGeo, pisahkanPenanda } from '../../domain/peta'
 import type { Titik } from '../../domain/lokasi'
 import { namaPendek } from '../../lib/teks'
 import type { KategoriTempat } from '../../domain/hasil'
@@ -55,8 +55,9 @@ export default function PetaLive({ pin, tengah, kandidat, kandidatRedup, onPilih
   const kandidatTerakhir = useRef<KandidatPeta[]>([])
   const sebarSemua = (m: PetaMapLibre) =>
     aturSebaran(m, [
-      { isi: kandidatTerakhir.current, penanda: penandaKandidat.current },
-      { isi: pinTerakhir.current, penanda: penandaPin.current },
+      ...kandidatTerakhir.current.map((k) => ({ penanda: penandaKandidat.current.get(k.id), diam: k.terpilih })),
+      ...pinTerakhir.current.map((p) => ({ penanda: penandaPin.current.get(p.id), diam: false })),
+      { penanda: penandaTengah.current ?? undefined, diam: true, tengah: true },
     ])
   const [elemenPin, setElemenPin] = useState<{ id: string; el: HTMLDivElement }[]>([])
   const [elemenKandidat, setElemenKandidat] = useState<{ id: string; el: HTMLDivElement }[]>([])
@@ -190,6 +191,12 @@ export default function PetaLive({ pin, tengah, kandidat, kandidatRedup, onPilih
     setElemenKandidat(kandidat.map((k) => ({ id: k.id, el: ada.get(k.id)!.el })))
   }, [kandidat])
 
+  // Ukuran penanda baru diketahui setelah isinya digambar lewat portal, jadi sebaran dihitung ulang setelah itu.
+  useLayoutEffect(() => {
+    if (peta.current) sebarSemua(peta.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elemenPin, elemenKandidat, elemenTengah, kandidat])
+
   // Lingkaran samar di lokasi sendiri: jujur bahwa titik itu hanya perkiraan ~110 m. Dipasang ulang setiap gaya peta berganti.
   const saya = pin.find((p) => p.saya)
   const kunciSaya = saya ? `${saya.lokasi.lat},${saya.lokasi.lng},${saya.warna}` : ''
@@ -261,7 +268,7 @@ export default function PetaLive({ pin, tengah, kandidat, kandidatRedup, onPilih
         const p = pin.find((x) => x.id === id)
         return p ? createPortal(<PinDiPeta pin={p} />, el, id) : null
       })}
-      {elemenTengah && tengah && createPortal(<PenandaTengah />, elemenTengah)}
+      {elemenTengah && tengah && createPortal(<PenandaTengah kecil={kandidat.length > 0} />, elemenTengah)}
       {elemenKandidat.map(({ id, el }) => {
         const k = kandidat.find((x) => x.id === id)
         return k ? createPortal(<PenandaKandidat kandidat={k} redup={kandidatRedup} onPilih={onPilihKandidat} />, el, id) : null
@@ -271,17 +278,23 @@ export default function PetaLive({ pin, tengah, kandidat, kandidatRedup, onPilih
 }
 
 /**
- * Pin teman dan kandidat yang di layar terlalu berdekatan disebar bersama, supaya tidak ada yang tertutup dan semuanya bisa diketuk.
+ * Pin teman dan kandidat yang di layar bertumpuk dipisahkan bersama, supaya tidak ada yang tertutup dan semuanya bisa diketuk (#65).
  * Kandidat sering berdekatan (beberapa kafe di satu ruas jalan) dan sering dekat dengan teman yang tinggal di dekat titik tengah.
+ * Ukurannya diukur dari elemennya, karena label nama dan bintang berlabel jauh lebih lebar dari angka peringkat.
+ * Bintang tempat kumpul dan titik tengah tetap diam, yang lain menyingkir.
  */
-function aturSebaran(m: PetaMapLibre, kelompok: readonly { isi: readonly { id: string; lokasi: Titik }[]; penanda: Map<string, Penanda> }[]) {
-  const semua = kelompok.flatMap(({ isi, penanda }) => isi.map((x) => ({ ...x, penanda })))
-  const geser = sebarPinBerdekatan(
-    semua.map((x) => m.project([x.lokasi.lng, x.lokasi.lat])),
-    34,
-    26,
+function aturSebaran(m: PetaMapLibre, daftar: readonly { penanda: Penanda | undefined; diam: boolean; tengah?: boolean }[]) {
+  const ada = daftar.filter((x): x is { penanda: Penanda; diam: boolean; tengah?: boolean } => x.penanda !== undefined)
+  const geser = pisahkanPenanda(
+    ada.map(({ penanda, diam, tengah }) => {
+      const titik = m.project(penanda.marker.getLngLat())
+      const lebar = Math.max(penanda.el.offsetWidth, 12)
+      const tinggi = Math.max(penanda.el.offsetHeight, 12)
+      // Titik tengah berjangkar di tengah, penanda lain di tengah bawah.
+      return { x: titik.x, y: tengah ? titik.y + tinggi / 2 : titik.y, lebar, tinggi, diam }
+    }),
   )
-  semua.forEach((x, i) => x.penanda.get(x.id)?.marker.setOffset([geser[i].x, geser[i].y]))
+  ada.forEach(({ penanda }, i) => penanda.marker.setOffset([geser[i].x, geser[i].y]))
 }
 
 function PinDiPeta({ pin }: { pin: PinPeta }) {
@@ -348,10 +361,13 @@ function GambarKereta() {
   )
 }
 
-function PenandaTengah() {
+/** Setelah hasil keluar, cincinnya disembunyikan supaya tidak menutupi kandidat di sekitarnya (#65). Titiknya tetap ada. */
+function PenandaTengah({ kecil }: { kecil: boolean }) {
   return (
-    <div className="relative grid size-12 place-items-center" data-titik-tengah>
-      <span className="absolute inset-0 rounded-full border-3 border-dashed border-garis bg-bintang/30 motion-safe:animate-denyut" />
+    <div className={`relative grid place-items-center ${kecil ? 'size-3' : 'size-12'}`} data-titik-tengah>
+      {!kecil && (
+        <span className="absolute inset-0 rounded-full border-3 border-dashed border-garis bg-bintang/30 motion-safe:animate-denyut" />
+      )}
       <span className="size-2.5 rounded-full border-2 border-garis bg-bintang" />
     </div>
   )
