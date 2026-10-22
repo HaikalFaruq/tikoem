@@ -8,6 +8,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Biasanya selesai dalam 4 menit. Tanpa batas, GitHub baru menghentikan job yang menggantung setelah 6 jam.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -19,7 +21,9 @@ jobs:
       - run: npm run lint
       - run: npm run knip
       - run: npm test
+      # apt-get di langkah ini pernah menggantung 6 jam di mirror Ubuntu (#80). Kalau lewat batas, jalankan ulang job-nya.
       - run: npx playwright install --with-deps --only-shell chromium
+        timeout-minutes: 10
       - run: npm run test:e2e
         env:
           # Backend Convex lokal tanpa akun, dibuat baru setiap kali CI jalan.
