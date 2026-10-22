@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "cek:layar": "CEK_LAYAR=1 E2E_LAYANAN_TIRUAN=1 playwright test e2e/cek-layar.spec.ts",
-    "ikon": "node scripts/buat-ikon.mjs"
+    "ikon": "node scripts/buat-ikon.mjs",
+    "promo": "node scripts/buat-promo.mjs"
   },
   "dependencies": {
     "@convex-dev/rate-limiter": "^0.4.0",
