@@ -25,3 +25,9 @@ test('pembuka tidak diputar kalau HP meminta gerak dikurangi', async ({ page }) 
   expect(await page.locator('#pembuka').count()).toBe(0)
   await expect(page.getByRole('heading', { level: 1, name: 'Tikoem' })).toBeVisible()
 })
+
+test('pembuka tidak diputar di link room yang dibuka dari WA', async ({ page }) => {
+  // Link dari WA terbuka di tab baru, jadi sesinya selalu baru.
+  await page.goto('/r/ABCDEF', { waitUntil: 'domcontentloaded' })
+  expect(await page.locator('#pembuka').count()).toBe(0)
+})

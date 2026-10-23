@@ -126,13 +126,29 @@ export function LayarRoom({ kode, keBeranda }: Props) {
           <Pin warna={1} ukuran={22} />
           <span className="font-display text-xl font-extrabold tracking-[-0.04em]">Tikoem</span>
         </a>
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-semibold text-teks-redup">Kode room</p>
-          <h1 className="font-display text-5xl font-extrabold tracking-[0.04em] tabular-nums [font-variation-settings:'opsz'_96]">
-            {room.kode}
-          </h1>
-          <p className="text-sm text-teks-redup">Room berakhir {sisaWaktu(room.kedaluwarsaPada - sekarang)}.</p>
-        </div>
+        {/*
+          Teman yang datang dari link tidak perlu mengetik kode, jadi judulnya ajakan. Kodenya cukup jadi keterangan kecil
+          untuk dicocokkan, bukan tulisan paling besar di layar (#65).
+        */}
+        {saya ? (
+          <div className="flex flex-col gap-1">
+            <p className="text-sm font-semibold text-teks-redup">Kode room</p>
+            <h1 className="font-display text-3xl font-extrabold tracking-[0.04em] tabular-nums [font-variation-settings:'opsz'_96]">
+              {room.kode}
+            </h1>
+            <p className="text-sm text-teks-redup">Room berakhir {sisaWaktu(room.kedaluwarsaPada - sekarang)}.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <h1 className="font-display text-3xl leading-tight font-extrabold tracking-[-0.03em]">
+              {daftar[0]?.nama ?? 'Temanmu'} mengajakmu mencari tempat ketemuan
+            </h1>
+            <p className="text-sm text-teks-redup">
+              Room <span className="font-semibold tabular-nums">{room.kode}</span> · berakhir{' '}
+              {sisaWaktu(room.kedaluwarsaPada - sekarang)}.
+            </p>
+          </div>
+        )}
       </header>
 
       {saya && identitas ? (
@@ -181,9 +197,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             <h2 id="gabung-judul" className="font-display text-2xl font-extrabold tracking-[-0.03em]">
               Gabung ke room ini
             </h2>
-            <p className="text-sm text-teks-redup">
-              {daftar[0]?.nama ?? 'Temanmu'} mengajakmu mencari tempat ketemuan. Cukup isi nama, tanpa akun.
-            </p>
+            <p className="text-sm text-teks-redup">Cukup isi nama, tanpa akun.</p>
           </div>
           <FormPeserta
             labelTombol="Gabung"

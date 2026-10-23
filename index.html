@@ -31,6 +31,7 @@
       Ditulis di sini (bukan di React) supaya langsung tampil sementara JavaScript app masih diunduh.
       Tiga pin teman meluncur ke tengah dan menyatu jadi pin Tikoem, lalu wordmark muncul (docs/desain/identitas.html).
       Sekali per sesi, bisa dilewati dengan ketuk, dan tidak diputar kalau HP meminta gerak dikurangi.
+      Link room (/r/…) melewatinya: link dari WA selalu terbuka di tab baru, dan temannya datang untuk gabung, bukan berkenalan (#65).
     -->
     <style>
       #pembuka {
@@ -85,7 +86,8 @@
           sudah = sessionStorage.getItem('tikoem:pembuka') === '1'
           sessionStorage.setItem('tikoem:pembuka', '1')
         } catch (e) {}
-        if (sudah || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return el.remove()
+        var dariLinkRoom = window.location.pathname.indexOf('/r/') === 0
+        if (sudah || dariLinkRoom || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return el.remove()
         function tutup() {
           if (!el.isConnected || el.classList.contains('pembuka-keluar')) return
           el.classList.add('pembuka-keluar')

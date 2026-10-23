@@ -112,6 +112,14 @@ test('beranda', async ({ browser }) => {
   await potret(browser, 'beranda', 'Beranda: buat room', { url: '/' })
 })
 
+test('gabung dari link', async ({ browser }) => {
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  await potret(browser, 'gabung', 'Teman membuka link room dari WA: ajakan jadi judul, kode room kecil (#65)', {
+    url: `/r/${haikal.kode}`,
+    denganPembuka: true,
+  })
+})
+
 test('room menunggu lokasi', async ({ browser }) => {
   const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
   await potret(browser, 'room-menunggu', 'Room baru: belum ada yang berbagi lokasi', {
