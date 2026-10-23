@@ -21,6 +21,19 @@ export const vTitik = v.object({ lat: v.number(), lng: v.number() })
  * dicari kalau ada yang naik transportasi umum (Discussions #63).
  */
 export const vKategoriTempat = v.union(v.literal('kafe'), v.literal('resto'), v.literal('mall'), v.literal('stasiun'))
+/**
+ * Jenis hitungan harian (#78): `cari` untuk setiap Cari tempat yang mulai, dan `gagal_*` untuk yang berakhir LAYANAN_GAGAL
+ * menurut layanan penyebabnya. `gagal_batas_waktu` berarti hitungnya belum selesai setelah `BATAS_HITUNG_MS`.
+ */
+export const vJenisHitungan = v.union(
+  v.literal('cari'),
+  v.literal('gagal_overpass'),
+  v.literal('gagal_ors'),
+  v.literal('gagal_transitous'),
+  v.literal('gagal_batas_waktu'),
+  v.literal('gagal_lain'),
+)
+
 /** Layanan luar yang meminta app mundur dulu setelah menjawab 429 (convex/batasLaju.ts). */
 export const vLayananBerjeda = v.literal('transitous')
 
@@ -160,4 +173,15 @@ export default defineSchema({
    * belum lewat, permintaan ke layanan itu tidak dikirim. `lamaMs` adalah lama jeda terakhir, untuk jeda berikutnya.
    */
   jedaLayanan: defineTable({ layanan: vLayananBerjeda, sampai: v.number(), lamaMs: v.number() }).index('by_layanan', ['layanan']),
+
+  /**
+   * Hitungan harian Cari tempat dan LAYANAN_GAGAL per layanan, sebagai bahan keputusan cache Overpass (#78). Isinya tanpa
+   * koordinat, tanpa room, dan tanpa data orang, jadi tidak ikut dihapus bersama room. Dibaca lewat `hitunganHarian.ringkas`.
+   */
+  hitunganHarian: defineTable({
+    /** Tanggal di Jakarta, misalnya "2026-10-23". */
+    tanggal: v.string(),
+    jenis: vJenisHitungan,
+    jumlah: v.number(),
+  }).index('by_tanggal_and_jenis', ['tanggal', 'jenis']),
 })

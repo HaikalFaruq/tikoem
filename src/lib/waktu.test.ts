@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jedaBertahap, jedaPermintaan, sisaWaktu } from './waktu'
+import { jedaBertahap, jedaPermintaan, sisaWaktu, tanggalJakarta } from './waktu'
 
 const MENIT = 60_000
 
@@ -19,6 +19,15 @@ describe('sisaWaktu', () => {
   it('menyebut sudah berakhir kalau waktunya habis', () => {
     expect(sisaWaktu(0)).toBe('sudah berakhir')
     expect(sisaWaktu(-5 * MENIT)).toBe('sudah berakhir')
+  })
+})
+
+describe('tanggalJakarta', () => {
+  it('memakai tanggal di Jakarta, bukan UTC', () => {
+    expect(tanggalJakarta(Date.parse('2026-10-23T23:59+07:00'))).toBe('2026-10-23')
+    expect(tanggalJakarta(Date.parse('2026-10-24T00:00+07:00'))).toBe('2026-10-24')
+    // Pukul 06.30 WIB masih tanggal sebelumnya di UTC.
+    expect(tanggalJakarta(Date.parse('2026-10-24T06:30+07:00'))).toBe('2026-10-24')
   })
 })
 

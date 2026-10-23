@@ -65,6 +65,11 @@ Semua layanan luar dipanggil dari Convex action, jadi key dan batasnya dijaga di
 
 Yang tidak kebagian antrean, atau hitung yang lewat 50 detik, berakhir dengan `LAYANAN_GAGAL` supaya layar bisa menawarkan "Coba lagi". Begitu juga hitung yang butuh Transitous selama jeda setelah 429. Hitung ulang hanya jalan kalau ada lokasi yang berubah sejak hasil terakhir.
 
+**Hitungan harian.** Setiap Cari tempat yang mulai, dan setiap yang berakhir `LAYANAN_GAGAL`, dihitung per hari (tanggal Jakarta) di tabel `hitunganHarian`. Ini bahan untuk memutuskan perlu tidaknya cache Overpass ([#78](https://github.com/HaikalFaruq/tikoem/issues/78)).
+- **Jenisnya** `cari`, lalu penyebab gagalnya: `gagal_overpass`, `gagal_ors`, `gagal_transitous`, `gagal_batas_waktu`, atau `gagal_lain`.
+- **Isinya hanya angka**, tanpa koordinat, room, atau data orang.
+- **Cara membaca:** `npx convex run --prod hitunganHarian:ringkas '{"hari": 30}'`. Tanpa argumen, yang keluar 14 hari terakhir.
+
 Catatan transportasi umum:
 
 - **Syarat Transitous.** API-nya boleh dipakai selama Tikoem 100% open source, dari frontend sampai backend, dan orang lain bisa menjalankan ulang seluruh setup-nya. Ini jawaban tim Transitous di channel Matrix mereka ([#58](https://github.com/HaikalFaruq/tikoem/issues/58)). Popup traktir Sociabuzz tidak masalah. Sebelum menambah SDK atau layanan yang kodenya tertutup, cek dulu syarat ini.

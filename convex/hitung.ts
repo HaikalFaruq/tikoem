@@ -3,10 +3,11 @@ import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { env, internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from './_generated/server'
 import { catatKalauSibuk, giliranTransitous, tungguGiliran } from './batasLaju'
-import { cariTempatSekitar } from './overpass'
+import { tambahHitungan } from './hitunganHarian'
+import { OverpassGagal, cariTempatSekitar } from './overpass'
 import { KODE_TITIK_TIDAK_TERJANGKAU, OrsGagal, matriksDurasi, type OpsiOrs } from './ors'
 import { vGalatHitung, vKandidat, vTitik } from './schema'
-import { durasiTransportasiUmum } from './transitous'
+import { TransitousGagal, durasiTransportasiUmum } from './transitous'
 import { PROFIL_RUTE, menitDariDetik, peringkatKandidat } from '../src/domain/keadilan'
 import type { Kendaraan } from '../src/domain/kendaraan'
 import type { Titik } from '../src/domain/lokasi'
@@ -74,10 +75,27 @@ export const simpan = internalMutation({
   },
 })
 
+/** Layanan yang membuat hitung berakhir LAYANAN_GAGAL, untuk hitungan harian (#78). */
+const vPenyebab = v.union(v.literal('overpass'), v.literal('ors'), v.literal('transitous'), v.literal('lain'))
+type Penyebab = Infer<typeof vPenyebab> | 'batas_waktu'
+const JENIS_GAGAL = {
+  overpass: 'gagal_overpass',
+  ors: 'gagal_ors',
+  transitous: 'gagal_transitous',
+  batas_waktu: 'gagal_batas_waktu',
+  lain: 'gagal_lain',
+} as const
+
 export const gagal = internalMutation({
-  args: { roomId: v.id('room'), putaran: v.number(), galat: vGalatHitung, pesertaTidakTerjangkau: v.optional(v.id('peserta')) },
-  handler: async (ctx, { roomId, putaran, galat, pesertaTidakTerjangkau }) => {
-    await tandaiGagal(ctx, roomId, putaran, galat, pesertaTidakTerjangkau)
+  args: {
+    roomId: v.id('room'),
+    putaran: v.number(),
+    galat: vGalatHitung,
+    pesertaTidakTerjangkau: v.optional(v.id('peserta')),
+    penyebab: v.optional(vPenyebab),
+  },
+  handler: async (ctx, { roomId, putaran, galat, pesertaTidakTerjangkau, penyebab }) => {
+    await tandaiGagal(ctx, roomId, putaran, galat, { pesertaTidakTerjangkau, penyebab })
   },
 })
 
@@ -85,21 +103,33 @@ export const gagal = internalMutation({
 export const batasWaktu = internalMutation({
   args: { roomId: v.id('room'), putaran: v.number() },
   handler: async (ctx, { roomId, putaran }) => {
-    await tandaiGagal(ctx, roomId, putaran, 'LAYANAN_GAGAL')
+    await tandaiGagal(ctx, roomId, putaran, 'LAYANAN_GAGAL', { penyebab: 'batas_waktu' })
   },
 })
 
+/**
+ * Hanya mengubah putaran yang masih berjalan, jadi galat yang datang setelah batas waktu tidak dihitung dua kali di
+ * hitungan harian.
+ */
 async function tandaiGagal(
   ctx: MutationCtx,
   roomId: Id<'room'>,
   putaran: number,
   galat: GalatHitung,
-  pesertaTidakTerjangkau?: Id<'peserta'>,
+  { pesertaTidakTerjangkau, penyebab = 'lain' }: { pesertaTidakTerjangkau?: Id<'peserta'>; penyebab?: Penyebab } = {},
 ) {
   const room = await ctx.db.get('room', roomId)
-  if (room?.status === 'menghitung' && room.putaranHitung === putaran) {
-    await ctx.db.patch('room', roomId, { status: 'gagal', galatHitung: galat, pesertaTidakTerjangkau })
-  }
+  if (room?.status !== 'menghitung' || room.putaranHitung !== putaran) return
+  await ctx.db.patch('room', roomId, { status: 'gagal', galatHitung: galat, pesertaTidakTerjangkau })
+  if (galat === 'LAYANAN_GAGAL') await tambahHitungan(ctx, JENIS_GAGAL[penyebab])
+}
+
+/** Layanan mana yang gagal, dari jenis galatnya. */
+function penyebabGagal(galat: unknown): Infer<typeof vPenyebab> {
+  if (galat instanceof OverpassGagal) return 'overpass'
+  if (galat instanceof OrsGagal) return 'ors'
+  if (galat instanceof TransitousGagal) return 'transitous'
+  return 'lain'
 }
 
 export const jalankan = internalAction({
@@ -123,7 +153,7 @@ export const jalankan = internalAction({
     } catch (galat) {
       // Pesan galat Overpass, ORS, dan Transitous sengaja tidak memuat koordinat, jadi aman ditulis ke log (AGENTS.md §8).
       console.error(`Hitung room gagal: ${galat instanceof Error ? galat.message : 'galat tidak dikenal'}`)
-      await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: 'LAYANAN_GAGAL' })
+      await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: 'LAYANAN_GAGAL', penyebab: penyebabGagal(galat) })
       await catatKalauSibuk(ctx, galat)
     }
   },
