@@ -70,6 +70,10 @@ Yang tidak kebagian antrean, atau hitung yang lewat 50 detik, berakhir dengan `L
 - **Isinya hanya angka**, tanpa koordinat, room, atau data orang.
 - **Cara membaca:** `npx convex run --prod hitunganHarian:ringkas '{"hari": 30}'`. Tanpa argumen, yang keluar 14 hari terakhir.
 
+**Jam buka.** Kalau ada jam ketemuan, tempat yang `opening_hours`-nya jelas tutup di jam itu dilewati sebelum waktu tempuhnya dihitung, juga saat memutuskan radius perlu diperluas ([Discussions #74](https://github.com/HaikalFaruq/tikoem/discussions/74), `src/domain/jamBuka.ts`).
+- **Bentuk yang dibaca** adalah yang umum di Jakarta: "24/7", hari dan jam ("Mo-Su 10:00-22:00"), beberapa aturan ("Mo-Fr 08:00-22:00; Sa 10:00-22:00; Su closed"), beberapa rentang dalam sehari, dan jam yang lewat tengah malam ("10:00-01:00"). Dari 544 nilai di Jakarta Selatan dan Pusat (Oktober 2026), 541 dikenali.
+- **Tetap ikut** tempat tanpa data jam buka (sebagian besar tempat), bentuk yang tidak dikenali ("sunrise-sunset"), dan tempat yang aturan hari liburnya (`PH`) bisa membuatnya buka, karena Tikoem tidak tahu tanggal itu hari libur atau bukan.
+
 Catatan transportasi umum:
 
 - **Syarat Transitous.** API-nya boleh dipakai selama Tikoem 100% open source, dari frontend sampai backend, dan orang lain bisa menjalankan ulang seluruh setup-nya. Ini jawaban tim Transitous di channel Matrix mereka ([#58](https://github.com/HaikalFaruq/tikoem/issues/58)). Popup traktir Sociabuzz tidak masalah. Sebelum menambah SDK atau layanan yang kodenya tertutup, cek dulu syarat ini.
@@ -99,6 +103,8 @@ Transitous tiruan juga menjawab `/api/v6/plan` untuk ringkasan rute:
 - **Biasanya** isinya jalan 5 menit ke Stasiun Tiruan, KRL "Commuter Line Tiruan" 12 menit lewat dua stasiun, lalu jalan 4 menit. Dengan jam ketemuan, rutenya sampai tepat di jam itu.
 - **`LOKASI_TANPA_TRANSPORTASI_UMUM`** (Cileungsi) membuat ringkasannya `tidak_ada`.
 - **`LOKASI_RUTE_GAGAL_SEKALI`** (Lebak Bulus) membuat ringkasan pertama `gagal`, lalu berhasil setelah `room.hitungRute`. Cari tempat dari titik ini tetap berjalan biasa.
+
+Di sekitar `LOKASI_TEMPAT_TUTUP_MALAM` (Bogor), semua tempat dari Overpass tiruan hanya buka pukul 08.00–17.00. Dengan jam ketemuan malam hari, hitung berakhir `TEMPAT_TIDAK_DITEMUKAN` (`e2e/jam-buka.spec.ts`).
 
 Contohnya ada di `e2e/ringkasan-rute.spec.ts`.
 

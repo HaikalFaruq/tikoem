@@ -36,3 +36,9 @@ export const LOKASI_TANPA_TRANSPORTASI_UMUM = { lat: -6.4, lng: 107 }
  * berhasil setelah `room.hitungRute` (Coba lagi). Cari tempat dari titik ini tetap berjalan biasa.
  */
 export const LOKASI_RUTE_GAGAL_SEKALI = { lat: -6.289, lng: 106.774 }
+
+/**
+ * Titik di Bogor. Overpass tiruan memberi tempat yang hanya buka pukul 08.00–17.00 di sekitar sini, jadi dengan jam
+ * ketemuan malam hari semua tempatnya tersaring dan hitung berakhir dengan TEMPAT_TIDAK_DITEMUKAN (Discussions #74).
+ */
+export const LOKASI_TEMPAT_TUTUP_MALAM = { lat: -6.597, lng: 106.799 }

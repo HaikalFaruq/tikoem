@@ -177,7 +177,10 @@ export type OpsiHitung = {
   antreTransitous?: () => Promise<void>
   /** Saat tombol Cari tempat ditekan, untuk jam berangkat transportasi umum kalau jam ketemuan kosong. Kosong berarti sekarang. */
   sekarang?: number
-  /** Jam ketemuan room (Discussions #83). Kalau ada, jam ini yang jadi jam berangkat transportasi umum. */
+  /**
+   * Jam ketemuan room (Discussions #83). Kalau ada, jam ini yang jadi jam berangkat transportasi umum, dan tempat yang jelas
+   * tutup di jam itu tidak ikut dicari (Discussions #74).
+   */
   jamKetemuan?: number
 }
 export type HasilHitung =
@@ -223,6 +226,7 @@ export async function hitungHasil(
     batasMs: 15_000,
     server: urlOverpass ? [urlOverpass] : undefined,
     stasiun: naikUmum.length > 0,
+    jamKetemuan,
   })
   if (tempat.length === 0) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
 

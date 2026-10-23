@@ -34,6 +34,8 @@ function kirim(jawaban: ServerResponse, status: number, isi: unknown) {
  *
  * Kalau kuerinya ikut mencari stasiun, yaitu saat ada yang naik transportasi umum, ada juga dua stasiun KRL dan satu
  * halte TransJakarta yang dipecah per arah. Semuanya sekitar 11 m dari pusat kotak.
+ *
+ * Di Bogor (`LOKASI_TEMPAT_TUTUP_MALAM`), keenam tempatnya hanya buka pukul 08.00–17.00, untuk menguji saringan jam buka.
  */
 function overpass(kueri: string): { status: number; isi: unknown } {
   const kotak = /\((-?[\d.]+),(-?[\d.]+),(-?[\d.]+),(-?[\d.]+)\)/.exec(kueri)
@@ -43,6 +45,7 @@ function overpass(kueri: string): { status: number; isi: unknown } {
   const lng = (barat + timur) / 2
   if (lat < -60) return { status: 200, isi: { elements: [] } }
   if (lat > 60) return { status: 503, isi: { error: 'layanan tiruan sengaja gagal' } }
+  const tutupMalam = lat > -6.65 && lat < -6.55 && lng > 106.75 && lng < 106.85
   const tempat = Array.from({ length: 6 }, (_, i) => ({
     type: 'node',
     id: i + 1,
@@ -52,6 +55,7 @@ function overpass(kueri: string): { status: number; isi: unknown } {
       amenity: i % 2 ? 'cafe' : 'restaurant',
       name: `Tempat Tiruan ${i + 1}`,
       ...(i === 0 ? { 'addr:street': 'Jalan Tiruan Raya' } : {}),
+      ...(tutupMalam ? { opening_hours: 'Mo-Su 08:00-17:00' } : {}),
     },
   }))
   const stasiun = kueri.includes('"railway"')
