@@ -1,3 +1,4 @@
+import { bukaPada } from './jamBuka'
 import { JARI_JARI_BUMI_METER, jarakMeter, type Titik } from './lokasi'
 
 type KategoriTempat = 'kafe' | 'resto' | 'mall' | 'stasiun'
@@ -104,10 +105,14 @@ export function ringkasAlamat(jalan: string): string | null {
   return ringkas.length >= 3 && ringkas.length <= 40 ? ringkas : null
 }
 
-/** Mengubah jawaban Overpass (`unknown`, karena datang dari luar) jadi daftar tempat. Elemen yang tidak lengkap dilewati. */
-export function bacaTempat(jawaban: unknown, tengah: Titik): Tempat[] {
+/**
+ * Mengubah jawaban Overpass (`unknown`, karena datang dari luar) jadi daftar tempat. Elemen yang tidak lengkap dilewati.
+ * Kalau ada jam ketemuan, tempat yang `opening_hours`-nya jelas tutup di jam itu juga dilewati. Tempat tanpa data jam buka,
+ * atau yang jam bukanya tidak dikenali, tetap ikut (Discussions #74).
+ */
+export function bacaTempat(jawaban: unknown, tengah: Titik, { jamKetemuan }: { jamKetemuan?: number } = {}): Tempat[] {
   const elemen = objek(jawaban)?.elements
-  return Array.isArray(elemen) ? elemen.flatMap((e) => bacaElemen(e, tengah) ?? []) : []
+  return Array.isArray(elemen) ? elemen.flatMap((e) => bacaElemen(e, tengah, jamKetemuan) ?? []) : []
 }
 
 /**
@@ -138,7 +143,7 @@ function titikDari(lat: unknown, lon: unknown): Titik | null {
     : null
 }
 
-function bacaElemen(mentah: unknown, tengah: Titik): Tempat | null {
+function bacaElemen(mentah: unknown, tengah: Titik, jamKetemuan: number | undefined): Tempat | null {
   const e = objek(mentah)
   const tag = objek(e?.tags)
   if (!e || !tag || typeof e.type !== 'string' || typeof e.id !== 'number') return null
@@ -151,6 +156,7 @@ function bacaElemen(mentah: unknown, tengah: Titik): Tempat | null {
   const pusat = objek(e.center)
   const lokasi = titikDari(e.lat, e.lon) ?? titikDari(pusat?.lat, pusat?.lon)
   if (!nama || !kategori || !lokasi) return null
+  if (jamKetemuan !== undefined && typeof tag.opening_hours === 'string' && bukaPada(tag.opening_hours, jamKetemuan) === false) return null
 
   return {
     osmId: `${e.type}/${e.id}`,
