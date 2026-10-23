@@ -1,4 +1,5 @@
 import { namaStasiun } from './tempat'
+import { kontrasWarna } from '../lib/warna'
 
 const MENIT = 60_000
 /** Pilihan dengan pindah kendaraan lebih sedikit menang kalau selisihnya paling banyak segini (Discussions #83). */
@@ -58,6 +59,8 @@ const LAYANAN: Record<string, string> = { 'Kereta Commuter Indonesia': 'KRL', Tr
 const NOMOR_PERON = /\s+\d+$/
 const TERMINAL = /^term\.?\s+/i
 const WARNA_HEKS = /^[0-9a-f]{6}$/i
+/** Batas WCAG AA untuk teks kecil, seperti nama jalur di chip. */
+const KONTRAS_MIN = 4.5
 
 /** Nama di feed KRL ditulis huruf besar semua ("DEPOK BARU", "UNIV. INDONESIA"), jadi dirapikan per kata. */
 function rapikanHurufBesar(nama: string): string {
@@ -73,10 +76,17 @@ function namaPerhentian(nama: string, jenis: 'kereta' | 'bus'): string {
   return namaStasiun('Halte', tanpaPeron)
 }
 
-/** Kalau warna tulisannya kosong, GTFS memakai hitam. */
+/**
+ * Warna chip jalur dari feed. Kalau warna tulisannya kosong, GTFS memakai hitam. Kalau kontras tulisan dari feed kurang dari
+ * 4,5:1, misalnya putih di atas hijau TJ 9A (2,98:1), tulisannya diganti hitam atau putih, mana yang lebih kontras. Salah
+ * satunya selalu mencapai paling sedikit 4,58:1.
+ */
 function warnaJalur(latar: string | null, teks: string | null): Warna | null {
   if (latar === null || !WARNA_HEKS.test(latar)) return null
-  return { latar: `#${latar.toLowerCase()}`, teks: teks !== null && WARNA_HEKS.test(teks) ? `#${teks.toLowerCase()}` : '#000000' }
+  const dariFeed = teks !== null && WARNA_HEKS.test(teks) ? teks : '000000'
+  const terbaca =
+    kontrasWarna(latar, dariFeed) >= KONTRAS_MIN ? dariFeed : kontrasWarna(latar, '000000') >= kontrasWarna(latar, 'ffffff') ? '000000' : 'ffffff'
+  return { latar: `#${latar.toLowerCase()}`, teks: `#${terbaca.toLowerCase()}` }
 }
 
 function pilihTerbaik(pilihan: readonly PilihanPerjalanan[], tiba: boolean): PilihanPerjalanan | undefined {
