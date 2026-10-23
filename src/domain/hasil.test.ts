@@ -167,6 +167,12 @@ describe('teksHasil', () => {
     expect(teks).not.toContain('Dipilih 2 dari 3 orang.')
     expect(teks.endsWith('https://tikoem.vercel.app/r/ABC234')).toBe(true)
   })
+
+  it('jam ketemuan disebut tepat di bawah nama tempat, kalau sudah diisi', () => {
+    const baris = teksHasil({ ...isi, jamKetemuan: Date.parse('2026-10-26T19:00+07:00') }).split('\n')
+    expect(baris[1]).toBe('Jam: *Senin, 26 Okt · 19.00 WIB*')
+    expect(teksHasil({ ...isi, jamKetemuan: null })).not.toContain('Jam:')
+  })
 })
 
 describe('pesanTransportasiUmumTidakTerjangkau', () => {

@@ -37,7 +37,7 @@ test('ganti kendaraan dari kartu lokasi tanpa keluar room, lalu hasilnya perlu d
 
   await expect(kartu).toContainText('Berangkat naik Jalan kaki', REALTIME)
   await expect(page.locator('li[data-urutan="1"]')).toContainText('Jalan kaki · lokasi sudah masuk')
-  await expect(page.getByText('Ada lokasi atau kendaraan yang berubah')).toBeVisible(REALTIME)
+  await expect(page.getByText('Ada yang berubah')).toBeVisible(REALTIME)
 
   // Batal menutup pilihan tanpa mengubah apa pun.
   await kartu.getByRole('button', { name: 'Ganti kendaraan' }).click()

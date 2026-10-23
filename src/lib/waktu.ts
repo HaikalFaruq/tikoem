@@ -6,6 +6,19 @@ const SELISIH_WIB_MS = 7 * JAM
 /** Tanggal di Jakarta, misalnya "2026-10-23", untuk hitungan harian. */
 export const tanggalJakarta = (waktu: number) => new Date(waktu + SELISIH_WIB_MS).toISOString().slice(0, 10)
 
+/** Jam di Jakarta dengan titik seperti biasa ditulis di Indonesia, misalnya "19.00". */
+export const jamJakarta = (waktu: number) => new Date(waktu + SELISIH_WIB_MS).toISOString().slice(11, 16).replace(':', '.')
+
+const NAMA_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+const NAMA_BULAN = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+
+/** Hari dan tanggal di Jakarta, misalnya "Senin, 26 Okt", atau "Sen 26" kalau `pendek`. */
+export function hariJakarta(waktu: number, pendek = false): string {
+  const d = new Date(waktu + SELISIH_WIB_MS)
+  const hari = NAMA_HARI[d.getUTCDay()]
+  return pendek ? `${hari.slice(0, 3)} ${d.getUTCDate()}` : `${hari}, ${d.getUTCDate()} ${NAMA_BULAN[d.getUTCMonth()]}`
+}
+
 /** Sisa waktu yang mudah dibaca, misalnya "23 jam lagi" atau "15 menit lagi". Dibulatkan ke bawah supaya tidak terlalu optimis. */
 export function sisaWaktu(sisaMs: number): string {
   if (sisaMs <= 0) return 'sudah berakhir'

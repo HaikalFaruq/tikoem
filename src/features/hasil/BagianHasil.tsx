@@ -10,6 +10,7 @@ import { warnaPin } from '../../domain/warnaPin'
 import { KartuStiker, Pin, Tombol } from '../../ui'
 import { KeteranganTransportasiUmum } from '../peserta/SumberTransitous'
 import type { IdentitasRoom } from '../room/identitas'
+import { IsianJamKetemuan } from './IsianJamKetemuan'
 import { KartuHasil } from './KartuHasil'
 import { KartuTempat } from './KartuTempat'
 import type { Kandidat, Peserta, Room } from './tipe'
@@ -90,6 +91,20 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
   const idTerpilih = room.tetap?.kandidatId ?? pilihanAkhir(kandidat)
   const terpilih = kandidat.find((k) => k.id === idTerpilih) ?? null
 
+  // Di dekat Cari tempat (Discussions #74). Setelah hasil keluar, isiannya pindah ke kartu hasil.
+  const isianJam = (
+    <IsianJamKetemuan
+      jamKetemuan={room.jamKetemuan}
+      identitas={identitas}
+      keterangan={
+        room.jamKetemuan
+          ? 'Tempat yang tutup di jam itu tidak ikut dicari.'
+          : 'Opsional. Dipakai untuk jadwal KRL dan TransJakarta, dan untuk jam buka tempat.'
+      }
+      onIdentitasHilang={onIdentitasHilang}
+    />
+  )
+
   return (
     <section aria-labelledby="hasil-judul" className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-col gap-1">
@@ -132,6 +147,7 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
                 ? 'Yang belum berbagi lokasi tidak ikut dihitung.'
                 : 'Semua sudah siap.'}
           </p>
+          {isianJam}
           {/* Selagi nonaktif tidak merah, supaya aksi utama keadaan ini (bagikan lokasi atau ajak teman) tetap satu-satunya. */}
           <Tombol
             onClick={cari}
@@ -176,6 +192,8 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
                 ? PESAN_GAGAL[keadaan.galat]
                 : 'Tempatnya belum berhasil dicari.'}
           </p>
+          {/* Tempat bisa tidak ditemukan karena semuanya tutup di jam ketemuan, jadi jamnya bisa diubah di sini juga. */}
+          {isianJam}
           {/* Kalau galatnya menyebutku, aksi utamanya ada di kartu lokasiku, jadi Coba lagi tidak merah. */}
           <Tombol
             onClick={cari}
@@ -191,8 +209,8 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
       {keadaan.jenis === 'siap' && keadaan.usang && (
         <KartuStiker className="flex flex-col gap-3 p-4">
           <p className="text-sm">
-            <b>Ada lokasi atau kendaraan yang berubah</b> setelah tempat ini dicari. Hitung ulang supaya semua orang ikut dihitung. Pilihan yang
-            sudah masuk akan diulang.
+            <b>Ada yang berubah</b> setelah tempat ini dicari, misalnya lokasi, kendaraan, atau jam ketemuan. Hitung ulang supaya semua
+            orang ikut dihitung. Pilihan yang sudah masuk akan diulang.
           </p>
           <Tombol varian="biasa" onClick={cari} disabled={!keadaan.bisaHitungUlang || sibuk} className="self-start">
             Hitung ulang
@@ -216,8 +234,9 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
           room={room}
           kandidat={terpilih}
           peserta={peserta}
-          idSaya={identitas.pesertaId}
+          identitas={identitas}
           sibuk={sibuk}
+          onIdentitasHilang={onIdentitasHilang}
           onTetapkan={(kandidatId) => jalankan(() => tetapkan({ ...identitas, kandidatId }))}
         />
       )}

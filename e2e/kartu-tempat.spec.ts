@@ -100,10 +100,10 @@ test('lokasi yang berubah membuat hasil usang, dan hitung ulang mengosongkan pil
   await expect(page.locator('[data-kandidat="1"]')).toContainText('1 suara')
 
   await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: { lat: -6.17, lng: 106.89 } })
-  await expect(page.getByText('Ada lokasi atau kendaraan yang berubah')).toBeVisible(REALTIME)
+  await expect(page.getByText('Ada yang berubah')).toBeVisible(REALTIME)
 
   await page.getByRole('button', { name: 'Hitung ulang' }).click()
-  await expect(page.getByText('Ada lokasi atau kendaraan yang berubah')).toHaveCount(0, { timeout: 30_000 })
+  await expect(page.getByText('Ada yang berubah')).toHaveCount(0, { timeout: 30_000 })
   await expect(page.locator('[data-kandidat]')).toHaveCount(5)
   await expect(page.getByText('0 dari 3 orang sudah memilih.')).toBeVisible()
 })
@@ -194,7 +194,7 @@ test('tetapkan tempat: konfirmasi, keadaan Fix! untuk semua, lalu Ubah lagi memb
   // Lokasi yang berubah tidak memunculkan Hitung ulang selama tempatnya tetap.
   await convex.mutation(api.room.kirimLokasi, { pesertaId: umar.pesertaId, kunci: umar.kunci, lokasi: { lat: -6.17, lng: 106.89 } })
   await page.waitForTimeout(1000)
-  await expect(page.getByText('Ada lokasi atau kendaraan yang berubah')).toHaveCount(0)
+  await expect(page.getByText('Ada yang berubah')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Ubah lagi' }).click()
   await expect(page.getByRole('heading', { name: 'Tempat paling adil' })).toBeVisible(REALTIME)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jedaBertahap, jedaPermintaan, sisaWaktu, tanggalJakarta } from './waktu'
+import { hariJakarta, jamJakarta, jedaBertahap, jedaPermintaan, sisaWaktu, tanggalJakarta } from './waktu'
 
 const MENIT = 60_000
 
@@ -28,6 +28,23 @@ describe('tanggalJakarta', () => {
     expect(tanggalJakarta(Date.parse('2026-10-24T00:00+07:00'))).toBe('2026-10-24')
     // Pukul 06.30 WIB masih tanggal sebelumnya di UTC.
     expect(tanggalJakarta(Date.parse('2026-10-24T06:30+07:00'))).toBe('2026-10-24')
+  })
+})
+
+describe('jamJakarta', () => {
+  it('menulis jam WIB dengan titik, apa pun zona waktu HP-nya', () => {
+    expect(jamJakarta(Date.parse('2026-10-26T19:00+07:00'))).toBe('19.00')
+    expect(jamJakarta(Date.parse('2026-10-26T06:05+07:00'))).toBe('06.05')
+    expect(jamJakarta(Date.parse('2026-10-26T12:00Z'))).toBe('19.00')
+  })
+})
+
+describe('hariJakarta', () => {
+  it('menyebut hari dan tanggal di Jakarta', () => {
+    expect(hariJakarta(Date.parse('2026-10-26T19:00+07:00'))).toBe('Senin, 26 Okt')
+    expect(hariJakarta(Date.parse('2026-10-26T19:00+07:00'), true)).toBe('Sen 26')
+    // Pukul 00.30 WIB hari Selasa masih Senin di UTC.
+    expect(hariJakarta(Date.parse('2026-10-27T00:30+07:00'))).toBe('Selasa, 27 Okt')
   })
 })
 
