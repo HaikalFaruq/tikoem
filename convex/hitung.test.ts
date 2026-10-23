@@ -797,3 +797,61 @@ describe('alur hitung di Convex', () => {
     expect((galat as ConvexError<{ galat: string }>).data.galat).toBe('SEDANG_MENGHITUNG')
   })
 })
+
+/** Semua server Overpass menjawab 503, sedangkan layanan lain menjawab biasa. */
+function overpassRusak() {
+  const tiruan = tiruanFetch()
+  return vi.fn<typeof fetch>(async (url, init) => (String(url).endsWith('/interpreter') ? new Response('', { status: 503 }) : tiruan.ambil(url, init)))
+}
+
+describe('hitungan harian (#78)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    // Semenit sebelum tengah malam di Jakarta.
+    vi.setSystemTime(Date.parse('2026-10-23T23:59:00+07:00'))
+    vi.stubEnv('ORS_API_KEY', 'kunci-uji')
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  it('menghitung Cari tempat dan LAYANAN_GAGAL per layanan menurut tanggal Jakarta, tanpa menghitung dua kali', async () => {
+    const { t, roomId, haikal } = await roomTigaOrang()
+    const cari = async (ambil: typeof fetch, putaran: number) => {
+      vi.stubGlobal('fetch', ambil)
+      await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+      await t.action(internal.hitung.jalankan, { roomId, putaran })
+    }
+
+    await cari(overpassRusak(), 1)
+    await cari(tiruanFetch({ ors: () => new Response('', { status: 500 }) }).ambil, 2)
+    // Batas waktu lebih dulu, lalu galat Overpass datang terlambat untuk putaran yang sama.
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.mutation(internal.hitung.batasWaktu, { roomId, putaran: 3 })
+    vi.stubGlobal('fetch', overpassRusak())
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 3 })
+
+    // Lewat tengah malam: hari baru, dan galat yang bukan karena layanan luar tidak dihitung.
+    majukanJam(2 * 60_000)
+    await cari(tiruanFetch({ tempat: [] }).ambil, 4)
+    expect((await lihat(t, haikal.kode)).room.galatHitung).toBe('TEMPAT_TIDAK_DITEMUKAN')
+
+    expect(await t.query(internal.hitunganHarian.ringkas, {})).toEqual([
+      { tanggal: '2026-10-24', cari: 1 },
+      { tanggal: '2026-10-23', cari: 3, gagal_overpass: 1, gagal_ors: 1, gagal_batas_waktu: 1 },
+    ])
+  })
+
+  it('ringkasannya dibatasi jumlah hari yang diminta', async () => {
+    const { t } = await roomTigaOrang()
+    await t.run(async (ctx) => {
+      for (const tanggal of ['2026-10-20', '2026-10-21', '2026-10-22']) await ctx.db.insert('hitunganHarian', { tanggal, jenis: 'cari', jumlah: 2 })
+    })
+    expect(await t.query(internal.hitunganHarian.ringkas, { hari: 2 })).toEqual([
+      { tanggal: '2026-10-22', cari: 2 },
+      { tanggal: '2026-10-21', cari: 2 },
+    ])
+  })
+})

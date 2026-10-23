@@ -1,5 +1,10 @@
 const MENIT = 60_000
 const JAM = 60 * MENIT
+/** Jakarta memakai WIB (UTC+7) sepanjang tahun, tanpa jam musim panas. */
+const SELISIH_WIB_MS = 7 * JAM
+
+/** Tanggal di Jakarta, misalnya "2026-10-23", untuk hitungan harian. */
+export const tanggalJakarta = (waktu: number) => new Date(waktu + SELISIH_WIB_MS).toISOString().slice(0, 10)
 
 /** Sisa waktu yang mudah dibaca, misalnya "23 jam lagi" atau "15 menit lagi". Dibulatkan ke bawah supaya tidak terlalu optimis. */
 export function sisaWaktu(sisaMs: number): string {

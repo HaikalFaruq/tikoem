@@ -10,6 +10,7 @@
 
 import type * as batasLaju from "../batasLaju.js";
 import type * as hitung from "../hitung.js";
+import type * as hitunganHarian from "../hitunganHarian.js";
 import type * as lokasi from "../lokasi.js";
 import type * as nominatim from "../nominatim.js";
 import type * as ors from "../ors.js";
@@ -28,6 +29,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   batasLaju: typeof batasLaju;
   hitung: typeof hitung;
+  hitunganHarian: typeof hitunganHarian;
   lokasi: typeof lokasi;
   nominatim: typeof nominatim;
   ors: typeof ors;

@@ -3,6 +3,7 @@ import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { BATAS_HITUNG_MS } from './hitung'
+import { tambahHitungan } from './hitunganHarian'
 import { barisRingkasan, hapusRingkasanRoom, perbaruiRingkasan } from './ringkasanRute'
 import { vKendaraan, vTitik } from './schema'
 import { JUMLAH_KANDIDAT_AKHIR } from '../src/domain/keadilan'
@@ -252,6 +253,8 @@ export const hitung = mutation({
     })
     await ctx.scheduler.runAfter(0, internal.hitung.jalankan, { roomId: room._id, putaran })
     await ctx.scheduler.runAfter(BATAS_HITUNG_MS, internal.hitung.batasWaktu, { roomId: room._id, putaran })
+    // Penyebut untuk hitungan harian LAYANAN_GAGAL (#78).
+    await tambahHitungan(ctx, 'cari')
   },
 })
 

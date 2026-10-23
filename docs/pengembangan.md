@@ -65,6 +65,11 @@ Semua layanan luar dipanggil dari Convex action, jadi key dan batasnya dijaga di
 
 Yang tidak kebagian antrean, atau hitung yang lewat 50 detik, berakhir dengan `LAYANAN_GAGAL` supaya layar bisa menawarkan "Coba lagi". Begitu juga hitung yang butuh Transitous selama jeda setelah 429. Hitung ulang hanya jalan kalau ada lokasi yang berubah sejak hasil terakhir.
 
+**Hitungan harian.** Setiap Cari tempat yang mulai, dan setiap yang berakhir `LAYANAN_GAGAL`, dihitung per hari (tanggal Jakarta) di tabel `hitunganHarian`. Ini bahan untuk memutuskan perlu tidaknya cache Overpass ([#78](https://github.com/HaikalFaruq/tikoem/issues/78)).
+- **Jenisnya** `cari`, lalu penyebab gagalnya: `gagal_overpass`, `gagal_ors`, `gagal_transitous`, `gagal_batas_waktu`, atau `gagal_lain`.
+- **Isinya hanya angka**, tanpa koordinat, room, atau data orang.
+- **Cara membaca:** `npx convex run --prod hitunganHarian:ringkas '{"hari": 30}'`. Tanpa argumen, yang keluar 14 hari terakhir.
+
 **Jam buka.** Kalau ada jam ketemuan, tempat yang `opening_hours`-nya jelas tutup di jam itu dilewati sebelum waktu tempuhnya dihitung, juga saat memutuskan radius perlu diperluas ([Discussions #74](https://github.com/HaikalFaruq/tikoem/discussions/74), `src/domain/jamBuka.ts`).
 - **Bentuk yang dibaca** adalah yang umum di Jakarta: "24/7", hari dan jam ("Mo-Su 10:00-22:00"), beberapa aturan ("Mo-Fr 08:00-22:00; Sa 10:00-22:00; Su closed"), beberapa rentang dalam sehari, dan jam yang lewat tengah malam ("10:00-01:00"). Dari 544 nilai di Jakarta Selatan dan Pusat (Oktober 2026), 541 dikenali.
 - **Tetap ikut** tempat tanpa data jam buka (sebagian besar tempat), bentuk yang tidak dikenali ("sunrise-sunset"), dan tempat yang aturan hari liburnya (`PH`) bisa membuatnya buka, karena Tikoem tidak tahu tanggal itu hari libur atau bukan.
