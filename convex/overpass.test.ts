@@ -124,6 +124,17 @@ describe('cariTempatSekitar', () => {
     expect(panggilan.map((p) => p.kueri)).toEqual([kueriOverpass(TEBET, 1000), kueriOverpass(TEBET, 2500)])
   })
 
+  it('tempat yang tutup di jam ketemuan tidak dihitung saat memutuskan radius perlu diperluas', async () => {
+    // Lima tempat, dua di antaranya hanya buka sampai sore.
+    const sampaiSore = kafe(5)
+    for (const e of sampaiSore.elements.slice(0, 2)) Object.assign(e.tags, { opening_hours: 'Mo-Su 08:00-17:00' })
+    const { ambil, panggilan } = tiruanFetch((_, kueri) => json(kueri === kueriOverpass(TEBET, 1000) ? sampaiSore : kafe(7)))
+    const tempat = await cariTempatSekitar(TEBET, 2000, { ambil, jamKetemuan: Date.parse('2026-10-23T19:00+07:00') })
+
+    expect(panggilan).toHaveLength(2)
+    expect(tempat).toHaveLength(7)
+  })
+
   it('ikut mencari stasiun dan halte kalau diminta', async () => {
     const { ambil, panggilan } = tiruanFetch(() => json(kafe(6)))
     await cariTempatSekitar(TEBET, 2000, { ambil, stasiun: true })

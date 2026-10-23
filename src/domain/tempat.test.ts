@@ -146,6 +146,15 @@ describe('ringkasAlamat', () => {
   })
 })
 
+/** Kafe di dekat Tebet dengan tag `opening_hours` kalau diisi. */
+const kafe = (id: number, jamBuka?: string) => ({
+  type: 'node',
+  id,
+  lat: -6.2253,
+  lon: 106.8552,
+  tags: { amenity: 'cafe', name: `Kafe ${id}`, ...(jamBuka ? { opening_hours: jamBuka } : {}) },
+})
+
 describe('bacaTempat', () => {
   it('membaca node, way, dan relation lengkap dengan kategori, alamat, dan jarak', () => {
     const tempat = bacaTempat(JAWABAN, TEBET)
@@ -180,6 +189,16 @@ describe('bacaTempat', () => {
       ],
     }
     expect(bacaTempat(jawaban, TEBET).map((t) => t.nama)).toEqual(['Stasiun Manggarai', 'Halte Kuningan', 'Halte Flyover Jatinegara'])
+  })
+
+  it('dengan jam ketemuan, tempat yang jelas tutup dilewati, sedangkan yang tanpa data atau tidak dikenali tetap ikut', () => {
+    const jawaban = {
+      elements: [kafe(1, 'Mo-Su 10:00-22:00'), kafe(2, '24/7'), kafe(3), kafe(4, 'sunrise-sunset'), kafe(5, 'Mo-Su,PH 10:00-22:00')],
+    }
+    // Jumat 23 Oktober 2026 pukul 23.00 WIB.
+    const jamKetemuan = Date.parse('2026-10-23T23:00+07:00')
+    expect(bacaTempat(jawaban, TEBET, { jamKetemuan }).map((t) => t.nama)).toEqual(['Kafe 2', 'Kafe 3', 'Kafe 4', 'Kafe 5'])
+    expect(bacaTempat(jawaban, TEBET)).toHaveLength(5)
   })
 
   it('jawaban yang rusak atau kosong menghasilkan daftar kosong', () => {

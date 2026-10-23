@@ -276,6 +276,21 @@ describe('hitungHasil dengan transportasi umum (Discussions #63)', () => {
     ])
   })
 
+  it('tempat yang jelas tutup di jam ketemuan tidak ikut dicari (Discussions #74)', async () => {
+    const tempat = TEMPAT.map((t, i) => (i === 0 ? { ...t, tags: { ...t.tags, opening_hours: 'Mo-Su 08:00-17:00' } } : t))
+    const { ambil, panggilanOrs } = tiruanFetch({ tempat })
+    const hasil = await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil, jamKetemuan: Date.parse('2026-10-23T19:00+07:00') })
+    if ('galat' in hasil) throw new Error(hasil.galat)
+    expect(hasil.kandidat.map((k) => k.nama)).not.toContain('Tempat 1')
+    // Waktu tempuh ke tempat yang tutup tidak ditanyakan.
+    expect(panggilanOrs.map((p) => p.tujuan)).toEqual([5, 5])
+
+    // Tanpa jam ketemuan, tempat itu tetap ikut, bahkan paling adil.
+    const tanpaJam = await hitungHasil(TIGA_ORANG, { kunciOrs: 'k', ambil: tiruanFetch({ tempat }).ambil })
+    if ('galat' in tanpaJam) throw new Error(tanpaJam.galat)
+    expect(tanpaJam.kandidat[0].nama).toBe('Tempat 1')
+  })
+
   it('kalau ada jam ketemuan, jam itu yang jadi jam berangkat, dengan aturan akhir pekan yang sama (Discussions #83)', async () => {
     const { ambil, panggilanUmum } = tiruanFetch({ umum: umumDariAsal })
     const opsi = { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS, sekarang: Date.parse('2026-10-21T14:00+07:00') }

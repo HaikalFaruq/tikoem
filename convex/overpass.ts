@@ -35,6 +35,8 @@ export type OpsiOverpass = {
   batasMs?: number
   /** Ikut mencari stasiun KRL dan halte TransJakarta, saat ada yang naik transportasi umum (Discussions #63). */
   stasiun?: boolean
+  /** Jam ketemuan room. Tempat yang jelas tutup di jam itu dilewati sebelum radiusnya diputuskan (Discussions #74). */
+  jamKetemuan?: number
 }
 
 export class OverpassGagal extends Error {
@@ -42,13 +44,16 @@ export class OverpassGagal extends Error {
 }
 
 /**
- * Tempat di sekitar titik tengah, yang terdekat lebih dulu.
- * Hasilnya bisa kosong kalau memang tidak ada tempat, tapi melempar `OverpassGagal` kalau semua server gagal.
+ * Tempat di sekitar titik tengah, yang terdekat lebih dulu. Tempat yang jelas tutup di jam ketemuan tidak dihitung, juga
+ * saat memutuskan radius perlu diperluas. Hasilnya bisa kosong kalau memang tidak ada tempat, tapi melempar `OverpassGagal`
+ * kalau semua server gagal.
  * Dipanggil dari action alur hitung, karena `fetch` hanya boleh dipakai di action.
  */
 export async function cariTempatSekitar(tengah: Titik, radiusTemanMeter: number, opsi: OpsiOverpass = {}): Promise<Tempat[]> {
-  const cari = async (radiusMeter: number) =>
-    pilihKandidat(bacaTempat(await mintaOverpass(kueriOverpass(tengah, radiusMeter, { stasiun: opsi.stasiun }), opsi), tengah))
+  const cari = async (radiusMeter: number) => {
+    const jawaban = await mintaOverpass(kueriOverpass(tengah, radiusMeter, { stasiun: opsi.stasiun }), opsi)
+    return pilihKandidat(bacaTempat(jawaban, tengah, { jamKetemuan: opsi.jamKetemuan }))
+  }
   const radius = radiusPencarianMeter(radiusTemanMeter)
   const dekat = await cari(radius)
   if (jumlahBisaTampil(dekat) >= MIN_TEMPAT) return dekat
