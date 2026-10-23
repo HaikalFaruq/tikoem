@@ -51,6 +51,8 @@ test('pop up traktir muncul di HP yang sudah gabung saat tempat dicari, sekali p
   await expect(hpBintang.getByText('Semua sudah siap.')).toBeVisible()
   await expect(hpTamu.getByRole('heading', { name: 'Gabung ke room ini' })).toBeVisible()
   await expect(popup(hpHaikal)).toBeHidden()
+  // Kartu ajakan traktir baru muncul setelah hasil keluar, bukan di antara peta dan Cari tempat (#65).
+  await expect(hpHaikal.getByRole('heading', { name: 'Terbantu Tikoem?' })).toHaveCount(0)
 
   await hpHaikal.getByRole('button', { name: 'Cari tempat' }).click()
   await expect(popup(hpHaikal)).toBeVisible()
@@ -79,7 +81,9 @@ test('pop up traktir muncul di HP yang sudah gabung saat tempat dicari, sekali p
   await expect(hpHaikal.getByRole('heading', { name: 'Tempat paling adil' })).toBeVisible()
   await expect(popup(hpHaikal)).toBeHidden()
 
-  // Tombol di bawah layar room membuka pop up yang sama, tanpa status pencarian.
+  // Kartunya ada di bawah hasil, dan tombolnya membuka pop up yang sama, tanpa status pencarian.
+  const judul = await hpHaikal.locator('main h2').allInnerTexts()
+  expect(judul.indexOf('Tempat paling adil')).toBeLessThan(judul.indexOf('Terbantu Tikoem?'))
   await hpHaikal.getByRole('button', { name: 'Traktir Tikoem' }).click()
   await expect(popup(hpHaikal)).toBeVisible()
   await expect(popup(hpHaikal)).not.toContainText('Tempatnya sudah ketemu!')

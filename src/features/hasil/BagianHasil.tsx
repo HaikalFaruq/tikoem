@@ -101,7 +101,7 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
         )}
         {keadaan.jenis === 'siap' && (
           <p className="text-sm text-teks-redup">
-            Diurutkan dari waktu tempuh terlama yang paling pendek. {sudahPilih} dari {peserta.length} orang sudah memilih.
+            Paling atas: tidak ada yang jauh sendirian. {sudahPilih} dari {peserta.length} orang sudah memilih.
           </p>
         )}
       </div>
@@ -243,6 +243,7 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
               pilihanSaya={k.id === pilihanSaya}
               redup={menghitung}
               sibuk={sibuk}
+              ringkas={keadaan.jenis === 'siap' && k.id === terpilih?.id}
               onPilih={() => pilih(k.id)}
               onBatal={() => pilih(null)}
             />

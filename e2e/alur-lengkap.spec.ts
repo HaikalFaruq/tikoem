@@ -74,7 +74,7 @@ test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, pop up t
   for (const halaman of [haikal, bintang, umar]) {
     await expect(halaman.getByRole('heading', { name: 'Tempat paling adil' })).toBeVisible({ timeout: 30_000 })
     await expect(halaman.locator('[data-kandidat]')).toHaveCount(5)
-    await expect(halaman.locator('[data-kandidat="1"]').getByRole('list', { name: 'Waktu tempuh tiap orang' }).getByRole('listitem')).toHaveCount(3)
+    await expect(halaman.locator('[data-kartu-hasil]').getByRole('list', { name: 'Waktu tempuh ke tempat ini' }).getByRole('listitem')).toHaveCount(3)
   }
   const namaTeradil = await haikal.locator('[data-kandidat="1"] h3').innerText()
   await expect(umar.locator('[data-kandidat="1"] h3')).toHaveText(namaTeradil)

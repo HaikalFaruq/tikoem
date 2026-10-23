@@ -156,7 +156,7 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             supaya terlihat tanpa menggulir (#65). Tombol WA baru merah setelah lokasinya masuk: satu aksi utama per keadaan.
           */}
           {sendirian && <BagikanRoom kode={room.kode} sendirian utama={saya.lokasi !== null} />}
-          {/* Peta dulu, lalu tombol Cari tempat di bawahnya (diselingi kartu traktir): orang melihat titik tengahnya, lalu tahu langkah berikutnya. */}
+          {/* Peta dulu, lalu tombol Cari tempat tepat di bawahnya: orang melihat titik tengahnya, lalu tahu langkah berikutnya. */}
           <BagianPeta
             pin={pinPeta}
             kandidat={room.tetap ? hasil.kandidat.filter((k) => k.id === room.tetap?.kandidatId) : hasil.kandidat}
@@ -164,8 +164,6 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             menghitung={room.status === 'menghitung'}
             tetap={room.tetap !== null}
           />
-          {/* Pop up traktir-nya muncul di HP yang sudah gabung saat tempat mulai dicari. */}
-          <TraktirTikoem room={room} peserta={daftar} />
           <BagianHasil
             room={room}
             peserta={daftar}
@@ -173,6 +171,8 @@ export function LayarRoom({ kode, keBeranda }: Props) {
             identitas={identitas}
             onIdentitasHilang={lupakanIdentitas}
           />
+          {/* Pop up traktir-nya muncul di HP yang sudah gabung saat tempat mulai dicari. Kartunya setelah hasil (#65). */}
+          <TraktirTikoem room={room} peserta={daftar} tampilkanKartu={hasil.kandidat.length > 0} />
           {!sendirian && <BagikanRoom kode={room.kode} sendirian={false} utama={false} />}
         </>
       ) : (

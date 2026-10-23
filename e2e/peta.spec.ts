@@ -103,7 +103,8 @@ test('setelah hasil keluar, peta menampilkan kandidat dan bintang suara terbanya
   if (!hasil.ok) throw new Error(hasil.galat)
   for (const p of [bintang, umar]) await convex.mutation(api.room.vote, { pesertaId: p.pesertaId, kunci: p.kunci, kandidatId: hasil.kandidat[2].id })
   await expect(peta.locator('[data-pilihan-peta]')).toHaveAttribute('data-kandidat-peta', '3', { timeout: 15_000 })
-  await expect(peta.locator('[data-pilihan-peta]')).toContainText(hasil.kandidat[2].nama)
+  // Label bintang ikut menyebut peringkatnya, supaya cocok dengan kartunya.
+  await expect(peta.locator('[data-pilihan-peta]')).toContainText(`3 · ${hasil.kandidat[2].nama}`)
   // Kandidat, bintang berlabel, dan pin teman tidak saling menutupi walaupun berdekatan (#65).
   await expect.poll(() => penandaBertumpuk(page), { timeout: 5_000 }).toEqual([])
 
