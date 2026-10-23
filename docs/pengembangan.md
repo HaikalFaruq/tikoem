@@ -93,12 +93,13 @@ Frontend hanya bicara dengan backend lewat fungsi Convex ini. Perubahan bentukny
 | `room.gabung({ kode, nama, kendaraan })` | mutation | Gabung ke room. Mengembalikan `{ pesertaId, kunci, urutanGabung }` |
 | `room.kirimLokasi({ pesertaId, kunci, lokasi })` | mutation | Simpan lokasi yang sudah dibulatkan. Hasil yang sudah keluar ditandai usang |
 | `room.ubahKendaraan({ pesertaId, kunci, kendaraan })` | mutation | Ganti kendaraan tanpa keluar room. Kalau orang itu sudah berbagi lokasi, hasil yang sudah keluar ditandai usang |
+| `room.ubahJamKetemuan({ pesertaId, kunci, jamKetemuan })` | mutation | Isi jam ketemuan dalam milidetik, atau `null` untuk mengosongkannya. Siapa saja di room boleh, juga setelah tempat ditetapkan. Detiknya dibuang, dan jam yang sudah lewat atau lebih dari 7 hari lagi ditolak dengan `JAM_KETEMUAN_TIDAK_VALID`. Jam ini jadi jam berangkat transportasi umum, dan hasil yang sudah keluar ditandai usang ([Discussions #83](https://github.com/HaikalFaruq/tikoem/discussions/83)) |
 | `room.hitung({ pesertaId, kunci })` | mutation | Mulai mencari tempat di latar. Tidak melakukan apa-apa kalau hasilnya masih berlaku |
 | `room.vote({ pesertaId, kunci, kandidatId })` | mutation | Pilih tempat. `kandidatId: null` membatalkan pilihan |
 | `room.tetapkan({ pesertaId, kunci, kandidatId })` | mutation | Tetapkan tempat untuk semua orang. Siapa saja di room boleh, tapi hanya untuk suara terbanyak saat ini ([Discussions #42](https://github.com/HaikalFaruq/tikoem/discussions/42)) |
 | `room.bukaLagi({ pesertaId, kunci })` | mutation | Buka voting lagi. Vote yang sudah ada tetap disimpan |
 | `room.keluar({ pesertaId, kunci })` | mutation | Hapus nama, lokasi, dan pilihan orang itu dari room |
-| `room.lihat({ kode })` | query | Room (termasuk `tetap`: `{ kandidatId, olehPesertaId, pada }` atau `null`, `putaranHitung` yang naik setiap tombol Cari tempat ditekan, dan `pesertaTidakTerjangkau`), peserta, dan kandidat secara realtime, atau `{ ok: false, galat }` |
+| `room.lihat({ kode })` | query | Room (termasuk `tetap`: `{ kandidatId, olehPesertaId, pada }` atau `null`, `jamKetemuan`: `{ waktu, olehPesertaId }` atau `null`, `putaranHitung` yang naik setiap tombol Cari tempat ditekan, dan `pesertaTidakTerjangkau`), peserta, dan kandidat secara realtime, atau `{ ok: false, galat }` |
 | `lokasi.cari({ teks })` | action | Cari alamat lewat Nominatim |
 | `lokasi.alamat({ lokasi })` | action | Label untuk titik yang dipilih di peta lewat Nominatim reverse: `{ label }`, atau `null` kalau titiknya tidak dekat jalan, misalnya di laut ([#53](https://github.com/HaikalFaruq/tikoem/issues/53)). Antreannya sama dengan `lokasi.cari`, jadi panggil setelah peta berhenti digeser. Galatnya `LAYANAN_GAGAL` atau `LOKASI_TIDAK_VALID` |
 

@@ -65,13 +65,18 @@ export default defineSchema({
     /** Naik setiap tombol "Cari tempat" ditekan. Hasil dari putaran yang sudah lewat diabaikan. */
     putaranHitung: v.optional(v.number()),
     /**
-     * Naik setiap ada lokasi atau kendaraan orang yang ikut dihitung berubah. Kalau berbeda dengan `versiHasil`, hasilnya usang
-     * (Discussions #8).
+     * Naik setiap ada lokasi atau kendaraan orang yang ikut dihitung berubah, atau jam ketemuan berubah. Kalau berbeda dengan
+     * `versiHasil`, hasilnya usang (Discussions #8 dan #83).
      */
     versiLokasi: v.optional(v.number()),
     versiHasil: v.optional(v.number()),
     /** Tempat yang sudah ditetapkan untuk semua orang (Discussions #42). Selama terisi, vote dan hitung ditolak. */
     tetap: v.optional(v.object({ kandidatId: v.id('kandidat'), olehPesertaId: v.id('peserta'), pada: v.number() })),
+    /**
+     * Jam ketemuan yang diisi salah satu orang di room (Discussions #83). Jadi jam berangkat transportasi umum saat tempat
+     * dicari. Dikosongkan saat room berakhir.
+     */
+    jamKetemuan: v.optional(v.object({ waktu: v.number(), olehPesertaId: v.id('peserta') })),
   }).index('by_kode', ['kode']),
 
   peserta: defineTable({

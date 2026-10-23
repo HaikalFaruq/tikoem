@@ -276,6 +276,19 @@ describe('hitungHasil dengan transportasi umum (Discussions #63)', () => {
     ])
   })
 
+  it('kalau ada jam ketemuan, jam itu yang jadi jam berangkat, dengan aturan akhir pekan yang sama (Discussions #83)', async () => {
+    const { ambil, panggilanUmum } = tiruanFetch({ umum: umumDariAsal })
+    const opsi = { kunciOrs: 'k', ambil, urlTransitous: URL_TRANSITOUS, sekarang: Date.parse('2026-10-21T14:00+07:00') }
+    await hitungHasil(ORANG_CAMPUR, { ...opsi, jamKetemuan: Date.parse('2026-10-23T19:00+07:00') })
+    await hitungHasil(ORANG_CAMPUR, { ...opsi, jamKetemuan: Date.parse('2026-10-24T19:00+07:00') })
+    expect(panggilanUmum.map((p) => p.time)).toEqual([
+      '2026-10-23T12:00:00.000Z',
+      '2026-10-23T12:00:00.000Z',
+      '2026-10-26T12:00:00.000Z',
+      '2026-10-26T12:00:00.000Z',
+    ])
+  })
+
   it('menunggu antrean sebelum tiap permintaan Transitous, dan berhenti tanpa memanggil Transitous kalau antrean penuh', async () => {
     const { ambil, panggilanUmum } = tiruanFetch({ umum: umumDariAsal })
     // Mencatat berapa permintaan Transitous yang sudah terkirim saat antrean dipanggil.
@@ -556,6 +569,20 @@ describe('alur hitung di Convex', () => {
 
     expect((await lihat(t, kode)).room.status).toBe('siap')
     expect(tiruan.panggilanUmum.map((p) => [new URL(p.url).origin, p.asal])).toEqual([['https://api.transitous.org', '-6.158;106.905']])
+  })
+
+  it('jam ketemuan room jadi jam berangkat saat tempat dicari (Discussions #83)', async () => {
+    vi.setSystemTime(Date.parse('2026-10-21T10:00+07:00'))
+    const tiruan = tiruanFetch()
+    vi.stubGlobal('fetch', tiruan.ambil)
+    const { t, kode, roomId, haikal } = await roomUmarNaikUmum()
+    const jamKetemuan = Date.parse('2026-10-21T19:00+07:00')
+    await t.mutation(api.room.ubahJamKetemuan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, jamKetemuan })
+    await t.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await t.action(internal.hitung.jalankan, { roomId, putaran: 1 })
+
+    expect((await lihat(t, kode)).room).toMatchObject({ status: 'siap', hasilUsang: false })
+    expect(tiruan.panggilanUmum.map((p) => p.time)).toEqual(['2026-10-21T12:00:00.000Z'])
   })
 
   it('permintaan Transitous antre kalau jatah per menit sudah habis', async () => {

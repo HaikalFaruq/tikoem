@@ -110,7 +110,7 @@ export function BagianHasil({ room, peserta, kandidat, identitas, onIdentitasHil
       {(keadaan.jenis === 'siap' || keadaan.jenis === 'tetap') && adaTransportasiUmum && (
         <div className="flex flex-col gap-1 rounded-2xl border-2 border-dashed border-garis/40 px-4 py-3" data-catatan-transportasi-umum>
           <KeteranganTransportasiUmum />
-          {dihitungAkhirPekan(room.hasilPada) && (
+          {dihitungAkhirPekan(room.jamKetemuan?.waktu ?? room.hasilPada) && (
             <p className="text-sm text-teks-redup">
               Jadwal KRL akhir pekan belum tersedia, jadi dihitung dengan jadwal hari kerja di jam yang sama. Waktu sebenarnya bisa
               lebih lama.
