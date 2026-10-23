@@ -104,7 +104,26 @@ test('setelah hasil keluar, peta menampilkan kandidat dan bintang suara terbanya
   for (const p of [bintang, umar]) await convex.mutation(api.room.vote, { pesertaId: p.pesertaId, kunci: p.kunci, kandidatId: hasil.kandidat[2].id })
   await expect(peta.locator('[data-pilihan-peta]')).toHaveAttribute('data-kandidat-peta', '3', { timeout: 15_000 })
   await expect(peta.locator('[data-pilihan-peta]')).toContainText(hasil.kandidat[2].nama)
+  // Kandidat, bintang berlabel, dan pin teman tidak saling menutupi walaupun berdekatan (#65).
+  await expect.poll(() => penandaBertumpuk(page), { timeout: 5_000 }).toEqual([])
 
   await peta.locator('[data-kandidat-peta="4"]').click()
   await expect(page.locator('[data-kandidat="4"]')).toBeInViewport()
 })
+
+/** Pasangan penanda di peta yang kotaknya bertumpuk lebih dari 1 px. */
+async function penandaBertumpuk(page: Page) {
+  const penanda = page.locator('[data-peta-live] :is([data-kandidat-peta], [data-pin-peta])')
+  const kotak = await Promise.all((await penanda.all()).map(async (p) => ({ nama: (await p.getAttribute('aria-label')) ?? (await p.innerText()), kotak: (await p.boundingBox())! })))
+  const tumpuk: string[] = []
+  for (let i = 0; i < kotak.length; i++) {
+    for (let j = i + 1; j < kotak.length; j++) {
+      const a = kotak[i].kotak
+      const b = kotak[j].kotak
+      const lebar = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)
+      const tinggi = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y)
+      if (lebar > 1 && tinggi > 1) tumpuk.push(`${kotak[i].nama} dan ${kotak[j].nama}`)
+    }
+  }
+  return tumpuk
+}

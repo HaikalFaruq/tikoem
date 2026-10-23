@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { jarakMeter } from './lokasi'
-import { batasPeta, lingkaranGeo, sebarPinBerdekatan, titikAwalPilih } from './peta'
+import { batasPeta, lingkaranGeo, pisahkanPenanda, titikAwalPilih, type KotakPenanda } from './peta'
 
 const TEBET = { lat: -6.227, lng: 106.854 }
 
@@ -13,31 +13,53 @@ describe('lingkaranGeo', () => {
   })
 })
 
-const posisiAkhir = (titik: { x: number; y: number }[]) =>
-  sebarPinBerdekatan(titik).map((g, i) => ({ x: titik[i].x + g.x, y: titik[i].y + g.y }))
+const posisiAkhir = (kotak: KotakPenanda[]) => pisahkanPenanda(kotak).map((g, i) => ({ ...kotak[i], x: kotak[i].x + g.x, y: kotak[i].y + g.y }))
 
-describe('sebarPinBerdekatan', () => {
-  it('tidak menggeser pin yang berjauhan di layar', () => {
-    expect(sebarPinBerdekatan([{ x: 0, y: 0 }, { x: 100, y: 0 }])).toEqual([
+/** Dua kotak yang jangkarnya di tengah bawah bertumpuk atau tidak. */
+const bertumpuk = (a: KotakPenanda, b: KotakPenanda) =>
+  Math.abs(a.x - b.x) < (a.lebar + b.lebar) / 2 && Math.abs(a.y - a.tinggi / 2 - (b.y - b.tinggi / 2)) < (a.tinggi + b.tinggi) / 2
+
+const angka = (x: number, y: number): KotakPenanda => ({ x, y, lebar: 28, tinggi: 28 })
+
+describe('pisahkanPenanda', () => {
+  it('tidak menggeser penanda yang berjauhan di layar', () => {
+    expect(pisahkanPenanda([angka(0, 0), angka(100, 0)])).toEqual([
       { x: 0, y: 0 },
       { x: 0, y: 0 },
     ])
   })
 
-  it('menyebar pin yang bertumpuk atau berdekatan sampai tidak saling menutupi', () => {
-    const akhir = posisiAkhir([{ x: 50, y: 50 }, { x: 200, y: 200 }, { x: 50, y: 50 }, { x: 54, y: 47 }])
-    expect(akhir[1]).toEqual({ x: 200, y: 200 })
-    const kelompok = [akhir[0], akhir[2], akhir[3]]
-    for (let i = 0; i < kelompok.length; i++) {
-      for (let j = i + 1; j < kelompok.length; j++) {
-        expect(Math.hypot(kelompok[i].x - kelompok[j].x, kelompok[i].y - kelompok[j].y)).toBeGreaterThan(20)
-      }
-    }
+  it('memisahkan penanda di titik yang sama dengan cara yang selalu sama', () => {
+    const akhir = posisiAkhir([angka(50, 50), angka(50, 50)])
+    expect(bertumpuk(akhir[0], akhir[1])).toBe(false)
+    expect(akhir[0].x).toBeLessThan(akhir[1].x)
+    expect(pisahkanPenanda([angka(50, 50), angka(50, 50)])).toEqual(pisahkanPenanda([angka(50, 50), angka(50, 50)]))
   })
 
-  it('menyebar kelompok di sekitar pin pertamanya, tidak jauh dari lokasi aslinya', () => {
-    const akhir = posisiAkhir([{ x: 50, y: 50 }, { x: 52, y: 51 }])
-    for (const a of akhir) expect(Math.hypot(a.x - 50, a.y - 50)).toBeCloseTo(18, 0)
+  it('memisahkan kerumunan kandidat, pin teman berlabel, dan bintang berlabel lebar sampai tidak ada yang tertutup', () => {
+    // Bentuk room uji panel promo #77: lima kandidat, satu stasiun, dan pin Sari dalam lingkaran ~40 px.
+    const kotak: KotakPenanda[] = [
+      { x: 140, y: 120, lebar: 144, tinggi: 54, diam: true },
+      angka(150, 118),
+      angka(158, 124),
+      { x: 146, y: 126, lebar: 40, tinggi: 28 },
+      angka(170, 130),
+      angka(165, 140),
+      { x: 152, y: 132, lebar: 36, tinggi: 50 },
+      { x: 300, y: 40, lebar: 48, tinggi: 50 },
+    ]
+    const akhir = posisiAkhir(kotak)
+    for (let i = 0; i < akhir.length; i++) {
+      for (let j = i + 1; j < akhir.length; j++) expect(bertumpuk(akhir[i], akhir[j]), `${i} dan ${j}`).toBe(false)
+    }
+    // Bintang tempat kumpul tetap tepat di tempatnya, dan pin yang jauh tidak ikut bergeser.
+    expect(akhir[0]).toMatchObject({ x: 140, y: 120 })
+    expect(akhir[7]).toMatchObject({ x: 300, y: 40 })
+  })
+
+  it('tetap dekat dengan lokasi aslinya', () => {
+    const akhir = posisiAkhir([angka(50, 50), angka(52, 51)])
+    for (const a of akhir) expect(Math.hypot(a.x - 50, a.y - 50)).toBeLessThan(25)
   })
 })
 
