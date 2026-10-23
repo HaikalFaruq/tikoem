@@ -48,9 +48,9 @@ const ARAH_PERON = /\s+arah\s+(barat|timur|utara|selatan)(\s+dan\s+(barat|timur|
 /**
  * Nama stasiun dan halte di OSM biasanya polos ("Tebet"), dan halte TransJakarta dipecah per arah. Arahnya dibuang supaya
  * satu halte cukup satu kandidat, lalu diberi awalan karena kategorinya sama-sama `stasiun`. Dengan begitu, Stasiun Cawang
- * dan Halte Cawang tidak tertukar di kartu.
+ * dan Halte Cawang tidak tertukar di kartu. Ringkasan rute memakai aturan yang sama (src/domain/ringkasanRute.ts).
  */
-function namaStasiun(awalan: 'Stasiun' | 'Halte', nama: string): string {
+export function namaStasiun(awalan: 'Stasiun' | 'Halte', nama: string): string {
   const tanpaArah = nama.replace(ARAH_PERON, '')
   return tanpaArah.toLocaleLowerCase('id').startsWith(`${awalan.toLocaleLowerCase('id')} `) ? tanpaArah : `${awalan} ${tanpaArah}`
 }

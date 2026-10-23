@@ -106,6 +106,49 @@ function transitous(kueri: URLSearchParams) {
   }
 }
 
+/** Di Lebak Bulus (`LOKASI_RUTE_GAGAL_SEKALI` di e2e/backend.ts), permintaan ringkasan rute pertama dari tiap titik menjawab 503. */
+const ruteGagalSekali = ([lng, lat]: number[]) => lat > -6.3 && lat < -6.28 && lng > 106.76 && lng < 106.79
+const sudahGagal = new Set<string>()
+
+/**
+ * Transitous `/api/v6/plan` untuk ringkasan rute. Satu pilihan: jalan 5 menit ke stasiun Tiruan, KRL 12 menit lewat dua
+ * stasiun, lalu jalan 4 menit. Nama stasiunnya huruf besar seperti feed KRL asli. Dengan `arriveBy=true`, perjalanannya
+ * sampai tepat di jam yang diminta. Dari Cileungsi (`LOKASI_TANPA_TRANSPORTASI_UMUM`) tidak ada pilihan sama sekali.
+ */
+function rencana(kueri: URLSearchParams): { status: number; isi: unknown } {
+  const dari = kueri.get('fromPlace') ?? ''
+  const [lat, lng] = dari.split(',').map(Number)
+  if (ruteGagalSekali([lng, lat]) && !sudahGagal.has(dari)) {
+    sudahGagal.add(dari)
+    return { status: 503, isi: { error: 'layanan tiruan sengaja gagal' } }
+  }
+  if (jauhDariHalte([lng, lat])) return { status: 200, isi: { direct: [], itineraries: [] } }
+  const waktu = Date.parse(kueri.get('time') ?? '')
+  const awal = kueri.get('arriveBy') === 'true' ? waktu - 21 * 60_000 : waktu
+  const jam = (menit: number) => new Date(awal + menit * 60_000).toISOString()
+  const krl = {
+    mode: 'REGIONAL_RAIL',
+    startTime: jam(5),
+    endTime: jam(17),
+    from: { name: 'TIRUAN' },
+    to: { name: 'TIRUAN BARU' },
+    headsign: 'TIRUANBARU',
+    tripTo: { name: 'TIRUAN BARU' },
+    routeShortName: 'T',
+    routeLongName: 'Commuter Line Tiruan',
+    agencyName: 'Kereta Commuter Indonesia',
+    routeColor: 'e30a16',
+    routeTextColor: 'ffffff',
+    intermediateStops: [{ name: 'TIRUAN TENGAH' }, { name: 'TIRUAN SELATAN' }],
+  }
+  const legs = [
+    { mode: 'WALK', startTime: jam(0), endTime: jam(5), from: { name: 'START' }, to: { name: 'TIRUAN' } },
+    krl,
+    { mode: 'WALK', startTime: jam(17), endTime: jam(21), from: { name: 'TIRUAN BARU' }, to: { name: 'END' } },
+  ]
+  return { status: 200, isi: { direct: [], itineraries: [{ duration: 21 * 60, startTime: jam(0), endTime: jam(21), transfers: 0, legs }] } }
+}
+
 /** Dua pilihan alamat. Teks yang mengandung "gagal" membuat layanan menjawab 503, untuk menguji LAYANAN_GAGAL. */
 function nominatim(q: string) {
   if (/gagal/i.test(q)) return null
@@ -146,6 +189,11 @@ createServer(async (permintaan, jawaban) => {
 
     if (permintaan.method === 'GET' && url.pathname === '/transitous/api/experimental/one-to-many-intermodal') {
       return kirim(jawaban, 200, transitous(url.searchParams))
+    }
+
+    if (permintaan.method === 'GET' && url.pathname === '/transitous/api/v6/plan') {
+      const { status, isi } = rencana(url.searchParams)
+      return kirim(jawaban, status, isi)
     }
 
     if (permintaan.method === 'GET' && url.pathname === '/nominatim/reverse') {

@@ -3,6 +3,7 @@ import { internal } from './_generated/api'
 import type { Doc, Id } from './_generated/dataModel'
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from './_generated/server'
 import { BATAS_HITUNG_MS } from './hitung'
+import { barisRingkasan, hapusRingkasanRoom, perbaruiRingkasan } from './ringkasanRute'
 import { vKendaraan, vTitik } from './schema'
 import { JUMLAH_KANDIDAT_AKHIR } from '../src/domain/keadilan'
 import { rapikanJamKetemuan } from '../src/domain/jamKetemuan'
@@ -47,6 +48,12 @@ async function pesertaDanRoom(ctx: MutationCtx, pesertaId: Id<'peserta'>, kunci:
   if (roomKedaluwarsa(room)) throw gagal('ROOM_KEDALUWARSA')
   return { peserta, room }
 }
+
+const pesertaRoom = (ctx: QueryCtx, roomId: Id<'room'>) =>
+  ctx.db
+    .query('peserta')
+    .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', roomId))
+    .take(MAKS_PESERTA)
 
 /** Kandidat room urut peringkat, masing-masing dengan pemilihnya urut waktu vote. Dipakai `lihat` dan `tetapkan`. */
 async function kandidatDanPemilih(ctx: QueryCtx, roomId: Id<'room'>) {
@@ -102,7 +109,7 @@ const MASA_SISA_ROOM_MS = 7 * 24 * 60 * 60 * 1000
 
 /**
  * Dijadwalkan tepat 24 jam setelah room dibuat (AGENTS.md §8). Semua data pribadi dihapus: nama, lokasi, kunci,
- * vote, kandidat (waktu tempuhnya dihitung dari lokasi), dan titik tengah. Jam ketemuan juga dikosongkan, jadi yang
+ * vote, kandidat dan ringkasan rute (dihitung dari lokasi), dan titik tengah. Jam ketemuan juga dikosongkan, jadi yang
  * tersisa hanya kode dan status room.
  */
 export const tandaiKedaluwarsa = internalMutation({
@@ -125,6 +132,7 @@ export const tandaiKedaluwarsa = internalMutation({
       .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', roomId))
       .take(MAKS_PESERTA)
     for (const p of peserta) await ctx.db.delete('peserta', p._id)
+    await hapusRingkasanRoom(ctx, roomId)
 
     await ctx.db.patch('room', roomId, { kedaluwarsa: true, titikTengah: undefined, tetap: undefined, jamKetemuan: undefined })
     await ctx.scheduler.runAfter(MASA_SISA_ROOM_MS, internal.room.hapusRoom, { roomId })
@@ -155,15 +163,18 @@ export const gabung = mutation({
 export const kirimLokasi = mutation({
   args: { pesertaId: v.id('peserta'), kunci: v.string(), lokasi: vTitik },
   handler: async (ctx, { pesertaId, kunci, lokasi }) => {
-    const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    const { peserta, room } = await pesertaDanRoom(ctx, pesertaId, kunci)
     if (!titikValid(lokasi)) throw gagal('LOKASI_TIDAK_VALID')
-    await ctx.db.patch('peserta', pesertaId, { lokasi: samarkan(lokasi) })
+    const samar = samarkan(lokasi)
+    await ctx.db.patch('peserta', pesertaId, { lokasi: samar })
     await ctx.db.patch('room', room._id, {
       // Hasil yang sudah keluar jadi usang kalau ada lokasi yang berubah (Discussions #8).
       versiLokasi: (room.versiLokasi ?? 0) + 1,
       // Orang yang lokasinya terlalu jauh dari jalan sudah memperbaruinya, jadi tidak disebut lagi, juga setelah halaman dimuat ulang (#53).
       ...(room.pesertaTidakTerjangkau === pesertaId ? { pesertaTidakTerjangkau: undefined } : {}),
     })
+    // Selama tempat tetap, ringkasan rute orang ini dihitung dari lokasi barunya (Discussions #83).
+    if (room.tetap) await perbaruiRingkasan(ctx, room._id, [{ ...peserta, lokasi: samar }])
   },
 })
 
@@ -188,6 +199,9 @@ export const ubahKendaraan = mutation({
         ...(tidakDisebutLagi ? { pesertaTidakTerjangkau: undefined } : {}),
       })
     }
+    // Selama tempat tetap, ringkasan rute dihitung kalau orang ini beralih ke transportasi umum, dan dihapus kalau beralih
+    // dari sana (Discussions #83).
+    if (room.tetap) await perbaruiRingkasan(ctx, room._id, [{ ...peserta, kendaraan }])
   },
 })
 
@@ -205,9 +219,10 @@ export const ubahJamKetemuan = mutation({
     await ctx.db.patch('room', room._id, {
       jamKetemuan: waktu === null ? undefined : { waktu, olehPesertaId: pesertaId },
       // Waktu tempuh transportasi umum dihitung untuk jam ini, jadi hasil yang sudah keluar jadi usang. Kalau tempatnya sudah
-      // ditetapkan, tempatnya tidak berubah.
+      // ditetapkan, tempatnya tidak berubah, tapi ringkasan rute semua orang dihitung ulang.
       versiLokasi: (room.versiLokasi ?? 0) + 1,
     })
+    if (room.tetap) await perbaruiRingkasan(ctx, room._id, await pesertaRoom(ctx, room._id))
   },
 })
 
@@ -285,20 +300,34 @@ export const tetapkan = mutation({
     // Suara bisa berubah selama dialog konfirmasi terbuka, jadi dihitung ulang di transaksi ini.
     if (pilihanAkhir(await kandidatDanPemilih(ctx, room._id)) !== kandidatId) throw gagal('PILIHAN_BERUBAH')
     await ctx.db.patch('room', room._id, { tetap: { kandidatId, olehPesertaId: pesertaId, pada: Date.now() } })
+    // Ringkasan rute untuk yang naik transportasi umum (Discussions #83).
+    await perbaruiRingkasan(ctx, room._id, await pesertaRoom(ctx, room._id))
   },
 })
 
-/** Membuka voting lagi kalau rencananya berubah. Vote yang sudah ada tetap disimpan. */
+/** Membuka voting lagi kalau rencananya berubah. Vote yang sudah ada tetap disimpan, ringkasan rute dihapus. */
 export const bukaLagi = mutation({
   args: { pesertaId: v.id('peserta'), kunci: v.string() },
   handler: async (ctx, { pesertaId, kunci }) => {
     const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
-    if (room.tetap) await ctx.db.patch('room', room._id, { tetap: undefined })
+    if (!room.tetap) return
+    await ctx.db.patch('room', room._id, { tetap: undefined })
+    await hapusRingkasanRoom(ctx, room._id)
+  },
+})
+
+/** Tombol Coba lagi untuk ringkasan rute sendiri yang gagal (Discussions #83). Selain itu tidak terjadi apa-apa. */
+export const hitungRute = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string() },
+  handler: async (ctx, { pesertaId, kunci }) => {
+    const { peserta, room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    const baris = await barisRingkasan(ctx, pesertaId)
+    if (room.tetap && baris?.ringkasan.status === 'gagal') await perbaruiRingkasan(ctx, room._id, [peserta])
   },
 })
 
 /**
- * Keluar room: nama, lokasi, dan vote orang itu dihapus (Discussions #8). `urutanGabung`-nya tidak dipakai ulang,
+ * Keluar room: nama, lokasi, vote, dan ringkasan rute orang itu dihapus (Discussions #8). `urutanGabung`-nya tidak dipakai ulang,
  * jadi warna pin orang lain tidak berubah. Sampai dihitung ulang, `kandidat[].waktuTempuh` masih bisa memuat
  * `pesertaId` yang sudah keluar.
  */
@@ -311,6 +340,8 @@ export const keluar = mutation({
       .withIndex('by_pesertaId', (q) => q.eq('pesertaId', pesertaId))
       .unique()
     if (voteSaya) await ctx.db.delete('vote', voteSaya._id)
+    const ringkasanSaya = await barisRingkasan(ctx, pesertaId)
+    if (ringkasanSaya) await ctx.db.delete('ringkasanRute', ringkasanSaya._id)
     await ctx.db.delete('peserta', pesertaId)
     // Orang yang ikut dihitung keluar, jadi hasil yang sudah keluar jadi usang.
     if (peserta.lokasi) await ctx.db.patch('room', room._id, { versiLokasi: (room.versiLokasi ?? 0) + 1 })
@@ -326,11 +357,12 @@ export const lihat = query({
     // Query tidak boleh membaca jam (convex/_generated/ai/guidelines.md), jadi yang dibaca tanda dari tandaiKedaluwarsa.
     if (room.kedaluwarsa) return { ok: false as const, galat: 'ROOM_KEDALUWARSA' as const }
 
-    const peserta = await ctx.db
-      .query('peserta')
-      .withIndex('by_roomId_and_urutanGabung', (q) => q.eq('roomId', room._id))
-      .take(MAKS_PESERTA)
+    const peserta = await pesertaRoom(ctx, room._id)
     const kandidat = await kandidatDanPemilih(ctx, room._id)
+    const ringkasan = await ctx.db
+      .query('ringkasanRute')
+      .withIndex('by_roomId', (q) => q.eq('roomId', room._id))
+      .take(MAKS_PESERTA)
     return {
       ok: true as const,
       room: {
@@ -359,6 +391,11 @@ export const lihat = query({
         kendaraan: p.kendaraan,
         urutanGabung: p.urutanGabung,
         lokasi: p.lokasi ?? null,
+        /**
+         * Ringkasan rute ke tempat yang ditetapkan (Discussions #83). `null` untuk yang tidak naik transportasi umum, belum
+         * berbagi lokasi, atau selama tempat belum ditetapkan.
+         */
+        rute: ringkasan.find((r) => r.pesertaId === p._id)?.ringkasan ?? null,
       })),
       // Urut peringkat, langsung dari index.
       kandidat: kandidat.map((k) => ({
