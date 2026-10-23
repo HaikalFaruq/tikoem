@@ -56,7 +56,7 @@ for (const lebar of [320, 390]) {
     const convex = new ConvexHttpClient(URL_BACKEND)
     const { kode } = await convex.mutation(api.room.buat, { nama: 'Wiraatmadja Kusumaningra', kendaraan: 'jalan_kaki' })
     await page.goto(`/r/${kode}`)
-    await expect(page.getByRole('heading', { level: 1, name: kode })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Wiraatmadja Kusumaningra mengajakmu mencari tempat ketemuan' })).toBeVisible()
     expect(await melebar()).toBe(false)
   })
 }

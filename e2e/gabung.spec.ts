@@ -17,7 +17,7 @@ test.describe('dengan izin lokasi', () => {
   test('teman membuka link, gabung, lalu berbagi lokasi yang disamarkan', async ({ page }) => {
     const kode = await roomDariHaikal()
     await page.goto(`/r/${kode}`)
-    await expect(page.getByText('Haikal mengajakmu mencari tempat ketemuan.', { exact: false })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Haikal mengajakmu mencari tempat ketemuan' })).toBeVisible()
 
     await page.getByLabel('Namamu').fill('Umar')
     await page.getByText('Jalan kaki', { exact: true }).click()

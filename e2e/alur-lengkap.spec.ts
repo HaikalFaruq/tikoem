@@ -39,7 +39,7 @@ test('alur lengkap: buat room, tiga orang gabung dari HP masing-masing, pop up t
   // 2. Bintang membuka link dari grup, gabung, lalu berbagi lokasi lewat GPS.
   const bintang = await hp(browser, { latitude: -6.226, longitude: 106.858 })
   await bintang.goto(new URL(link).pathname)
-  await expect(bintang.getByText('Haikal mengajakmu mencari tempat ketemuan.', { exact: false })).toBeVisible()
+  await expect(bintang.getByRole('heading', { level: 1, name: 'Haikal mengajakmu mencari tempat ketemuan' })).toBeVisible()
   await isiNamaDanKendaraan(bintang, 'Bintang', 'Mobil')
   await bintang.getByRole('button', { name: 'Gabung' }).click()
   await bintang.getByRole('button', { name: 'Pakai lokasiku sekarang' }).click()

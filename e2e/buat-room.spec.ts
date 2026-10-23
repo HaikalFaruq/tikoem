@@ -102,7 +102,8 @@ test('link dengan kode huruf kecil tetap membuka room-nya', async ({ page }) => 
   const { kode } = await convex.mutation(api.room.buat, { nama: 'Sari', kendaraan: 'motor' })
 
   await page.goto(`/r/${kode.toLowerCase()}`)
-  await expect(page.getByRole('heading', { level: 1, name: kode })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Sari mengajakmu mencari tempat ketemuan' })).toBeVisible()
+  await expect(page.getByText(`Room ${kode} · berakhir`)).toBeVisible()
   await expect(page).toHaveURL(new RegExp(`/r/${kode}$`))
   await expect(page.getByRole('heading', { name: 'Gabung ke room ini' })).toBeVisible()
 })
