@@ -60,11 +60,17 @@ test('cari tempat, lalu voting yang langsung terlihat di HP lain', async ({ page
   await expect(page.getByText('Semua sudah siap.')).toBeVisible()
   await cariTempat(page)
 
+  // Belum ada suara: #1 tampil lengkap di kartu hasil, dan di daftar cukup ringkas supaya tidak dobel (#65).
   const pertama = page.locator('[data-kandidat="1"]')
   await expect(pertama).toContainText('#1 paling adil')
-  await expect(pertama.getByRole('list', { name: 'Waktu tempuh tiap orang' }).getByRole('listitem')).toHaveCount(3)
-  await expect(pertama).toContainText('Kamu')
-  await expect(pertama).toContainText('Terlama')
+  await expect(pertama).toHaveAttribute('data-ringkas', '')
+  await expect(pertama.getByRole('list', { name: 'Waktu tempuh tiap orang' })).toHaveCount(0)
+  await expect(page.locator('[data-kartu-hasil]').getByRole('list', { name: 'Waktu tempuh ke tempat ini' }).getByRole('listitem')).toHaveCount(3)
+  await expect(page.locator('[data-kartu-hasil]')).toContainText('Kamu')
+  await expect(page.locator('[data-kandidat="2"]').getByRole('list', { name: 'Waktu tempuh tiap orang' }).getByRole('listitem')).toHaveCount(3)
+  await expect(page.locator('[data-kandidat="2"]')).toContainText('Terlama')
+  await expect(page.locator('[data-ringkas]')).toHaveCount(1)
+  await expect(page.getByText('Paling atas: tidak ada yang jauh sendirian.', { exact: false })).toBeVisible()
 
   const kedua = page.locator('[data-kandidat="2"]')
   await kedua.getByRole('button', { name: 'Pilih tempat ini' }).click()
@@ -106,12 +112,12 @@ test('orang yang sudah keluar tidak lagi tampil di waktu tempuh kartu tempat', a
   const { kode, haikal, umar } = await roomBertiga()
   await masukSebagai(page, kode, haikal)
   await cariTempat(page)
-  const baris = page.locator('[data-kandidat="1"]').getByRole('list', { name: 'Waktu tempuh tiap orang' }).getByRole('listitem')
+  const baris = page.locator('[data-kandidat="2"]').getByRole('list', { name: 'Waktu tempuh tiap orang' }).getByRole('listitem')
   await expect(baris).toHaveCount(3)
 
   await convex.mutation(api.room.keluar, { pesertaId: umar.pesertaId, kunci: umar.kunci })
   await expect(baris).toHaveCount(2, REALTIME)
-  await expect(page.locator('[data-kandidat="1"]')).not.toContainText('Umar')
+  await expect(page.locator('[data-kandidat="2"]')).not.toContainText('Umar')
 })
 
 test('kartu hasil: tempat paling adil dulu, ikut suara terbanyak, siap dikirim ke grup', async ({ page, context }) => {

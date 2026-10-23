@@ -329,8 +329,9 @@ function PenandaKandidat({ kandidat, redup, onPilih }: { kandidat: KandidatPeta;
     >
       {kandidat.terpilih ? (
         <>
-          <span className="mb-0.5 max-w-36 truncate rounded-full border-2 border-garis bg-bintang px-1.5 text-[11px] leading-4 font-extrabold text-tinta">
-            {kandidat.nama}
+          {/* Peringkatnya ikut di label, supaya bintang mudah dicocokkan dengan kartunya. */}
+          <span className="mb-0.5 max-w-40 truncate rounded-full border-2 border-garis bg-bintang px-1.5 text-[11px] leading-4 font-extrabold text-tinta">
+            {kandidat.peringkat} · {kandidat.nama}
           </span>
           <Bintang ukuran={34} className="animate-jatuh origin-bottom motion-reduce:animate-none" />
         </>

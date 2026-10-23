@@ -7,6 +7,8 @@ import type { Peserta, Room } from '../hasil/tipe'
 type Props = {
   room: Pick<Room, 'kode' | 'status' | 'putaranHitung'>
   peserta: Peserta[]
+  /** Kartu ajakannya baru tampil setelah hasil keluar, saat orang sudah merasakan manfaatnya (#65). Pop up tetap bisa muncul sebelumnya. */
+  tampilkanKartu: boolean
 }
 
 /** Pop up dibuka sendiri saat tempat mulai dicari, atau lewat tombol "Traktir Tikoem" di bawah layar room. */
@@ -59,7 +61,7 @@ function StatusPencarian({ status, peserta }: { status: Room['status']; peserta:
  * Ajakan traktir Tikoem lewat Sociabuzz. Pop up-nya muncul di semua HP di room saat tempat mulai dicari, sekali per room
  * (src/domain/traktir.ts), dan bisa dibuka lagi kapan saja lewat tombol di bawah layar room.
  */
-export function TraktirTikoem({ room, peserta }: Props) {
+export function TraktirTikoem({ room, peserta, tampilkanKartu }: Props) {
   const [terbuka, setTerbuka] = useState<Asal | null>(null)
   const [putaranAwal] = useState(room.putaranHitung)
   const [sudahMuncul, setSudahMuncul] = useState(() => bacaSudahMuncul(room.kode))
@@ -108,27 +110,29 @@ export function TraktirTikoem({ room, peserta }: Props) {
 
   return (
     <>
-      <section
-        aria-labelledby="traktir-ajak"
-        className="flex min-w-0 items-center gap-4 rounded-stiker border-[2.5px] border-dashed border-garis/50 p-4"
-      >
-        <IlustrasiTraktir className="w-16" />
-        <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
-          <div className="flex flex-col gap-0.5">
-            <h2 id="traktir-ajak" className="font-display text-lg leading-tight font-extrabold tracking-[-0.03em]">
-              Terbantu Tikoem?
-            </h2>
-            <p className="text-sm text-teks-redup">Tikoem gratis dan tanpa iklan. Traktiran kecil membantunya tetap jalan.</p>
+      {tampilkanKartu && (
+        <section
+          aria-labelledby="traktir-ajak"
+          className="flex min-w-0 items-center gap-4 rounded-stiker border-[2.5px] border-dashed border-garis/50 p-4"
+        >
+          <IlustrasiTraktir className="w-16" />
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+            <div className="flex flex-col gap-0.5">
+              <h2 id="traktir-ajak" className="font-display text-lg leading-tight font-extrabold tracking-[-0.03em]">
+                Terbantu Tikoem?
+              </h2>
+              <p className="text-sm text-teks-redup">Tikoem gratis dan tanpa iklan. Traktiran kecil membantunya tetap jalan.</p>
+            </div>
+            <Tombol
+              varian="biasa"
+              onClick={() => setTerbuka('tombol')}
+              className="min-h-11"
+            >
+              Traktir Tikoem
+            </Tombol>
           </div>
-          <Tombol
-            varian="biasa"
-            onClick={() => setTerbuka('tombol')}
-            className="min-h-11"
-          >
-            Traktir Tikoem
-          </Tombol>
-        </div>
-      </section>
+        </section>
+      )}
 
       <DialogStiker terbuka={terbuka !== null} onTutup={tutup} idJudul="traktir-judul" idIsi="traktir-isi">
         <div className="relative flex flex-col items-center gap-4 p-5 pt-6 text-center">

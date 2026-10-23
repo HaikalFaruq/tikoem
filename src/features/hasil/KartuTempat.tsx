@@ -14,12 +14,17 @@ type Props = {
   /** Saat menghitung ulang: kartu lama tetap tampil, redup, dan belum bisa dipilih. */
   redup: boolean
   sibuk: boolean
+  /**
+   * Tempat ini sedang tampil di kartu hasil di atas daftar, lengkap dengan waktu tempuhnya. Di daftar cukup nama dan voting,
+   * supaya tempat yang sama tidak tampil dua kali (#65).
+   */
+  ringkas: boolean
   onPilih: () => void
   onBatal: () => void
 }
 
 /** Satu kandidat tempat: waktu tempuh tiap orang, lalu siapa saja yang memilihnya. */
-export function KartuTempat({ kandidat, peserta, idSaya, skalaMenit, pilihanSaya, redup, sibuk, onPilih, onBatal }: Props) {
+export function KartuTempat({ kandidat, peserta, idSaya, skalaMenit, pilihanSaya, redup, sibuk, ringkas, onPilih, onBatal }: Props) {
   const baris = barisWaktuTempuh(kandidat.waktuTempuh, peserta)
   const pemilih = kandidat.pemilih.flatMap((id) => peserta.filter((p) => p.id === id))
 
@@ -28,6 +33,7 @@ export function KartuTempat({ kandidat, peserta, idSaya, skalaMenit, pilihanSaya
       as="article"
       aria-labelledby={`tempat-${kandidat.id}`}
       data-kandidat={kandidat.peringkat}
+      {...(ringkas ? { 'data-ringkas': '' } : {})}
       className={`flex min-w-0 flex-col gap-4 p-4 transition-opacity ${redup ? 'opacity-50' : ''} ${pilihanSaya ? 'outline-4 outline-offset-2 outline-bintang' : ''}`}
     >
       <header className="flex flex-col gap-1">
@@ -51,33 +57,39 @@ export function KartuTempat({ kandidat, peserta, idSaya, skalaMenit, pilihanSaya
         </p>
       </header>
 
-      <ul className="flex flex-col gap-2" aria-label="Waktu tempuh tiap orang">
-        {baris.map(({ peserta: p, menit }) => (
-          <li key={p.id} className="grid grid-cols-[1.5rem_minmax(0,5.5em)_minmax(0,1fr)_3.8rem] items-center gap-2 text-sm">
-            <Pin {...warnaPin(p.urutanGabung)} ukuran={20} />
-            <span className="truncate">{p.id === idSaya ? 'Kamu' : p.nama}</span>
-            <span className="h-2.5 overflow-hidden rounded-full border-2 border-garis bg-kertas" aria-hidden>
-              <span
-                className="block h-full border-r-2 border-garis"
-                style={{
-                  width: `${Math.max(6, (menit / skalaMenit) * 100)}%`,
-                  backgroundColor: `var(--color-pin-${warnaPin(p.urutanGabung).warna})`,
-                }}
-              />
-            </span>
-            <span className={`text-right tabular-nums ${menit === kandidat.terlamaMenit ? 'font-extrabold' : 'font-semibold'}`}>
-              {menit} mnt
-            </span>
-          </li>
-        ))}
-      </ul>
+      {ringkas ? (
+        <p className="text-sm text-teks-redup">Waktu tempuhnya ada di kartu Ketemuan di atas.</p>
+      ) : (
+        <>
+          <ul className="flex flex-col gap-2" aria-label="Waktu tempuh tiap orang">
+            {baris.map(({ peserta: p, menit }) => (
+              <li key={p.id} className="grid grid-cols-[1.5rem_minmax(0,5.5em)_minmax(0,1fr)_3.8rem] items-center gap-2 text-sm">
+                <Pin {...warnaPin(p.urutanGabung)} ukuran={20} />
+                <span className="truncate">{p.id === idSaya ? 'Kamu' : p.nama}</span>
+                <span className="h-2.5 overflow-hidden rounded-full border-2 border-garis bg-kertas" aria-hidden>
+                  <span
+                    className="block h-full border-r-2 border-garis"
+                    style={{
+                      width: `${Math.max(6, (menit / skalaMenit) * 100)}%`,
+                      backgroundColor: `var(--color-pin-${warnaPin(p.urutanGabung).warna})`,
+                    }}
+                  />
+                </span>
+                <span className={`text-right tabular-nums ${menit === kandidat.terlamaMenit ? 'font-extrabold' : 'font-semibold'}`}>
+                  {menit} mnt
+                </span>
+              </li>
+            ))}
+          </ul>
 
-      <p className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-t-[2.5px] border-dashed border-garis pt-3 text-sm">
-        <span>
-          Terlama <b className="tabular-nums">{kandidat.terlamaMenit} mnt</b>
-        </span>
-        <span className="tabular-nums">Selisih {kandidat.selisihMenit} mnt</span>
-      </p>
+          <p className="flex flex-wrap justify-between gap-x-3 gap-y-1 border-t-[2.5px] border-dashed border-garis pt-3 text-sm">
+            <span>
+              Terlama <b className="tabular-nums">{kandidat.terlamaMenit} mnt</b>
+            </span>
+            <span className="tabular-nums">Selisih {kandidat.selisihMenit} mnt</span>
+          </p>
+        </>
+      )}
 
       <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-2" aria-live="polite">
         {pemilih.length > 0 ? (
