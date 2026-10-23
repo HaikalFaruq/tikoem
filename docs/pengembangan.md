@@ -132,7 +132,10 @@ Penyiapan sekali saja:
   2. Jalankan `archify finalize architecture docs/arsitektur.archify.json .archify/arsitektur.html --repo-root . --quality showcase`.
   3. Salin `.archify/arsitektur.html` ke `docs/arsitektur.html`.
   4. Ekspor PNG terang dan gelap dari tombol Export ke `docs/gambar/arsitektur-terang.png` dan `arsitektur-gelap.png`.
-- **Gambar promo** (`docs/gambar/promo-*.png`, 1320×2868 seperti screenshot App Store) memakai layar production asli dengan bingkai iPhone 17 dari Simulator Xcode. Ganti kalau tampilan layarnya berubah.
+- **Gambar promo** (`docs/gambar/promo-*.png`, 1320×2868 seperti screenshot App Store) memakai layar production asli dengan bingkai iPhone 17 dari Simulator Xcode. Setelah tampilan layarnya berubah:
+  1. Potret layar production dengan room uji, lalu beri bingkai iPhone 17 berlatar transparan (1362×2724). Namai `bingkai-1-buat-room.png`, `bingkai-2-peta.png`, `bingkai-3-adil.png`, dan `bingkai-4-hasil.png`, lalu keluarkan semua peserta uji lewat `room.keluar`.
+  2. Jalankan `npm run promo -- <folder tangkapan>`. Judul, subjudul, warna kartu, dan pin hiasan tiap panel ada di [`scripts/buat-promo.mjs`](../scripts/buat-promo.mjs).
+  3. Perbarui alt text gambarnya di README kalau isi layarnya berubah.
 
 ## Kalau ada masalah
 

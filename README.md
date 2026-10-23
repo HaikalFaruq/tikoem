@@ -21,10 +21,10 @@ PWA, tanpa akun.
 </div>
 
 <p align="center">
-  <img src="docs/gambar/promo-1-buat-room.png" width="24%" alt="Ketemuan yang adil buat semua: layar buat room" />
-  <img src="docs/gambar/promo-2-peta.png" width="24%" alt="Semua teman kelihatan di peta: pin tiap orang dan kandidat tempat" />
-  <img src="docs/gambar/promo-3-adil.png" width="24%" alt="Adil itu soal waktu, bukan jarak: kartu tempat dengan waktu tempuh tiap orang" />
-  <img src="docs/gambar/promo-4-hasil.png" width="24%" alt="Pilih bareng, kirim ke grup: kartu hasil" />
+  <img src="docs/gambar/promo-1-buat-room.png" width="24%" alt="Ketemuan yang adil buat semua: layar buat room dengan pilihan motor, mobil, jalan kaki, dan transportasi umum" />
+  <img src="docs/gambar/promo-2-peta.png" width="24%" alt="Semua teman kelihatan di peta: pin tiap orang, bintang tempat kumpul, dan penanda kereta untuk stasiun" />
+  <img src="docs/gambar/promo-3-adil.png" width="24%" alt="Adil itu soal waktu, bukan jarak: Halte Matraman Baru dengan waktu tempuh 17, 17, dan 15 menit" />
+  <img src="docs/gambar/promo-4-hasil.png" width="24%" alt="Tetapkan, lalu kirim ke grup: kartu Fix! Kopi Kenangan Matraman dengan tombol kirim ke grup WA" />
 </p>
 
 ## Cara pakai
