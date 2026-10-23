@@ -10,7 +10,7 @@
     "output": ".archify/architecture-tikoem-20261021-160503/arsitektur.html",
     "quality_profile": "showcase",
     "repository": {
-      "url": "https://github.com/HaikalFaruq/tikoem.git",
+      "url": "https://github.com/Wingman-Sprint/tikoem.git",
       "provider": "github",
       "link_mode": "web",
       "revision": "5da384c5d556ce94eb70fce57593b6f6dc34ad96"

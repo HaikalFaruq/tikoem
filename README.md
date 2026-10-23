@@ -40,14 +40,14 @@ Satu room muat 24 orang. Nama, lokasi, dan pilihan dihapus otomatis 24 jam setel
 
 <sub>KODE → DIAGRAM · Peta sistem yang menaut ke baris kodenya</sub>
 
-<a href="https://haikalfaruq.github.io/tikoem/arsitektur.html">
+<a href="https://wingman-sprint.github.io/tikoem/arsitektur.html">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/gambar/arsitektur-gelap.png" />
   <img src="docs/gambar/arsitektur-terang.png" alt="Arsitektur Tikoem: PWA memanggil room.hitung di Convex, action terjadwal bertanya ke Overpass, OpenRouteService, dan Transitous, lalu hasilnya sampai ke semua HP lewat query realtime" />
 </picture>
 </a>
 
-**[Buka diagram interaktif ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html)** · [telusuri jalur Cari tempat ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html#route=teman~ors) · [jalur transportasi umum ↗](https://haikalfaruq.github.io/tikoem/arsitektur.html#route=teman~transitous) · [sumber JSON](docs/arsitektur.archify.json)
+**[Buka diagram interaktif ↗](https://wingman-sprint.github.io/tikoem/arsitektur.html)** · [telusuri jalur Cari tempat ↗](https://wingman-sprint.github.io/tikoem/arsitektur.html#route=teman~ors) · [jalur transportasi umum ↗](https://wingman-sprint.github.io/tikoem/arsitektur.html#route=teman~transitous) · [sumber JSON](docs/arsitektur.archify.json)
 
 - **Adil, bukan sekadar tengah.** Pencarian dimulai dari pusat lingkaran terkecil yang memuat lokasi semua orang. Kandidat dari Overpass diberi waktu tempuh tiap orang, lewat OpenRouteService untuk motor, mobil, dan jalan kaki, atau lewat [Transitous](https://transitous.org/sources/) untuk KRL dan TransJakarta. Yang menang adalah tempat dengan waktu tempuh terlama paling pendek.
 - **Realtime.** Hitung berjalan di action Convex terjadwal, dan hasilnya langsung sampai ke semua HP di room.
@@ -76,6 +76,6 @@ Perintah lain, env, batas layanan luar, kontrak data, E2E, dan deploy ada di [`d
   </tr>
 </table>
 
-Alur kerjanya ada di [`AGENTS.md`](AGENTS.md). Pertanyaan dan ide dibahas di [Discussions](https://github.com/HaikalFaruq/tikoem/discussions).
+Alur kerjanya ada di [`AGENTS.md`](AGENTS.md). Pertanyaan dan ide dibahas di [Discussions](https://github.com/Wingman-Sprint/tikoem/discussions).
 
 Kode Tikoem berlisensi [MIT](LICENSE).

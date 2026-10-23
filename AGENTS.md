@@ -75,7 +75,7 @@ Pertanyaan teknis atau desain yang butuh jawaban pasangan ditulis di **Discussio
 | Waktu tempuh | OpenRouteService Matrix dan Transitous | Dipanggil dari Convex action. Key ORS di env Convex. Transitous untuk transportasi umum, tanpa key, dengan batas laju sesuai izin mereka |
 | Deploy | Vercel (frontend) + Convex Cloud (backend) | Free tier, tanpa domain sendiri |
 
-**Tetap 100% open source.** Transitous boleh dipakai selama seluruh Tikoem, dari frontend sampai backend, open source dan bisa dijalankan ulang orang lain dari repo ini ([#75](https://github.com/HaikalFaruq/tikoem/pull/75), catatan lengkap di [`docs/pengembangan.md`](docs/pengembangan.md)). Jadi:
+**Tetap 100% open source.** Transitous boleh dipakai selama seluruh Tikoem, dari frontend sampai backend, open source dan bisa dijalankan ulang orang lain dari repo ini ([#75](https://github.com/Wingman-Sprint/tikoem/pull/75), catatan lengkap di [`docs/pengembangan.md`](docs/pengembangan.md)). Jadi:
 
 - Sebelum menambah dependensi, SDK, atau layanan luar, cek lisensinya dan pastikan tidak ada bagian yang kodenya tertutup atau butuh akun berbayar untuk menjalankan setup-nya.
 - Kalau ragu, bahas dulu di Discussions dan sebut di deskripsi PR.
