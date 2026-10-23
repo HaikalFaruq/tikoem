@@ -21,9 +21,15 @@ jobs:
       - run: npm run lint
       - run: npm run knip
       - run: npm test
-      # apt-get di langkah ini pernah menggantung 6 jam di mirror Ubuntu (#80). Kalau lewat batas, jalankan ulang job-nya.
-      - run: npx playwright install --with-deps --only-shell chromium
-        timeout-minutes: 10
+      # Browser Playwright disimpan di cache menurut versinya, tanpa apt-get. apt-get untuk `--with-deps` pernah menggantung
+      # 6 jam (#80) dan berkali-kali lewat 10 menit di mirror Ubuntu, padahal runner sudah punya library yang dibutuhkan
+      # chromium headless shell. Yang ditambahkannya hanya font dan xvfb, sedangkan app memakai fontnya sendiri.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('node_modules/playwright-core/package.json') }}
+      - run: npx playwright install --only-shell chromium
+        timeout-minutes: 5
       - run: npm run test:e2e
         env:
           # Backend Convex lokal tanpa akun, dibuat baru setiap kali CI jalan.
