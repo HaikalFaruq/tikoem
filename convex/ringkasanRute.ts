@@ -31,6 +31,9 @@ export const barisRingkasan = (ctx: QueryCtx, pesertaId: Id<'peserta'>) =>
  * Yang naik transportasi umum dan sudah berbagi lokasi dihitung (ulang), dan ringkasan milik orang lain dihapus.
  */
 export async function perbaruiRingkasan(ctx: MutationCtx, roomId: Id<'room'>, peserta: readonly Doc<'peserta'>[]) {
+  const room = await ctx.db.get('room', roomId)
+  if (!room) return
+  const putaran = (room.putaranRingkasan ?? 0) + 1
   const target: Infer<typeof vTarget> = []
   for (const p of peserta) {
     const lama = await barisRingkasan(ctx, p._id)
@@ -38,13 +41,13 @@ export async function perbaruiRingkasan(ctx: MutationCtx, roomId: Id<'room'>, pe
       if (lama) await ctx.db.delete('ringkasanRute', lama._id)
       continue
     }
-    const putaran = (lama?.putaran ?? 0) + 1
     const ringkasan: Ringkasan = { status: 'menghitung' }
     if (lama) await ctx.db.patch('ringkasanRute', lama._id, { putaran, ringkasan })
     else await ctx.db.insert('ringkasanRute', { roomId, pesertaId: p._id, putaran, ringkasan })
     target.push({ pesertaId: p._id, putaran })
   }
   if (target.length === 0) return
+  await ctx.db.patch('room', roomId, { putaranRingkasan: putaran })
   await ctx.scheduler.runAfter(0, internal.ringkasanRute.jalankan, { target })
   await ctx.scheduler.runAfter(BATAS_RINGKASAN_MS, internal.ringkasanRute.batasWaktu, { target })
 }

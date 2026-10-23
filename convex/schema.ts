@@ -113,6 +113,11 @@ export default defineSchema({
      * dicari. Dikosongkan saat room berakhir.
      */
     jamKetemuan: v.optional(v.object({ waktu: v.number(), olehPesertaId: v.id('peserta') })),
+    /**
+     * Naik setiap ada ringkasan rute di room ini yang perlu dihitung (Discussions #83). Tidak pernah turun walaupun ringkasannya
+     * dihapus, jadi hasil yang datang terlambat dari sebelum tempat dibuka lagi tidak menimpa ringkasan yang baru.
+     */
+    putaranRingkasan: v.optional(v.number()),
   }).index('by_kode', ['kode']),
 
   peserta: defineTable({

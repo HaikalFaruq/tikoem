@@ -222,6 +222,21 @@ describe('ringkasan rute (Discussions #83)', () => {
     expect(await t.run((ctx) => ctx.db.query('ringkasanRute').collect())).toEqual([])
   })
 
+  it('hasil yang datang terlambat dari sebelum tempat dibuka lagi tidak menimpa ringkasan yang baru', async () => {
+    tiruanTransitous()
+    const { t, kode, haikal, sari, tetapkan } = await roomSiap()
+    await tetapkan()
+    const lama = await t.run(async (ctx) => (await ctx.db.query('ringkasanRute').first())!.putaran)
+    await t.mutation(api.room.bukaLagi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+    await tetapkan()
+
+    // Hitungan untuk penetapan pertama baru selesai sekarang.
+    await t.mutation(internal.ringkasanRute.simpan, { pesertaId: sari.pesertaId, putaran: lama, ringkasan: { status: 'gagal' } })
+    expect((await rute(t, kode)).Sari).toEqual({ status: 'menghitung' })
+    await jalankanJadwal(t)
+    expect((await rute(t, kode)).Sari).toMatchObject({ status: 'siap' })
+  })
+
   it('Transitous yang gagal membuat ringkasan gagal tanpa mengubah room, dan Coba lagi hanya untuk ringkasan sendiri', async () => {
     let rusak = true
     const panggilan = tiruanTransitous(() => (rusak ? new Response('', { status: 500 }) : undefined))
