@@ -1,3 +1,4 @@
+import { teksJamKetemuan } from './jamKetemuan'
 import type { Kendaraan } from './kendaraan'
 import type { Titik } from './lokasi'
 
@@ -120,6 +121,8 @@ type IsiTeksHasil = {
   linkRoom: string
   /** Sudah ditetapkan (Discussions #42): pesannya jadi versi final. */
   tetap?: boolean
+  /** Jam ketemuan kalau sudah diisi (Discussions #83), disebut tepat di bawah nama tempat. */
+  jamKetemuan?: number | null
 }
 
 /**
@@ -136,6 +139,7 @@ export function teksHasil(isi: IsiTeksHasil): string {
       : 'Belum ada yang memilih, jadi ini tempat yang paling adil.'
   return [
     `${isi.tetap ? 'Fix! ' : ''}Ketemuan di *${isi.namaTempat}* (${keterangan})`,
+    ...(isi.jamKetemuan != null ? [`Jam: *${teksJamKetemuan(isi.jamKetemuan)}*`] : []),
     `Maps: ${linkMaps(isi.lokasi)}`,
     `Waktu tempuh: ${waktu}. Terlama ${isi.terlamaMenit} mnt.`,
     `${pilihan} ${isi.tetap ? 'Detailnya di Tikoem' : 'Lihat semua pilihan di Tikoem'}: ${isi.linkRoom}`,

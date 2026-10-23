@@ -181,6 +181,19 @@ test('kartu lokasi tanpa rute transportasi umum', async ({ browser }) => {
   })
 })
 
+test('isian jam ketemuan', async ({ browser }) => {
+  const { kode, haikal } = await roomBertiga()
+  await potret(browser, 'jam-ketemuan', 'Isian jam ketemuan di dekat Cari tempat, terbuka dengan pilihan Besok', {
+    url: `/r/${kode}`,
+    sebagai: { kode, identitas: haikal },
+    tunggu: async (halaman) => {
+      await petaSiap(halaman)
+      await halaman.getByRole('button', { name: 'Atur jam' }).click()
+      await halaman.locator('[data-isian-jam-ketemuan]').getByText('Besok', { exact: true }).click()
+    },
+  })
+})
+
 test('room dengan peta', async ({ browser }) => {
   const { kode, haikal } = await roomBertiga()
   await potret(browser, 'room-peta', 'Tiga orang berbagi lokasi: peta dan tombol Cari tempat', {
@@ -192,6 +205,9 @@ test('room dengan peta', async ({ browser }) => {
 
 test('room dengan hasil', async ({ browser }) => {
   const { kode, haikal, bintang, umar } = await roomBertiga()
+  // Jam ketemuan besok pukul 19.00 WIB, supaya barisnya ikut terlihat di kartu hasil.
+  const besok = new Date(Date.now() + 31 * 3600_000).toISOString().slice(0, 10)
+  await convex.mutation(api.room.ubahJamKetemuan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, jamKetemuan: Date.parse(`${besok}T19:00:00+07:00`) })
   await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
   const hasil = await tungguStatus(kode, 'siap')
   // Dua suara di peringkat 2, supaya kartu hasil berbeda dari tempat paling adil.

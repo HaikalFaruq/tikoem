@@ -3,16 +3,19 @@ import { barisWaktuTempuh, labelKategori, linkRute, teksHasil, teksPenetap } fro
 import { linkRoom, linkWhatsApp } from '../../domain/undangan'
 import { warnaPin } from '../../domain/warnaPin'
 import { Bintang, DialogStiker, KartuStiker, Pin, TautanTombol, Tombol } from '../../ui'
+import type { IdentitasRoom } from '../room/identitas'
+import { IsianJamKetemuan } from './IsianJamKetemuan'
 import type { Kandidat, Peserta, Room } from './tipe'
 
 type Props = {
   room: Room
   kandidat: Kandidat
   peserta: Peserta[]
-  idSaya: string
+  identitas: IdentitasRoom
   sibuk: boolean
   /** Dipanggil setelah dikonfirmasi, dengan tempat yang tampil saat dialognya dibuka. */
   onTetapkan: (kandidatId: Kandidat['id']) => void
+  onIdentitasHilang: () => void
 }
 
 const kunciMomen = (kode: string) => `tikoem:momen:${kode}`
@@ -44,7 +47,8 @@ function useMomenGabung(kode: string, hasilPada: number | null) {
  * Kartu ringkas tempat dengan suara terbanyak, untuk ditetapkan lalu dikirim ke grup. Setelah ditetapkan (Discussions #42),
  * kartunya jadi versi final "Fix!" dengan nama orang yang menetapkan.
  */
-export function KartuHasil({ room, kandidat, peserta, idSaya, sibuk, onTetapkan }: Props) {
+export function KartuHasil({ room, kandidat, peserta, identitas, sibuk, onTetapkan, onIdentitasHilang }: Props) {
+  const idSaya = identitas.pesertaId
   const baris = barisWaktuTempuh(kandidat.waktuTempuh, peserta)
   const saya = peserta.find((p) => p.id === idSaya) ?? null
   const tetap = room.tetap
@@ -64,6 +68,7 @@ export function KartuHasil({ room, kandidat, peserta, idSaya, sibuk, onTetapkan 
     jumlahPeserta: peserta.length,
     linkRoom: linkRoom(window.location.origin, room.kode),
     tetap: tetap !== null,
+    jamKetemuan: room.jamKetemuan?.waktu ?? null,
   })
 
   const [tersalin, setTersalin] = useState<'diam' | 'ya' | 'gagal'>('diam')
@@ -145,6 +150,14 @@ export function KartuHasil({ room, kandidat, peserta, idSaya, sibuk, onTetapkan 
             ? `Dipilih ${kandidat.pemilih.length} dari ${peserta.length} orang`
             : 'Belum ada yang memilih, jadi ini yang paling adil'}
       </p>
+
+      {/* Orang sering memutuskan tempatnya dulu, baru jamnya, jadi jamnya juga bisa diatur dari sini (Discussions #83). */}
+      <IsianJamKetemuan
+        jamKetemuan={room.jamKetemuan}
+        identitas={identitas}
+        labelAtur="Atur jam ketemuan"
+        onIdentitasHilang={onIdentitasHilang}
+      />
 
       <div className="flex flex-col gap-2">
         {/* Sebelum ditetapkan, aksi utamanya menetapkan. Setelahnya, mengirim versi final ke grup. */}
