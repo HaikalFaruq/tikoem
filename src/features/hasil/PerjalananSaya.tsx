@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useMutation } from 'convex/react'
 import { ConvexError } from 'convex/values'
 import { api } from '../../../convex/_generated/api'
+import { dihitungAkhirPekan } from '../../domain/transportasiUmum'
 import { lamaPerjalanan, namaJalur, perkiraanBerangkat, teksLewat } from '../../domain/perjalanan'
 import { jamJakarta } from '../../lib/waktu'
 import { Tombol } from '../../ui'
@@ -141,6 +142,12 @@ function RuteSiapTampil({ rute }: { rute: RuteSiap }) {
       </ol>
       {/* Sumber Transitous-nya sudah disebut di catatan di atas daftar tempat. Di sini cukup batasnya (Discussions #83). */}
       <p className="text-sm text-teks-redup">Rute ini belum memakai MRT dan LRT.</p>
+      {/* Catatan yang sama ada di atas daftar tempat, tapi orang yang membaca rutenya belum tentu menggulir ke sana. */}
+      {dihitungAkhirPekan(rute.jamKetemuan ?? rute.dihitungPada) && (
+        <p className="text-sm text-teks-redup" data-catatan-akhir-pekan>
+          Jadwal KRL akhir pekan belum tersedia, jadi rute ini memakai jadwal hari kerja di jam yang sama. Jamnya bisa berbeda.
+        </p>
+      )}
     </>
   )
 }

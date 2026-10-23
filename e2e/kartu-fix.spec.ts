@@ -96,6 +96,33 @@ test('kartu Fix!: ringkasan rute untuk yang naik transportasi umum, lalu jam ber
   await expect(hpSari.locator('[data-perjalanan-saya]')).toHaveCount(0, REALTIME)
 })
 
+/** Pukul 19.00 WIB pertama di `hari` (0 Minggu sampai 6 Sabtu) yang paling sedikit 10 menit lagi, jadi selalu bisa jadi jam ketemuan. */
+function pukul19Berikutnya(hari: number) {
+  for (let i = 0; i < 8; i++) {
+    const tanggal = new Date(Date.now() + 7 * 3600_000 + i * 24 * 3600_000).toISOString().slice(0, 10)
+    const waktu = Date.parse(`${tanggal}T19:00:00+07:00`)
+    if (new Date(waktu + 7 * 3600_000).getUTCDay() === hari && waktu > Date.now() + 10 * 60_000) return waktu
+  }
+  throw new Error('Tidak ada hari yang cocok')
+}
+
+test('rute untuk hari Sabtu memberi catatan jadwal hari kerja di Perjalananmu, hari kerja tidak', async ({ browser }) => {
+  const { kode, sari } = await roomSiap(MANGGARAI)
+  const hpSari = await hp(browser, kode, sari)
+  const perjalanan = (await tetapkanDari(hpSari)).locator('[data-perjalanan-saya]')
+  const ubahJam = (jamKetemuan: number) => convex.mutation(api.room.ubahJamKetemuan, { pesertaId: sari.pesertaId, kunci: sari.kunci, jamKetemuan })
+
+  await ubahJam(pukul19Berikutnya(6))
+  await expect(perjalanan).toContainText('Berangkat paling lambat 18.39', REALTIME)
+  await expect(perjalanan.locator('[data-catatan-akhir-pekan]')).toHaveText(
+    'Jadwal KRL akhir pekan belum tersedia, jadi rute ini memakai jadwal hari kerja di jam yang sama. Jamnya bisa berbeda.',
+  )
+
+  await ubahJam(pukul19Berikutnya(1))
+  await expect(perjalanan.locator('[data-catatan-akhir-pekan]')).toHaveCount(0, REALTIME)
+  await expect(perjalanan).toContainText('Berangkat paling lambat 18.39')
+})
+
 test('ringkasan rute yang gagal bisa dicoba lagi dari kartu Fix!', async ({ browser }) => {
   // Transitous tiruan gagal sekali per titik, jadi titiknya digeser dari yang dipakai e2e/ringkasan-rute.spec.ts.
   const { kode, sari } = await roomSiap({ lat: LOKASI_RUTE_GAGAL_SEKALI.lat + 0.004, lng: LOKASI_RUTE_GAGAL_SEKALI.lng + 0.004 })
