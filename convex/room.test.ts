@@ -510,3 +510,101 @@ describe('tetapkan tempat (Discussions #42)', () => {
     expect(await t.run(async (ctx) => (await ctx.db.get('room', roomId))?.tetap === undefined)).toBe(true)
   })
 })
+
+const ubah = (t: Tes, p: { pesertaId: Id<'peserta'>; kunci: string }, jamKetemuan: number | null) =>
+  t.mutation(api.room.ubahJamKetemuan, { pesertaId: p.pesertaId, kunci: p.kunci, jamKetemuan })
+
+describe('jam ketemuan (Discussions #83)', () => {
+  /** Rabu 21 Oktober 2026, 10.00 WIB. */
+  const SEKARANG = Date.parse('2026-10-21T10:00+07:00')
+  const JAM_TUJUH = Date.parse('2026-10-21T19:00+07:00')
+
+  /** Jam sistem dibuat tetap, supaya batas 7 hari dan detik yang dibuang bisa dicek pasti. */
+  function jamSistem() {
+    vi.useFakeTimers()
+    vi.setSystemTime(SEKARANG)
+    onTestFinished(() => {
+      vi.useRealTimers()
+    })
+  }
+
+  it('siapa saja di room bisa mengisi dan mengosongkannya, dan semua HP melihatnya', async () => {
+    jamSistem()
+    const t = siapkan()
+    const haikal = await roomBaru(t)
+    const bintang = await t.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Bintang', kendaraan: 'mobil' })
+    expect((await lihatRoom(t, haikal.kode)).room.jamKetemuan).toBeNull()
+
+    // Bintang bukan pembuat room, tetap boleh. Detiknya dibuang.
+    await ubah(t, bintang, JAM_TUJUH + 45_000)
+    expect((await lihatRoom(t, haikal.kode)).room.jamKetemuan).toEqual({ waktu: JAM_TUJUH, olehPesertaId: bintang.pesertaId })
+
+    await ubah(t, haikal, null)
+    expect((await lihatRoom(t, haikal.kode)).room.jamKetemuan).toBeNull()
+  })
+
+  it('menolak jam yang sudah lewat atau lebih dari 7 hari lagi, dan jam yang lama tetap', async () => {
+    jamSistem()
+    const t = siapkan()
+    const haikal = await roomBaru(t)
+    await ubah(t, haikal, JAM_TUJUH)
+
+    for (const salah of [SEKARANG - 10 * 60_000, SEKARANG + 8 * 24 * 60 * 60_000, Number.NaN]) {
+      expect(await galatDari(ubah(t, haikal, salah))).toBe('JAM_KETEMUAN_TIDAK_VALID')
+    }
+    expect((await lihatRoom(t, haikal.kode)).room.jamKetemuan).toEqual({ waktu: JAM_TUJUH, olehPesertaId: haikal.pesertaId })
+  })
+
+  it('hanya pemilik kunci yang bisa mengubahnya', async () => {
+    jamSistem()
+    const t = siapkan()
+    const haikal = await roomBaru(t)
+    expect(await galatDari(ubah(t, { pesertaId: haikal.pesertaId, kunci: 'tebakan' }, JAM_TUJUH))).toBe('PESERTA_TIDAK_DIKENAL')
+    expect((await lihatRoom(t, haikal.kode)).room.jamKetemuan).toBeNull()
+  })
+
+  it('jam yang berubah membuat hasil usang, juga setelah tempat ditetapkan, tanpa mengubah tempatnya', async () => {
+    jamSistem()
+    const t = siapkan()
+    const { haikal, bintang, kandidat } = await roomSiap(t)
+    expect((await lihatRoom(t, haikal.kode)).room.hasilUsang).toBe(false)
+
+    await ubah(t, bintang, JAM_TUJUH)
+    expect((await lihatRoom(t, haikal.kode)).room.hasilUsang).toBe(true)
+
+    await t.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: kandidat[0] })
+    await ubah(t, bintang, JAM_TUJUH + 30 * 60_000)
+    const { room } = await lihatRoom(t, haikal.kode)
+    expect(room.jamKetemuan).toMatchObject({ waktu: JAM_TUJUH + 30 * 60_000 })
+    expect(room.tetap).toMatchObject({ kandidatId: kandidat[0], olehPesertaId: haikal.pesertaId })
+  })
+
+  it('jam yang sama tidak membuat hasil usang lagi', async () => {
+    jamSistem()
+    const t = siapkan()
+    const { haikal, bintang } = await roomSiap(t)
+    await ubah(t, haikal, JAM_TUJUH)
+    // Hasil dihitung ulang dengan jam itu.
+    await t.run(async (ctx) => {
+      const room = (await ctx.db.query('room').first())!
+      await ctx.db.patch('room', room._id, { versiHasil: room.versiLokasi })
+    })
+
+    // Detik yang berbeda dibuang, jadi jamnya sama. Orang yang mengisinya juga tidak berganti.
+    await ubah(t, bintang, JAM_TUJUH + 20_000)
+    const { room } = await lihatRoom(t, haikal.kode)
+    expect(room.hasilUsang).toBe(false)
+    expect(room.jamKetemuan).toEqual({ waktu: JAM_TUJUH, olehPesertaId: haikal.pesertaId })
+  })
+
+  it('dikosongkan saat room berakhir', async () => {
+    jamSistem()
+    const t = siapkan()
+    const haikal = await roomBaru(t)
+    await ubah(t, haikal, JAM_TUJUH)
+    const roomId = await t.run(async (ctx) => (await ctx.db.query('room').first())!._id)
+    await t.mutation(internal.room.tandaiKedaluwarsa, { roomId })
+    // Dicek di dalam t.run, karena nilai yang dikembalikan t.run mengubah undefined jadi null.
+    expect(await t.run(async (ctx) => (await ctx.db.get('room', roomId))?.jamKetemuan === undefined)).toBe(true)
+  })
+})

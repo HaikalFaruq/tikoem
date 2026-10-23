@@ -5,6 +5,7 @@ import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } fr
 import { BATAS_HITUNG_MS } from './hitung'
 import { vKendaraan, vTitik } from './schema'
 import { JUMLAH_KANDIDAT_AKHIR } from '../src/domain/keadilan'
+import { rapikanJamKetemuan } from '../src/domain/jamKetemuan'
 import { MAKS_PESERTA, MASA_ROOM_MS, buatKodeRoom, normalisasiKode, roomPenuh, sudahKedaluwarsa } from '../src/domain/room'
 import { rapikanNama } from '../src/domain/peserta'
 import { samarkan, titikValid } from '../src/domain/lokasi'
@@ -24,6 +25,7 @@ export type Galat =
   | 'KANDIDAT_TIDAK_ADA'
   | 'ROOM_SUDAH_TETAP'
   | 'PILIHAN_BERUBAH'
+  | 'JAM_KETEMUAN_TIDAK_VALID'
 
 const gagal = (galat: Galat) => new ConvexError({ galat })
 
@@ -100,7 +102,8 @@ const MASA_SISA_ROOM_MS = 7 * 24 * 60 * 60 * 1000
 
 /**
  * Dijadwalkan tepat 24 jam setelah room dibuat (AGENTS.md §8). Semua data pribadi dihapus: nama, lokasi, kunci,
- * vote, kandidat (waktu tempuhnya dihitung dari lokasi), dan titik tengah. Yang tersisa hanya kode dan status room.
+ * vote, kandidat (waktu tempuhnya dihitung dari lokasi), dan titik tengah. Jam ketemuan juga dikosongkan, jadi yang
+ * tersisa hanya kode dan status room.
  */
 export const tandaiKedaluwarsa = internalMutation({
   args: { roomId: v.id('room') },
@@ -123,7 +126,7 @@ export const tandaiKedaluwarsa = internalMutation({
       .take(MAKS_PESERTA)
     for (const p of peserta) await ctx.db.delete('peserta', p._id)
 
-    await ctx.db.patch('room', roomId, { kedaluwarsa: true, titikTengah: undefined, tetap: undefined })
+    await ctx.db.patch('room', roomId, { kedaluwarsa: true, titikTengah: undefined, tetap: undefined, jamKetemuan: undefined })
     await ctx.scheduler.runAfter(MASA_SISA_ROOM_MS, internal.room.hapusRoom, { roomId })
   },
 })
@@ -185,6 +188,26 @@ export const ubahKendaraan = mutation({
         ...(tidakDisebutLagi ? { pesertaTidakTerjangkau: undefined } : {}),
       })
     }
+  },
+})
+
+/**
+ * Mengisi atau mengosongkan (`null`) jam ketemuan (Discussions #83). Siapa saja di room boleh, juga setelah tempat ditetapkan.
+ * Detiknya dibuang. Jam yang sudah lewat atau lebih dari seminggu lagi ditolak.
+ */
+export const ubahJamKetemuan = mutation({
+  args: { pesertaId: v.id('peserta'), kunci: v.string(), jamKetemuan: v.union(v.number(), v.null()) },
+  handler: async (ctx, { pesertaId, kunci, jamKetemuan }) => {
+    const { room } = await pesertaDanRoom(ctx, pesertaId, kunci)
+    const waktu = jamKetemuan === null ? null : rapikanJamKetemuan(jamKetemuan, Date.now())
+    if (jamKetemuan !== null && waktu === null) throw gagal('JAM_KETEMUAN_TIDAK_VALID')
+    if ((room.jamKetemuan?.waktu ?? null) === waktu) return
+    await ctx.db.patch('room', room._id, {
+      jamKetemuan: waktu === null ? undefined : { waktu, olehPesertaId: pesertaId },
+      // Waktu tempuh transportasi umum dihitung untuk jam ini, jadi hasil yang sudah keluar jadi usang. Kalau tempatnya sudah
+      // ditetapkan, tempatnya tidak berubah.
+      versiLokasi: (room.versiLokasi ?? 0) + 1,
+    })
   },
 })
 
@@ -327,6 +350,8 @@ export const lihat = query({
         /** Naik setiap tombol "Cari tempat" ditekan. Layar memakainya untuk tahu ada pencarian baru walau status `menghitung` terlewat. */
         putaranHitung: room.putaranHitung ?? 0,
         tetap: room.tetap ?? null,
+        /** `{ waktu, olehPesertaId }` atau `null` (Discussions #83). `waktu` dalam milidetik, ditampilkan dalam WIB. */
+        jamKetemuan: room.jamKetemuan ?? null,
       },
       peserta: peserta.map((p) => ({
         id: p._id,

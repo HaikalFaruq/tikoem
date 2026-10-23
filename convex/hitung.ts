@@ -22,10 +22,10 @@ import { berangkatTransportasiUmum } from '../src/domain/transportasiUmum'
 export const BATAS_HITUNG_MS = 50_000
 
 export type PesertaDihitung = { id: Id<'peserta'>; kendaraan: Kendaraan; lokasi: Titik }
-type BahanHitung = { versiLokasi: number; peserta: PesertaDihitung[] }
+type BahanHitung = { versiLokasi: number; jamKetemuan: number | null; peserta: PesertaDihitung[] }
 type GalatHitung = Infer<typeof vGalatHitung>
 
-/** Peserta yang sudah berbagi lokasi, dibaca di satu transaksi bersama `versiLokasi` yang sesuai. */
+/** Peserta yang sudah berbagi lokasi, dibaca di satu transaksi bersama `versiLokasi` dan jam ketemuan yang sesuai. */
 export const bahan = internalQuery({
   args: { roomId: v.id('room'), putaran: v.number() },
   handler: async (ctx, { roomId, putaran }): Promise<BahanHitung | null> => {
@@ -37,6 +37,7 @@ export const bahan = internalQuery({
       .take(MAKS_PESERTA)
     return {
       versiLokasi: room.versiLokasi ?? 0,
+      jamKetemuan: room.jamKetemuan?.waktu ?? null,
       peserta: peserta.flatMap((p) => (p.lokasi ? [{ id: p._id, kendaraan: p.kendaraan, lokasi: p.lokasi }] : [])),
     }
   },
@@ -115,6 +116,7 @@ export const jalankan = internalAction({
         // Batas laju hanya untuk ORS dan Transitous asli. Server lain yang diisi lewat env, termasuk tiruan E2E, tidak antre.
         antreOrs: env.ORS_URL ? undefined : () => giliranOrs(ctx),
         antreTransitous: env.TRANSITOUS_URL ? undefined : () => giliranTransitous(ctx),
+        jamKetemuan: data.jamKetemuan ?? undefined,
       })
       if ('galat' in hasil) await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, ...hasil })
       else await ctx.runMutation(internal.hitung.simpan, { roomId, putaran, versiLokasi: data.versiLokasi, ...hasil })
@@ -153,8 +155,10 @@ export type OpsiHitung = {
   antreOrs?: () => Promise<void>
   /** Dipanggil sebelum tiap permintaan Transitous. */
   antreTransitous?: () => Promise<void>
-  /** Saat tombol Cari tempat ditekan, untuk jam berangkat transportasi umum. Kosong berarti sekarang. */
+  /** Saat tombol Cari tempat ditekan, untuk jam berangkat transportasi umum kalau jam ketemuan kosong. Kosong berarti sekarang. */
   sekarang?: number
+  /** Jam ketemuan room (Discussions #83). Kalau ada, jam ini yang jadi jam berangkat transportasi umum. */
+  jamKetemuan?: number
 }
 export type HasilHitung =
   | { titikTengah: Titik; kandidat: Infer<typeof vKandidat>[] }
@@ -187,7 +191,7 @@ class PesertaTakTerjangkau extends Error {
  */
 export async function hitungHasil(
   peserta: readonly PesertaDihitung[],
-  { kunciOrs, ambil = fetch, urlOverpass, urlOrs, urlTransitous, antreOrs, antreTransitous, sekarang = Date.now() }: OpsiHitung,
+  { kunciOrs, ambil = fetch, urlOverpass, urlOrs, urlTransitous, antreOrs, antreTransitous, sekarang = Date.now(), jamKetemuan }: OpsiHitung,
 ): Promise<HasilHitung> {
   const tengah = titikTengah(peserta.map((p) => p.lokasi))
   if (!tengah) return { galat: 'TEMPAT_TIDAK_DITEMUKAN' }
@@ -204,7 +208,8 @@ export async function hitungHasil(
 
   // Satu permintaan Transitous per orang ke semua tempat, sekali saja. Menitnya disimpan menurut `osmId` tempatnya, jadi
   // tetap cocok walaupun ORS nanti membuang tempat yang jauh dari jalan.
-  const opsiTransitous = { urlDasar: urlTransitous, ambil, antre: antreTransitous, berangkat: berangkatTransportasiUmum(sekarang) }
+  const berangkat = berangkatTransportasiUmum(jamKetemuan ?? sekarang)
+  const opsiTransitous = { urlDasar: urlTransitous, ambil, antre: antreTransitous, berangkat }
   const menitUmum = new Map<Id<'peserta'>, Map<string, number>>()
   for (const p of naikUmum) {
     const detik = await durasiTransportasiUmum(p.lokasi, tempat.map((t) => t.lokasi), opsiTransitous)
