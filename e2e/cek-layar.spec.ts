@@ -251,6 +251,41 @@ test('room sudah fix', async ({ browser }) => {
   })
 })
 
+test('kartu Fix! dengan ringkasan rute', async ({ browser }) => {
+  // Dua orang, masing-masing empat potretan.
+  test.setTimeout(90_000)
+  const haikal = await convex.mutation(api.room.buat, { nama: 'Haikal', kendaraan: 'motor' })
+  const gita = await convex.mutation(api.room.gabung, { kode: haikal.kode, nama: 'Gita', kendaraan: 'transportasi_umum' })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, lokasi: { lat: -6.262, lng: 106.813 } })
+  await convex.mutation(api.room.kirimLokasi, { pesertaId: gita.pesertaId, kunci: gita.kunci, lokasi: { lat: -6.2105, lng: 106.8505 } })
+  await convex.mutation(api.room.hitung, { pesertaId: haikal.pesertaId, kunci: haikal.kunci })
+  const hasil = await tungguStatus(haikal.kode, 'siap')
+  await convex.mutation(api.room.tetapkan, { pesertaId: haikal.pesertaId, kunci: haikal.kunci, kandidatId: hasil.kandidat[0].id })
+  const besok = new Date(Date.now() + 31 * 3600_000).toISOString().slice(0, 10)
+  await convex.mutation(api.room.ubahJamKetemuan, { pesertaId: gita.pesertaId, kunci: gita.kunci, jamKetemuan: Date.parse(`${besok}T19:00:00+07:00`) })
+  for (const [nama, identitas] of [
+    ['gita', gita],
+    ['haikal', haikal],
+  ] as const) {
+    await potret(
+      browser,
+      `fix-rute-${nama}`,
+      nama === 'gita'
+        ? 'Kartu Fix! Gita (transportasi umum): jam ketemuan dan ringkasan rute'
+        : 'Kartu Fix! Haikal (motor): perkiraan jam berangkat dengan cadangan macet',
+      {
+        url: `/r/${haikal.kode}`,
+        sebagai: { kode: haikal.kode, identitas },
+        tunggu: async (halaman) => {
+          await petaSiap(halaman)
+          await halaman.locator('[data-perjalanan-saya]').getByText('Berangkat').waitFor()
+          await halaman.waitForTimeout(1500)
+        },
+      },
+    )
+  }
+})
+
 test('pop up traktir setelah Cari tempat', async ({ browser }) => {
   // Pop up muncul sekali per room saat tempat mulai dicari, jadi tiap potretan memakai room baru.
   await potret(browser, 'traktir-pencarian', 'Pop up traktir: muncul saat Cari tempat ditekan, hasilnya sudah keluar', async () => {

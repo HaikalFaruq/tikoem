@@ -5,6 +5,7 @@ import { warnaPin } from '../../domain/warnaPin'
 import { Bintang, DialogStiker, KartuStiker, Pin, TautanTombol, Tombol } from '../../ui'
 import type { IdentitasRoom } from '../room/identitas'
 import { IsianJamKetemuan } from './IsianJamKetemuan'
+import { PerjalananSaya } from './PerjalananSaya'
 import type { Kandidat, Peserta, Room } from './tipe'
 
 type Props = {
@@ -158,6 +159,15 @@ export function KartuHasil({ room, kandidat, peserta, identitas, sibuk, onTetapk
         labelAtur="Atur jam ketemuan"
         onIdentitasHilang={onIdentitasHilang}
       />
+      {tetap && saya && (
+        <PerjalananSaya
+          saya={saya}
+          menit={baris.find((b) => b.peserta.id === idSaya)?.menit ?? null}
+          jamKetemuan={room.jamKetemuan?.waktu ?? null}
+          identitas={identitas}
+          onIdentitasHilang={onIdentitasHilang}
+        />
+      )}
 
       <div className="flex flex-col gap-2">
         {/* Sebelum ditetapkan, aksi utamanya menetapkan. Setelahnya, mengirim versi final ke grup. */}

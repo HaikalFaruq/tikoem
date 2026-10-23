@@ -5,7 +5,7 @@ import { LOKASI_RUTE_GAGAL_SEKALI, LOKASI_TANPA_TRANSPORTASI_UMUM, PAKAI_LAYANAN
 
 test.skip(!PAKAI_LAYANAN_TIRUAN, 'Butuh layanan tiruan. Otomatis di CI, atau jalankan dengan E2E_LAYANAN_TIRUAN=1.')
 
-// Kontrak ringkasan rute (Discussions #83) lewat backend Convex lokal dan Transitous tiruan. Kartu Fix!-nya menyusul di layar.
+// Kontrak ringkasan rute (Discussions #83) lewat backend Convex lokal dan Transitous tiruan. Kartu Fix!-nya di e2e/kartu-fix.spec.ts.
 const convex = new ConvexHttpClient(URL_BACKEND)
 const MANGGARAI = { lat: -6.2105, lng: 106.8505 }
 
