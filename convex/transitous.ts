@@ -1,4 +1,5 @@
 import type { Titik } from '../src/domain/lokasi'
+import type { BagianPerjalanan, PilihanPerjalanan } from '../src/domain/ringkasanRute'
 import { PENGENAL } from './pengenal'
 
 export type OpsiTransitous = {
@@ -15,8 +16,8 @@ export type OpsiTransitous = {
 /**
  * Tim Transitous mengizinkan pemakaian ini di channel Matrix mereka pada 21 Oktober 2026 (#58), selama Tikoem 100% open
  * source dan orang lain bisa menjalankan ulang seluruh setup-nya. Kata mereka, endpoint `experimental` dan API tanpa versi
- * lainnya bisa berubah tanpa pemberitahuan. Kalau bentuk jawabannya berubah, `bacaDurasi` menolaknya dan room berakhir
- * LAYANAN_GAGAL.
+ * lainnya bisa berubah tanpa pemberitahuan. Kalau bentuk jawabannya berubah, `bacaDurasi` dan `bacaRencana` menolaknya:
+ * hitung berakhir LAYANAN_GAGAL, dan ringkasan rute jadi `gagal`.
  */
 const URL_DASAR_TRANSITOUS = 'https://api.transitous.org'
 
@@ -47,18 +48,10 @@ const bentukAsing = () => new TransitousGagal('Bentuk jawaban Transitous tidak d
 const titik = ({ lat, lng }: Titik) => `${lat};${lng}`
 
 /**
- * Detik dari satu asal ke tiap tujuan lewat Transitous (MOTIS `one-to-many-intermodal`), yaitu yang tercepat antara jalan
- * kaki langsung dan transportasi umum, termasuk jalan kaki ke dan dari halte atau stasiun. `null` berarti tidak ada rute
- * dalam 3 jam. Pesan galat dari Transitous bisa memuat koordinat, jadi yang diteruskan hanya status HTTP-nya (AGENTS.md §8).
+ * Isi jawaban Transitous, dengan antrean, batas waktu, dan User-Agent Tikoem. Pesan galat dari Transitous bisa memuat
+ * koordinat, jadi yang diteruskan hanya status HTTP-nya (AGENTS.md §8). Isi yang bukan JSON jadi `null`.
  */
-export async function durasiTransportasiUmum(
-  asal: Titik,
-  tujuan: readonly Titik[],
-  { urlDasar = URL_DASAR_TRANSITOUS, ambil = fetch, batasMs = 10_000, berangkat, antre }: OpsiTransitous = {},
-): Promise<(number | null)[]> {
-  const waktu = berangkat === undefined ? '' : `&time=${new Date(berangkat).toISOString()}`
-  const kueri = `one=${titik(asal)}&many=${tujuan.map(titik).join(',')}&maxTravelTime=${MAKS_MENIT}${waktu}`
-  const url = `${urlDasar}/api/experimental/one-to-many-intermodal?${kueri}`
+async function mintaKeTransitous(url: string, { ambil = fetch, batasMs = 10_000, antre }: OpsiTransitous): Promise<unknown> {
   // Antre sebelum jam dinyalakan, jadi waktu menunggu giliran tidak memakan batas waktu permintaan.
   await antre?.()
   const henti = new AbortController()
@@ -67,13 +60,48 @@ export async function durasiTransportasiUmum(
     const jawaban = await ambil(url, { headers: { Accept: 'application/json', 'User-Agent': PENGENAL }, signal: henti.signal })
     if (jawaban.status === 429) throw new TransitousSibuk(bacaRetryAfter(jawaban.headers.get('Retry-After')))
     if (!jawaban.ok) throw new TransitousGagal(`Transitous menjawab HTTP ${jawaban.status}`)
-    return bacaDurasi(await jawaban.json().catch(() => null), tujuan.length)
+    return await jawaban.json().catch(() => null)
   } catch (galat) {
     if (galat instanceof TransitousGagal) throw galat
     throw new TransitousGagal(`Transitous gagal: ${galat instanceof Error ? galat.name : 'galat tidak dikenal'}`)
   } finally {
     clearTimeout(jam)
   }
+}
+
+/**
+ * Detik dari satu asal ke tiap tujuan lewat Transitous (MOTIS `one-to-many-intermodal`), yaitu yang tercepat antara jalan
+ * kaki langsung dan transportasi umum, termasuk jalan kaki ke dan dari halte atau stasiun. `null` berarti tidak ada rute
+ * dalam 3 jam.
+ */
+export async function durasiTransportasiUmum(
+  asal: Titik,
+  tujuan: readonly Titik[],
+  { urlDasar = URL_DASAR_TRANSITOUS, berangkat, ...opsi }: OpsiTransitous = {},
+): Promise<(number | null)[]> {
+  const waktu = berangkat === undefined ? '' : `&time=${new Date(berangkat).toISOString()}`
+  const kueri = `one=${titik(asal)}&many=${tujuan.map(titik).join(',')}&maxTravelTime=${MAKS_MENIT}${waktu}`
+  return bacaDurasi(await mintaKeTransitous(`${urlDasar}/api/experimental/one-to-many-intermodal?${kueri}`, opsi), tujuan.length)
+}
+
+type OpsiRencana = Omit<OpsiTransitous, 'berangkat'> & {
+  /** Jam berangkat, atau jam sampai paling lambat kalau `tiba`. */
+  waktu: number
+  tiba: boolean
+}
+
+/**
+ * Pilihan perjalanan dari satu titik ke satu tempat lewat Transitous (MOTIS `/api/v6/plan`), untuk ringkasan rute
+ * (Discussions #83). Jalan kaki langsung ikut sebagai pilihan tanpa pindah kendaraan. Garis rutenya tidak diminta
+ * (`detailedLegs=false`), karena isinya koordinat dan tidak dipakai.
+ */
+export async function rencanaPerjalanan(
+  asal: Titik,
+  tujuan: Titik,
+  { urlDasar = URL_DASAR_TRANSITOUS, waktu, tiba, ...opsi }: OpsiRencana,
+): Promise<PilihanPerjalanan[]> {
+  const kueri = `fromPlace=${asal.lat},${asal.lng}&toPlace=${tujuan.lat},${tujuan.lng}&time=${new Date(waktu).toISOString()}&arriveBy=${tiba}&detailedLegs=false`
+  return bacaRencana(await mintaKeTransitous(`${urlDasar}/api/v6/plan?${kueri}`, opsi))
 }
 
 /** Retry-After berisi jumlah detik atau tanggal HTTP. Isi yang tidak bisa dibaca diabaikan. */
@@ -115,4 +143,57 @@ function bacaDurasi(isi: unknown, jumlahTujuan: number): (number | null)[] {
     const tercepat = semua.length > 0 ? Math.min(...semua) : null
     return tercepat !== null && tercepat <= MAKS_MENIT * 60 ? tercepat : null
   })
+}
+
+const objek = (isi: unknown): Record<string, unknown> => {
+  if (typeof isi !== 'object' || isi === null || Array.isArray(isi)) throw bentukAsing()
+  return isi as Record<string, unknown>
+}
+const teks = (isi: unknown): string => {
+  if (typeof isi !== 'string' || isi === '') throw bentukAsing()
+  return isi
+}
+const teksBoleh = (isi: unknown) => (typeof isi === 'string' && isi !== '' ? isi : null)
+const jamDari = (isi: unknown) => {
+  const waktu = typeof isi === 'string' ? Date.parse(isi) : Number.NaN
+  if (Number.isNaN(waktu)) throw bentukAsing()
+  return waktu
+}
+
+/** Satu `Leg` MOTIS. Koordinatnya tidak dibaca. */
+function bacaBagian(isi: unknown): BagianPerjalanan {
+  const leg = objek(isi)
+  const perhentian = leg.intermediateStops ?? []
+  if (!Array.isArray(perhentian)) throw bentukAsing()
+  return {
+    moda: teks(leg.mode),
+    mulai: jamDari(leg.startTime),
+    selesai: jamDari(leg.endTime),
+    dari: teks(objek(leg.from).name),
+    ke: teks(objek(leg.to).name),
+    jalurPendek: teksBoleh(leg.routeShortName),
+    jalurPanjang: teksBoleh(leg.routeLongName),
+    arah: teksBoleh(leg.headsign),
+    ujung: leg.tripTo === undefined ? null : teksBoleh(objek(leg.tripTo).name),
+    operator: teksBoleh(leg.agencyName),
+    perhentian: perhentian.length,
+    warna: teksBoleh(leg.routeColor),
+    warnaTeks: teksBoleh(leg.routeTextColor),
+  }
+}
+
+/** Satu `Itinerary` MOTIS. */
+function bacaPilihan(isi: unknown): PilihanPerjalanan {
+  const pilihan = objek(isi)
+  if (!Array.isArray(pilihan.legs) || pilihan.legs.length === 0) throw bentukAsing()
+  if (typeof pilihan.transfers !== 'number' || pilihan.transfers < 0) throw bentukAsing()
+  return { berangkat: jamDari(pilihan.startTime), sampai: jamDari(pilihan.endTime), pindah: pilihan.transfers, bagian: pilihan.legs.map(bacaBagian) }
+}
+
+/** `itineraries` berisi pilihan dengan transportasi umum, dan `direct` berisi jalan kaki langsung kalau tidak terlalu jauh. */
+function bacaRencana(isi: unknown): PilihanPerjalanan[] {
+  const rencana = objek(isi)
+  const langsung = rencana.direct ?? []
+  if (!Array.isArray(rencana.itineraries) || !Array.isArray(langsung)) throw bentukAsing()
+  return [...rencana.itineraries, ...langsung].map(bacaPilihan)
 }

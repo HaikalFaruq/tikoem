@@ -1,8 +1,9 @@
 import { MINUTE, RateLimiter } from '@convex-dev/rate-limiter'
 import { v, type Infer } from 'convex/values'
-import { components } from './_generated/api'
-import { internalMutation, internalQuery, type ActionCtx, type QueryCtx } from './_generated/server'
+import { components, internal } from './_generated/api'
+import { env, internalMutation, internalQuery, type ActionCtx, type QueryCtx } from './_generated/server'
 import { vLayananBerjeda } from './schema'
+import { TransitousGagal, TransitousSibuk } from './transitous'
 import { jedaBertahap } from '../src/lib/waktu'
 
 /**
@@ -37,6 +38,23 @@ export async function tungguGiliran(ctx: ActionCtx, layanan: 'nominatim' | 'ors'
   const { ok, retryAfter } = await batasLaju.limit(ctx, layanan, { reserve: true })
   if (ok && retryAfter) await new Promise((lanjut) => setTimeout(lanjut, retryAfter))
   return ok
+}
+
+/**
+ * Menunggu giliran ke Transitous asli, untuk Cari tempat dan ringkasan rute. Selama jeda setelah 429 atau kalau antreannya
+ * penuh, langsung gagal tanpa bertanya ke sana.
+ */
+export async function giliranTransitous(ctx: ActionCtx) {
+  const jedaSampai: number | null = await ctx.runQuery(internal.batasLaju.jeda, { layanan: 'transitous' })
+  if (jedaSampai !== null && Date.now() < jedaSampai) throw new TransitousGagal('Transitous masih meminta jeda')
+  if (!(await tungguGiliran(ctx, 'transitous'))) throw new TransitousGagal('Antrean Transitous penuh')
+}
+
+/** Kalau Transitous asli menjawab 429, room lain ikut berhenti bertanya ke sana sampai jedanya habis. */
+export async function catatKalauSibuk(ctx: ActionCtx, galat: unknown) {
+  if (galat instanceof TransitousSibuk && !env.TRANSITOUS_URL) {
+    await ctx.runMutation(internal.batasLaju.catatSibuk, { layanan: 'transitous', mintaJedaMs: galat.mintaJedaMs })
+  }
 }
 
 const jedaDari = (ctx: QueryCtx, layanan: Infer<typeof vLayananBerjeda>) =>

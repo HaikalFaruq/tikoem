@@ -2,11 +2,11 @@ import { v, type Infer } from 'convex/values'
 import { internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import { env, internalAction, internalMutation, internalQuery, type ActionCtx, type MutationCtx } from './_generated/server'
-import { tungguGiliran } from './batasLaju'
+import { catatKalauSibuk, giliranTransitous, tungguGiliran } from './batasLaju'
 import { cariTempatSekitar } from './overpass'
 import { KODE_TITIK_TIDAK_TERJANGKAU, OrsGagal, matriksDurasi, type OpsiOrs } from './ors'
 import { vGalatHitung, vKandidat, vTitik } from './schema'
-import { TransitousGagal, TransitousSibuk, durasiTransportasiUmum } from './transitous'
+import { durasiTransportasiUmum } from './transitous'
 import { PROFIL_RUTE, menitDariDetik, peringkatKandidat } from '../src/domain/keadilan'
 import type { Kendaraan } from '../src/domain/kendaraan'
 import type { Titik } from '../src/domain/lokasi'
@@ -124,10 +124,7 @@ export const jalankan = internalAction({
       // Pesan galat Overpass, ORS, dan Transitous sengaja tidak memuat koordinat, jadi aman ditulis ke log (AGENTS.md §8).
       console.error(`Hitung room gagal: ${galat instanceof Error ? galat.message : 'galat tidak dikenal'}`)
       await ctx.runMutation(internal.hitung.gagal, { roomId, putaran, galat: 'LAYANAN_GAGAL' })
-      // Room lain ikut berhenti bertanya ke Transitous asli sampai jedanya habis.
-      if (galat instanceof TransitousSibuk && !env.TRANSITOUS_URL) {
-        await ctx.runMutation(internal.batasLaju.catatSibuk, { layanan: 'transitous', mintaJedaMs: galat.mintaJedaMs })
-      }
+      await catatKalauSibuk(ctx, galat)
     }
   },
 })
@@ -135,13 +132,6 @@ export const jalankan = internalAction({
 /** Menunggu giliran ke ORS. Kalau antreannya sudah penuh, hitung gagal tanpa memakai kuota ORS. */
 async function giliranOrs(ctx: ActionCtx) {
   if (!(await tungguGiliran(ctx, 'ors'))) throw new OrsGagal('Antrean ORS penuh')
-}
-
-/** Menunggu giliran ke Transitous. Selama jeda setelah 429 atau kalau antreannya penuh, hitung gagal tanpa bertanya ke sana. */
-async function giliranTransitous(ctx: ActionCtx) {
-  const jedaSampai: number | null = await ctx.runQuery(internal.batasLaju.jeda, { layanan: 'transitous' })
-  if (jedaSampai !== null && Date.now() < jedaSampai) throw new TransitousGagal('Transitous masih meminta jeda')
-  if (!(await tungguGiliran(ctx, 'transitous'))) throw new TransitousGagal('Antrean Transitous penuh')
 }
 
 export type OpsiHitung = {

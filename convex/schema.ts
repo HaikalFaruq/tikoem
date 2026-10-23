@@ -24,6 +24,42 @@ export const vKategoriTempat = v.union(v.literal('kafe'), v.literal('resto'), v.
 /** Layanan luar yang meminta app mundur dulu setelah menjawab 429 (convex/batasLaju.ts). */
 export const vLayananBerjeda = v.literal('transitous')
 
+/** Satu langkah ringkasan rute (Discussions #83). Waktu dalam milidetik, nama halte dan stasiun tanpa koordinat. */
+const vLangkah = v.union(
+  v.object({ jenis: v.literal('jalan'), mulai: v.number(), menit: v.number(), ke: v.union(v.string(), v.null()) }),
+  v.object({
+    jenis: v.union(v.literal('kereta'), v.literal('bus')),
+    layanan: v.string(),
+    jalur: v.string(),
+    arah: v.string(),
+    naik: v.string(),
+    turun: v.string(),
+    mulai: v.number(),
+    menit: v.number(),
+    perhentian: v.number(),
+    warna: v.union(v.object({ latar: v.string(), teks: v.string() }), v.null()),
+  }),
+)
+
+/**
+ * Ringkasan rute satu orang ke tempat yang ditetapkan (Discussions #83), yaitu `peserta[].rute` di `room.lihat`. Bentuk
+ * `tidak_ada` dan `siap` dibuat `ringkasRute` di src/domain/ringkasanRute.ts.
+ */
+export const vRingkasanRute = v.union(
+  v.object({ status: v.literal('menghitung') }),
+  v.object({ status: v.literal('gagal') }),
+  v.object({ status: v.literal('tidak_ada'), jamKetemuan: v.union(v.number(), v.null()) }),
+  v.object({
+    status: v.literal('siap'),
+    /** Jam ketemuan yang dipakai: sampai paling lambat jam ini. `null` berarti dihitung untuk berangkat pada `dihitungPada`. */
+    jamKetemuan: v.union(v.number(), v.null()),
+    dihitungPada: v.number(),
+    berangkat: v.number(),
+    sampai: v.number(),
+    langkah: v.array(vLangkah),
+  }),
+)
+
 /** Satu kandidat hasil hitung, tanpa `roomId`. Dipakai tabel `kandidat` dan argumen `hitung.simpan`. */
 export const vKandidat = v.object({
   osmId: v.string(),
@@ -77,6 +113,11 @@ export default defineSchema({
      * dicari. Dikosongkan saat room berakhir.
      */
     jamKetemuan: v.optional(v.object({ waktu: v.number(), olehPesertaId: v.id('peserta') })),
+    /**
+     * Naik setiap ada ringkasan rute di room ini yang perlu dihitung (Discussions #83). Tidak pernah turun walaupun ringkasannya
+     * dihapus, jadi hasil yang datang terlambat dari sebelum tempat dibuka lagi tidak menimpa ringkasan yang baru.
+     */
+    putaranRingkasan: v.optional(v.number()),
   }).index('by_kode', ['kode']),
 
   peserta: defineTable({
@@ -96,6 +137,20 @@ export default defineSchema({
     roomId: v.id('room'),
     pesertaId: v.id('peserta'),
     kandidatId: v.id('kandidat'),
+  })
+    .index('by_roomId', ['roomId'])
+    .index('by_pesertaId', ['pesertaId']),
+
+  /**
+   * Ringkasan rute ke tempat yang ditetapkan, satu baris per orang yang naik transportasi umum (Discussions #83). Isinya
+   * tanpa koordinat, dan dihapus saat tempat dibuka lagi, saat orangnya keluar, dan saat room berakhir (AGENTS.md §8).
+   */
+  ringkasanRute: defineTable({
+    roomId: v.id('room'),
+    pesertaId: v.id('peserta'),
+    /** Naik setiap ringkasan orang ini perlu dihitung ulang. Hasil dari putaran yang sudah lewat diabaikan. */
+    putaran: v.number(),
+    ringkasan: vRingkasanRute,
   })
     .index('by_roomId', ['roomId'])
     .index('by_pesertaId', ['pesertaId']),

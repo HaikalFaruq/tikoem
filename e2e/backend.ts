@@ -30,3 +30,9 @@ export const LOKASI_TIDAK_TERJANGKAU = { lat: -6.05, lng: 106.85 }
  * orang yang naik transportasi umum dari titik ini membuat hitung berakhir dengan TRANSPORTASI_UMUM_TIDAK_TERJANGKAU.
  */
 export const LOKASI_TANPA_TRANSPORTASI_UMUM = { lat: -6.4, lng: 107 }
+
+/**
+ * Titik di Lebak Bulus. Ringkasan rute pertama untuk orang yang naik transportasi umum dari sini berakhir `gagal`, lalu
+ * berhasil setelah `room.hitungRute` (Coba lagi). Cari tempat dari titik ini tetap berjalan biasa.
+ */
+export const LOKASI_RUTE_GAGAL_SEKALI = { lat: -6.289, lng: 106.774 }

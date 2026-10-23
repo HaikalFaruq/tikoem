@@ -15,6 +15,7 @@ import type * as nominatim from "../nominatim.js";
 import type * as ors from "../ors.js";
 import type * as overpass from "../overpass.js";
 import type * as pengenal from "../pengenal.js";
+import type * as ringkasanRute from "../ringkasanRute.js";
 import type * as room from "../room.js";
 import type * as transitous from "../transitous.js";
 
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   ors: typeof ors;
   overpass: typeof overpass;
   pengenal: typeof pengenal;
+  ringkasanRute: typeof ringkasanRute;
   room: typeof room;
   transitous: typeof transitous;
 }>;
