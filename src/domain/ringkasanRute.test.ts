@@ -71,6 +71,13 @@ const BLOK_M_KE_KOTA = [
   pilihan(0, jalan('START', 'ASEAN', '17:40', '17:51'), tj('ASEAN', 'Kali Besar', '17:51', '18:56'), jalan('Kali Besar', 'END', '18:56', '19:00')),
 ]
 
+/** Warna chip satu langkah TransJakarta dengan warna jalur itu dari feed. */
+function warnaDari(warna: string, warnaTeks: string | null) {
+  const hasil = ringkasRute([pilihan(0, tj('Cikoko', 'Tegal Parang', '18:38', '18:53', { warna, warnaTeks }))], { ...opsi, jamKetemuan: null })
+  if (hasil.status !== 'siap' || hasil.langkah[0].jenis === 'jalan') throw new Error('bukan langkah kendaraan')
+  return hasil.langkah[0].warna
+}
+
 describe('ringkasRute', () => {
   it('dengan jam ketemuan, mengambil pilihan yang berangkat paling akhir', () => {
     expect(ringkasRute(BLOK_M_KE_KOTA, { ...opsi, jamKetemuan: jam('19:00') })).toEqual({
@@ -170,6 +177,17 @@ describe('ringkasRute', () => {
         { jenis: 'kereta', layanan: 'Kereta', jalur: 'Kereta', arah: 'Jakartakota', warna: { latar: '#0084d8', teks: '#000000' } },
       ],
     })
+  })
+
+  it('mengganti warna tulisan dari feed dengan hitam atau putih kalau kontrasnya kurang dari 4,5:1', () => {
+    // TJ 9A dan KRL Cikarang di feed memakai tulisan putih yang kurang kontras.
+    expect(warnaDari('45a49e', 'ffffff')).toEqual({ latar: '#45a49e', teks: '#000000' })
+    expect(warnaDari('0084d8', 'FFFFFF')).toEqual({ latar: '#0084d8', teks: '#000000' })
+    // Yang sudah terbaca dibiarkan, termasuk tulisan hitam dari feed.
+    expect(warnaDari('e30a16', 'ffffff')).toEqual({ latar: '#e30a16', teks: '#ffffff' })
+    expect(warnaDari('d65e62', '000000')).toEqual({ latar: '#d65e62', teks: '#000000' })
+    // Tanpa warna tulisan, hitam dari GTFS juga diganti kalau latarnya gelap.
+    expect(warnaDari('512c62', null)).toEqual({ latar: '#512c62', teks: '#ffffff' })
   })
 
   it('tidak menyebut jalan kaki nol detik', () => {

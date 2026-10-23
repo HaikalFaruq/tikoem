@@ -85,6 +85,7 @@ Catatan transportasi umum:
   - **Jam acuannya.** Dengan jam ketemuan, yang ditanyakan rute yang sampai paling lambat jam itu (`arriveBy`). Tanpa jam ketemuan, rute yang berangkat saat itu.
   - **Satu pilihan.** Dengan jam ketemuan, yang berangkat paling akhir. Tanpa jam ketemuan, yang paling cepat sampai. Pindah kendaraan lebih sedikit menang kalau selisihnya paling banyak 5 menit.
   - **Nama.** Stasiun KRL di feed huruf besar semua, jadi dirapikan, lalu diberi awalan seperti kandidat. Arah dan nomor peron di nama halte dibuang (`src/domain/ringkasanRute.ts`).
+  - **Warna.** Warna chip jalur dari feed. Kalau tulisan dari feed kontrasnya kurang dari 4,5:1 (WCAG AA), misalnya putih di atas hijau TJ 9A, tulisannya diganti hitam atau putih, mana yang lebih kontras.
   - **Akhir pekan.** Dihitung dengan jadwal Senin seperti waktu tempuh, lalu jamnya dikembalikan ke hari aslinya.
   - **Hitung ulang.** Untuk semua orang saat jam ketemuan berubah, dan untuk orang itu saja saat dia mengubah lokasi atau kendaraan selama tempat tetap.
   - **Privasi.** Ringkasan tidak memuat koordinat atau garis rute. Datanya dihapus saat tempat dibuka lagi, saat orangnya keluar, dan saat room berakhir.

@@ -145,7 +145,8 @@ describe('ringkasan rute (Discussions #83)', () => {
           mulai: jam('10:05'),
           menit: 20,
           perhentian: 0,
-          warna: { latar: '#0084d8', teks: '#ffffff' },
+          // Tulisan putih dari feed hanya 3,97:1 di atas biru KRL Cikarang, jadi diganti hitam.
+          warna: { latar: '#0084d8', teks: '#000000' },
         },
         { jenis: 'jalan', mulai: jam('10:25'), menit: 3, ke: null },
       ],
